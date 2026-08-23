@@ -22,7 +22,6 @@
     "vite": "^7.3.1"
   },
   "dependencies": {
-    "@facile/muse": "file:/home/yann/Code/Facile/muse",
-    "iconify-icon": "^3.0.2"
+    "@facile/muse": "file:../../../muse"
   }
 }

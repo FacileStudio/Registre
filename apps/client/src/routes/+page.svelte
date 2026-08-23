@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { Button, Divider, TextElevate, icons } from '@facile/muse';
+	import { Button, Divider, Icon, TextElevate, icons } from '@facile/muse';
 
 	const features = [
 		{
-			icon: 'solar:key-minimalistic-square-3-linear',
+			icon: icons.key,
 			title: 'One identity, every app',
 			description:
 				'Sign in once with your Facile account. Registre vouches for you to Sablier, Nuage, Casier and the rest of the suite.'
 		},
 		{
-			icon: 'solar:shield-check-linear',
+			icon: icons.shield,
 			title: 'Signed, verifiable tokens',
 			description:
 				'Every token is a JWT signed by rotating keys and published in an open JWKS. Apps verify it themselves, no phone-home required.'
@@ -35,12 +35,7 @@
 	<header class="border-b border-fc-border">
 		<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
 			<div class="flex h-14 items-center gap-3">
-				<iconify-icon
-					icon="solar:key-minimalistic-square-3-bold-duotone"
-					width="24"
-					height="24"
-					class="block shrink-0"
-				></iconify-icon>
+				<img src="/logo.svg" alt="" width={24} height={24} class="block shrink-0" />
 				<span class="font-fc-title text-fc-xl font-semibold tracking-tight">registre</span>
 			</div>
 			<Button variant="ghost" href="/login" class="rounded-fc-md">Log in</Button>
@@ -79,8 +74,7 @@
 						<div
 							class="mb-3 flex size-10 items-center justify-center rounded-fc-md border border-fc-border"
 						>
-							<iconify-icon icon={feature.icon} width="20" height="20" class="block shrink-0"
-							></iconify-icon>
+							<Icon icon={feature.icon} size={20} />
 						</div>
 						<h3 class="text-fc-lg font-semibold">{feature.title}</h3>
 						<p class="mt-1.5 text-fc-sm text-fc-fg-muted">{feature.description}</p>
