@@ -26,7 +26,7 @@ export const options = {
 		app: ({ head, body, assets, nonce, env }) => "<!doctype html>\n<html lang=\"en\" class=\"dark\">\n\t<head>\n\t\t<meta charset=\"utf-8\" />\n\t\t<link rel=\"icon\" href=\"" + assets + "/favicon.svg\" type=\"image/svg+xml\" />\n\t\t<link rel=\"alternate icon\" href=\"" + assets + "/favicon.ico\" sizes=\"any\" />\n\t\t<link rel=\"apple-touch-icon\" href=\"" + assets + "/apple-touch-icon.png\" />\n\t\t<link rel=\"manifest\" href=\"" + assets + "/site.webmanifest\" />\n\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n\t\t<meta name=\"theme-color\" content=\"#0a0a0a\" />\n\t\t" + head + "\n\t</head>\n\t<body data-sveltekit-preload-data=\"hover\" class=\"bg-fc-page text-fc-fg\">\n\t\t<div style=\"display: contents\">" + body + "</div>\n\t</body>\n</html>\n",
 		error
 	},
-	version_hash: "6s2gup"
+	version_hash: "1rvdumq"
 };
 
 export async function get_hooks() {

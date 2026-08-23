@@ -26,19 +26,6 @@ func New(identityService *identity.Service, logger *slog.Logger) *Service {
 	return &Service{identity: identityService, logger: logger, now: func() time.Time { return time.Now().UTC() }}
 }
 
-// home is what a human poking at the domain root sees. It says what this is
-// instead of answering 404, and links nothing because there is nothing yet.
-func (s *Service) home(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, err := w.Write([]byte(`<!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>registre</title></head><body><p>registre is the Facile Suite's identity provider.
-There is nothing to see here; sign-in starts from the app you are trying to reach.</p>
-</body></html>`))
-	if err != nil {
-		s.logger.Error("registre: failed to write the home page", slog.Any("error", err))
-	}
-}
-
 // jsonSubmit answers the client app's fetch with the decision that matters:
 // a redirect target on success, one generic refusal otherwise. The browser
 // follows the redirect as a full navigation, so the code exchange never runs

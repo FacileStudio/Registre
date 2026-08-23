@@ -1,84 +1,38 @@
 <script lang="ts">
-	import { Button, Card, Field, Input, Alert } from '@facile/muse';
-
-	let authRequest = $state('');
-	let email = $state('');
-	let password = $state('');
-	let error = $state('');
-	let busy = $state(false);
-
-	$effect(() => {
-		authRequest = new URLSearchParams(window.location.search).get('auth_request') ?? '';
-	});
-
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (!authRequest || busy) return;
-		busy = true;
-		error = '';
-		try {
-			const response = await fetch('/api/login', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ auth_request: authRequest, email, password })
-			});
-			const body = await response.json();
-			if (!response.ok) {
-				error = 'Wrong email or password.';
-				return;
-			}
-			window.location.assign(body.redirect);
-		} catch {
-			error = 'Something went wrong. Try again.';
-		} finally {
-			busy = false;
-		}
-	}
+	import { Card } from '@facile/muse';
 </script>
 
 <svelte:head>
-	<title>Sign in — registre</title>
+	<title>registre — the Facile Suite's identity provider</title>
+	<meta
+		name="description"
+		content="Registre signs the suite's users and services in. Sign-in starts from the app you are trying to reach."
+	/>
 </svelte:head>
 
 <main class="grid min-h-dvh place-items-center bg-fc-page px-4">
-	<Card class="w-full max-w-sm p-8">
-		<h1 class="mb-1 text-fc-lg font-semibold text-fc-fg">Sign in to registre</h1>
-		<p class="mb-6 text-fc-sm text-fc-fg-muted">
-			The Facile Suite's identity provider. Sign-in starts from the app you are trying to reach.
+	<Card class="w-full max-w-md p-10 text-center">
+		<svg
+			width="64"
+			height="64"
+			viewBox="0 0 24 24"
+			fill="none"
+			aria-hidden="true"
+			class="mx-auto mb-6 text-fc-fg"
+		>
+			<circle cx="12" cy="12" r="4" fill="currentColor" />
+			<g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+				<path d="M12 2v2" /><path d="M12 20v2" />
+				<path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" />
+				<path d="M2 12h2" /><path d="M20 12h2" />
+				<path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
+			</g>
+		</svg>
+		<h1 class="mb-2 text-fc-lg font-semibold text-fc-fg">registre</h1>
+		<p class="text-fc-base text-fc-fg-muted">
+			The Facile Suite's identity provider. There is nothing to do here by hand:
+			sign-in starts from the app you are trying to reach, and lands back there
+			when you are done.
 		</p>
-
-		{#if !authRequest}
-			<Alert tone="danger" title="This sign-in link is not valid.">
-				Start again from the app that sent you here.
-			</Alert>
-		{:else}
-			<form onsubmit={submit} class="flex flex-col gap-4">
-				{#if error}
-					<Alert tone="danger" title={error} />
-				{/if}
-				<Field label="Email" for="email">
-					<Input
-						id="email"
-						type="email"
-						autocomplete="username"
-						required
-						autofocus
-						bind:value={email}
-					/>
-				</Field>
-				<Field label="Password" for="password">
-					<Input
-						id="password"
-						type="password"
-						autocomplete="current-password"
-						required
-						bind:value={password}
-					/>
-				</Field>
-				<Button type="submit" disabled={busy}>
-					{busy ? 'Signing in…' : 'Sign in'}
-				</Button>
-			</form>
-		{/if}
 	</Card>
 </main>

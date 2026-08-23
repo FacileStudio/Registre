@@ -3,9 +3,9 @@ import adapterStatic from '@sveltejs/adapter-static';
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	kit: {
-		// The api binary serves the whole build under /login, so every asset
-		// URL the adapter emits has to carry the same prefix.
-		paths: { base: '/login' },
+		// Mounted at the domain root: the api binary serves this build as the
+		// catch-all after its own routes, so "/" is the landing page and
+		// "/login" the sign-in form.
 		adapter: adapterStatic({
 			pages: 'build',
 			assets: 'build',

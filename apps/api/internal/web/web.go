@@ -11,20 +11,20 @@ import (
 //go:embed all:dist
 var dist embed.FS
 
-// Handler serves the built client app under /login. Every asset URL the
-// build emits already carries that prefix, so one subtree mount covers it.
-// Unknown paths fall back to index.html because the app is a single page.
+// Handler serves the built client app at the domain root, as the catch-all
+// mounted after the api's own routes. Unknown paths fall back to index.html
+// so client-side routing owns them.
 func Handler() http.Handler {
 	sub, err := fs.Sub(dist, "dist")
 	if err != nil {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			http.Error(w, "embedded client build is unreadable", http.StatusInternalServerError)
 		})
 	}
 	fileServer := http.FileServerFS(sub)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		name := strings.TrimPrefix(r.URL.Path, "/login")
-		if name == "" || name == "/" {
+		name := r.URL.Path
+		if name == "/" {
 			name = "/index.html"
 		}
 		if _, err := fs.Stat(sub, strings.TrimPrefix(name, "/")); err != nil {
@@ -36,6 +36,6 @@ func Handler() http.Handler {
 			fileServer.ServeHTTP(w, r2)
 			return
 		}
-		http.StripPrefix("/login", fileServer).ServeHTTP(w, r)
+		fileServer.ServeHTTP(w, r)
 	})
 }

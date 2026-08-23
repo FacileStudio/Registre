@@ -10,9 +10,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Mount registers the login routes on router. The client build is mounted
-// after these in main.go, so nothing here may claim a path the SPA serves.
+// Mount registers the login routes on router. The client build owns every
+// page, including "/"; this package only answers its credential check.
 func Mount(router chi.Router, service *Service) {
-	router.Get("/", service.home)
 	router.Post("/api/login", service.jsonSubmit)
 }

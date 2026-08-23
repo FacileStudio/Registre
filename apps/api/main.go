@@ -167,10 +167,9 @@ type services struct {
 // assemble wires the process's services into routes. The dependencies travel
 // together as one value so the function stays inside the parameter ceiling.
 //
-// Route precedence: oidc.Mount first, then the embedded client, then
-// login.Mount last for "/" and POST /api/login, which no SPA path collides
-// with. The client app owns GET /login entirely; there is no Go-rendered
-// fallback form.
+// Route precedence: oidc.Mount and login.Mount first, then the embedded
+// client as the catch-all, so every page a human sees — "/" included — is the
+// SvelteKit app while API routes keep priority over it.
 func assemble(
 	ctx context.Context,
 	db *gorm.DB,
@@ -227,9 +226,8 @@ func assemble(
 	})
 	health.Mount(router, health.DB(sqlDB))
 	oidc.Mount(router, provider)
-	router.Handle("/login", web.Handler())
-	router.Handle("/login/*", web.Handler())
 	login.Mount(router, login.New(users, svc.log))
+	router.Handle("/*", web.Handler())
 	return router, nil
 }
 
