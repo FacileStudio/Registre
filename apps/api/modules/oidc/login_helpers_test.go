@@ -187,7 +187,7 @@ func flowParams(challenge string, extra url.Values) url.Values {
 // callback, and returns the code the relying party receives.
 func driveToTheCode(
 	t *testing.T, f *fixture, jar *singleCookie, verifier, challenge string,
-) (string, callbackResult) {
+) callbackResult {
 	t.Helper()
 	extra := url.Values{"scope": {"openid profile email"}, "state": {"st4te"}, "nonce": {"n0nce"}}
 	authorizeURL := f.issuer + "/authorize?" + flowParams(challenge, extra).Encode()
@@ -217,7 +217,7 @@ func driveToTheCode(
 	if codeResponse.StatusCode != http.StatusFound {
 		t.Fatalf("callback = %d: %s", codeResponse.StatusCode, jar.lastBody.String())
 	}
-	return id, parseCallback(codeResponse.Header.Get("Location"))
+	return parseCallback(codeResponse.Header.Get("Location"))
 }
 
 // assertIDTokenNonce checks that the ID token carries the nonce the flow sent.

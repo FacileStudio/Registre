@@ -23,14 +23,13 @@ func TestAHumanSignsInAndGetsAToken(t *testing.T) {
 	verifier, challenge := pkcePair(t)
 	jar := &singleCookie{}
 
-	authRequestID, back := driveToTheCode(t, fixture, jar, verifier, challenge)
+	back := driveToTheCode(t, fixture, jar, verifier, challenge)
 	if back.state != "st4te" {
 		t.Errorf("state = %q, want st4te", back.state)
 	}
 	if back.code == "" {
 		t.Fatal("no code came back to the relying party")
 	}
-	_ = authRequestID
 
 	granted, status := fixture.post("/oauth/token", "sablier", clientSecret, url.Values{
 		"grant_type":    {"authorization_code"},

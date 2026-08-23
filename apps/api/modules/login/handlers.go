@@ -10,11 +10,6 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 )
 
-// pageTTL bounds how long the login form accepts an auth_request id. It is a
-// second, independent bound on top of the row's own expiry: the form refuses
-// stale ids without a database read.
-const pageTTL = 10 * time.Minute
-
 // Service is the login UI: the pages a human sees between the app that sent
 // them here and the code that sends them back.
 type Service struct {

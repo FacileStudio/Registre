@@ -2,6 +2,8 @@ package oidc
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -69,13 +71,17 @@ func (s *Storage) AuthRequestByID(ctx context.Context, id string) (op.AuthReques
 
 // AuthRequestByCode resolves a pending flow from the code an app redeemed.
 //
-// SaveAuthCode stores the code on the row, so this is a lookup by it. The row
-// is deleted here rather than at expiry alone: a spent code that still answers
-// AuthRequestByCode is replayable, and RFC 6749 §4.1.2 says a replayed code
-// must revoke what it already issued rather than re-issue.
+// SaveAuthCode stores only the hash of the code, so this is a lookup by hash.
+// The row is deleted here rather than at expiry alone: a spent code that still
+// answers AuthRequestByCode is replayable, and RFC 6749 §4.1.2 says a replayed
+// code must revoke what it already issued rather than re-issue.
 func (s *Storage) AuthRequestByCode(ctx context.Context, code string) (op.AuthRequest, error) {
+	digest, err := codeHash(code)
+	if err != nil {
+		return nil, zoidc.ErrInvalidGrant().WithDescription("the authorization code is unknown, spent or expired")
+	}
 	var row schemas.AuthRequest
-	err := s.db.WithContext(ctx).Where("code = ?", code).Take(&row).Error
+	err = s.db.WithContext(ctx).Where("code = ?", digest).Take(&row).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, zoidc.ErrInvalidGrant().WithDescription("the authorization code is unknown, spent or expired")
 	}
@@ -92,14 +98,32 @@ func (s *Storage) AuthRequestByCode(ctx context.Context, code string) (op.AuthRe
 }
 
 // SaveAuthCode binds an issued code to the pending flow.
+//
+// Only the hash is stored. The code transits a redirect through the relying
+// party's browser and can therefore land in access logs on every host between
+// the two; a row of plaintext codes next to those logs would be the same
+// credential with a different filename.
 func (s *Storage) SaveAuthCode(ctx context.Context, id, code string) error {
-	err := s.db.WithContext(ctx).Model(&schemas.AuthRequest{}).
+	digest, err := codeHash(code)
+	if err != nil {
+		return fmt.Errorf("oidc: bind the code: %w", err)
+	}
+	err = s.db.WithContext(ctx).Model(&schemas.AuthRequest{}).
 		Where("id = ?", id).
-		Update("code", code).Error
+		Update("code", digest).Error
 	if err != nil {
 		return fmt.Errorf("oidc: bind the code: %w", err)
 	}
 	return nil
+}
+
+// codeHash is SHA-256, hex encoded. The code is already an opaque 256-bit
+// random, so a slow hash buys nothing here — the preimage is unguessable by
+// construction and the hash exists to keep a captured database from being a
+// list of working credentials.
+func codeHash(code string) (string, error) {
+	sum := sha256.Sum256([]byte(code))
+	return hex.EncodeToString(sum[:]), nil
 }
 
 // DeleteAuthRequest drops a pending browser flow.
@@ -165,11 +189,17 @@ func (a authRequest) GetAuthTime() time.Time {
 	return *a.row.AuthenticatedAt
 }
 
-// GetACR and GetAMR describe how strongly someone authenticated. A password
-// over TLS is one factor, and saying so plainly is what lets a future WebAuthn
-// step upgrade these values without touching any relying party.
-func (a authRequest) GetACR() string   { return "" }
-func (a authRequest) GetAMR() []string { return []string{"pwd"} }
+// GetACR and GetAMR describe how strongly someone authenticated. Empty until
+// Done: before the password is presented, no factor has been. Saying so
+// plainly is what lets a future WebAuthn step upgrade these values without
+// touching any relying party.
+func (a authRequest) GetACR() string { return "" }
+func (a authRequest) GetAMR() []string {
+	if !a.Done() {
+		return nil
+	}
+	return []string{"pwd"}
+}
 
 func (a authRequest) GetAudience() []string { return []string{a.row.ClientID} }
 
