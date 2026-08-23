@@ -9,10 +9,8 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/op"
 )
 
-// loginPath is where a browser is sent to authenticate. Nothing serves it in
-// phase 0 — CreateAuthRequest refuses before a redirect is ever built — but the
-// client contract requires the method, and a placeholder that points somewhere
-// real is cheaper to correct than one that points nowhere.
+// loginPath is where a browser is sent to authenticate. The login module
+// serves it and resumes the pending flow from the auth_request parameter.
 const loginPath = "/login?auth_request="
 
 // client adapts a register row to the client contract zitadel/oidc enforces.
@@ -24,9 +22,9 @@ type client struct {
 // GetID returns the id the client authenticates under.
 func (c client) GetID() string { return c.row.ClientID }
 
-// RedirectURIs returns the exact-match redirect URIs. Phase 1 fills them in;
-// until then a client with none can start no browser flow, which is correct.
-func (c client) RedirectURIs() []string { return nil }
+// RedirectURIs returns the exact-match redirect URIs. The library compares
+// byte for byte, which is the whole defence against an open redirector.
+func (c client) RedirectURIs() []string { return c.row.RedirectURIs }
 
 // PostLogoutRedirectURIs returns where a client may be sent after logout.
 func (c client) PostLogoutRedirectURIs() []string { return nil }
@@ -37,8 +35,15 @@ func (c client) ApplicationType() op.ApplicationType { return op.ApplicationType
 // AuthMethod reports how the client proves who it is at the token endpoint.
 func (c client) AuthMethod() zoidc.AuthMethod { return zoidc.AuthMethodBasic }
 
-// ResponseTypes returns the response types this client may ask for.
-func (c client) ResponseTypes() []zoidc.ResponseType { return nil }
+// ResponseTypes returns the response types this client may ask for. An
+// application client that may start a browser flow gets "code"; a service
+// account starts none and needs none.
+func (c client) ResponseTypes() []zoidc.ResponseType {
+	if !c.row.GrantTypes.Contains(string(zoidc.GrantTypeCode)) {
+		return nil
+	}
+	return []zoidc.ResponseType{zoidc.ResponseTypeCode}
+}
 
 // GrantTypes returns the grants the register row allows.
 func (c client) GrantTypes() []zoidc.GrantType {

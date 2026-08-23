@@ -22,9 +22,11 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/crypto"
 	"github.com/FacileStudio/Registre/apps/api/internal/database"
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
+	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/internal/seed"
 	"github.com/FacileStudio/Registre/apps/api/migrations"
+	"github.com/FacileStudio/Registre/apps/api/modules/login"
 	"github.com/FacileStudio/Registre/apps/api/modules/oidc"
 
 	"github.com/FacileStudio/Journal/sdk/journal"
@@ -160,12 +162,19 @@ func assemble(ctx context.Context, db *gorm.DB, root []byte, cfg env.Config, log
 	}
 	keyring.Start(ctx)
 
-	register := clients.New(db, credentials.New(cfg.VerifyConcurrency))
+	// One verifier for every password and client-secret check in the
+	// process: a second instance would be a second ceiling, which is the
+	// same memory amplifier the ceiling exists to close.
+	verifier := credentials.New(cfg.VerifyConcurrency)
+	register := clients.New(db, verifier)
 	if err := applySeed(ctx, register, cfg.SeedFile, log); err != nil {
 		return nil, err
 	}
+	users := identity.New(db, verifier)
 
-	storage := oidc.NewStorage(db, keyring, register, oidc.Config{
+	storage := oidc.NewStorage(db, oidc.Services{
+		Keys: keyring, Register: register, Users: users,
+	}, oidc.Config{
 		Issuer:         cfg.Issuer,
 		AccessTokenTTL: cfg.AccessTokenTTL,
 	}, log)
@@ -196,6 +205,7 @@ func assemble(ctx context.Context, db *gorm.DB, root []byte, cfg env.Config, log
 	})
 	health.Mount(router, health.DB(sqlDB))
 	oidc.Mount(router, provider)
+	login.Mount(router, login.New(users, log))
 	return router, nil
 }
 

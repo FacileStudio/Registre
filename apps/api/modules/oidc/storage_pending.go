@@ -9,53 +9,19 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/op"
 )
 
-// The rest of op.Storage: everything the browser flow needs, which phase 0
-// deliberately does not have.
-//
-// They refuse rather than pretend. SPEC §4 orders the phases by attack surface
-// and puts client_credentials first precisely because it has no interactive
-// flow — no redirect_uri validation, no state, no nonce, no session fixation.
-// A half-built authorization endpoint that returned something plausible would
-// throw that ordering away, so each of these answers with the grant it is not.
-
-// unsupported names a flow that arrives in a later phase.
-//
-// It is a typed OIDC error rather than a plain one because the library maps an
-// untyped error to server_error and answers 500. "registre broke" and "registre
-// does not do that yet" are different facts, and only one of them should page
-// anybody.
+// The rest of op.Storage. The authorization code flow moved to
+// storage_auth.go in phase 1; what stays here refuses rather than pretends.
+// Each is a typed OIDC error rather than a plain one because the library maps
+// an untyped error to server_error and answers 500 — "registre broke" and
+// "registre does not do that yet" are different facts, and only one of them
+// should page anybody.
 func unsupported(flow string) *zoidc.Error {
 	return zoidc.ErrUnsupportedGrantType().
-		WithDescription("%s is not supported yet: registre is at SPEC §4 phase 0, machine tokens only", flow)
-}
-
-// CreateAuthRequest starts a browser flow.
-func (s *Storage) CreateAuthRequest(context.Context, *zoidc.AuthRequest, string) (op.AuthRequest, error) {
-	return nil, unsupported("the authorization code flow")
-}
-
-// AuthRequestByID resumes a pending browser flow.
-func (s *Storage) AuthRequestByID(context.Context, string) (op.AuthRequest, error) {
-	return nil, unsupported("the authorization code flow")
-}
-
-// AuthRequestByCode exchanges an authorization code.
-func (s *Storage) AuthRequestByCode(context.Context, string) (op.AuthRequest, error) {
-	return nil, unsupported("the authorization code flow")
-}
-
-// SaveAuthCode binds an authorization code to a pending request.
-func (s *Storage) SaveAuthCode(context.Context, string, string) error {
-	return unsupported("the authorization code flow")
-}
-
-// DeleteAuthRequest drops a pending browser flow.
-func (s *Storage) DeleteAuthRequest(context.Context, string) error {
-	return unsupported("the authorization code flow")
+		WithDescription("%s is not supported yet", flow)
 }
 
 // CreateAccessAndRefreshTokens issues a refresh token alongside an access
-// token. Nothing offline_access holds is issued yet.
+// token. offline_access is not advertised until refresh tokens ship.
 func (s *Storage) CreateAccessAndRefreshTokens(
 	context.Context, op.TokenRequest, string,
 ) (string, string, time.Time, error) {
@@ -75,10 +41,10 @@ func (s *Storage) GetRefreshTokenInfo(context.Context, string, string) (string, 
 }
 
 // TerminateSession ends a user's session at the provider. There are no user
-// sessions until phase 1, and back-channel logout is phase 2.
+// sessions yet — the login page authenticates a single flow and walks away —
+// so end_session refuses. Sessions plus back-channel logout are next.
 func (s *Storage) TerminateSession(context.Context, string, string) error {
-	return zoidc.ErrInvalidRequest().
-		WithDescription("end session is not supported yet: registre is at SPEC §4 phase 0, machine tokens only")
+	return zoidc.ErrInvalidRequest().WithDescription("end session is not supported yet")
 }
 
 // SetUserinfoFromScopes is deprecated in the contract and superseded by

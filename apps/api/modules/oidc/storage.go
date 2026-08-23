@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
+	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
@@ -37,24 +38,36 @@ type Config struct {
 // tokens through. It is the load-bearing file of the whole repository: every
 // decision about who gets a token, for how long, and naming whom, is made here
 // and nowhere else.
-type Storage struct {
-	db       *gorm.DB
-	keys     *keys.Service
-	register *clients.Service
-	cfg      Config
-	logger   *slog.Logger
-	now      func() time.Time
+// Services bundles what the storage reads besides its database, so the
+// constructor stays under filet's parameter ceiling and callers can pass nil
+// for a machine-only test. It is a bag of dependencies, not a decision: none
+// of the three changes what a token means.
+type Services struct {
+	Keys     *keys.Service
+	Register *clients.Service
+	Users    *identity.Service
 }
 
-// NewStorage builds the storage over the register and the key service.
-func NewStorage(
-	db *gorm.DB, keyring *keys.Service, register *clients.Service, cfg Config, logger *slog.Logger,
-) *Storage {
+// Storage is registre's implementation of the contract zitadel/oidc issues
+// tokens through. It is the load-bearing file of the whole repository: every
+// decision about who gets a token, for how long, and naming whom, is made here
+// and nowhere else.
+type Storage struct {
+	db     *gorm.DB
+	svc    Services
+	cfg    Config
+	logger *slog.Logger
+	now    func() time.Time
+}
+
+// NewStorage builds the storage over the register, the key service and the
+// identity service.
+func NewStorage(db *gorm.DB, svc Services, cfg Config, logger *slog.Logger) *Storage {
 	clock := cfg.Now
 	if clock == nil {
 		clock = func() time.Time { return time.Now().UTC() }
 	}
-	return &Storage{db: db, keys: keyring, register: register, cfg: cfg, logger: logger, now: clock}
+	return &Storage{db: db, svc: svc, cfg: cfg, logger: logger, now: clock}
 }
 
 // Health reports whether the register is reachable.
@@ -68,25 +81,25 @@ func (s *Storage) Health(ctx context.Context) error {
 
 // SigningKey returns the key tokens are signed with right now.
 func (s *Storage) SigningKey(ctx context.Context) (op.SigningKey, error) {
-	return s.keys.Signing(ctx)
+	return s.svc.Keys.Signing(ctx)
 }
 
 // SignatureAlgorithms reports what discovery advertises signing under.
 func (s *Storage) SignatureAlgorithms(context.Context) ([]jose.SignatureAlgorithm, error) {
-	return s.keys.Algorithms(), nil
+	return s.svc.Keys.Algorithms(), nil
 }
 
 // KeySet returns every key a relying party should accept: the active one,
 // anything published ahead of it, and anything retired but still in retention.
 func (s *Storage) KeySet(ctx context.Context) ([]op.Key, error) {
-	return s.keys.Set(ctx)
+	return s.svc.Keys.Set(ctx)
 }
 
 // GetClientByClientID returns a client for the flow machinery to validate
 // against. It never returns a disabled row, so disabling a client in the
 // register takes effect on the next request rather than the next restart.
 func (s *Storage) GetClientByClientID(ctx context.Context, clientID string) (op.Client, error) {
-	row, err := s.register.ByClientID(ctx, clientID)
+	row, err := s.svc.Register.ByClientID(ctx, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -96,13 +109,13 @@ func (s *Storage) GetClientByClientID(ctx context.Context, clientID string) (op.
 // AuthorizeClientIDSecret verifies a client secret at the token, introspection
 // and revocation endpoints.
 func (s *Storage) AuthorizeClientIDSecret(ctx context.Context, clientID, secret string) error {
-	_, err := s.register.Authenticate(ctx, clientID, secret)
+	_, err := s.svc.Register.Authenticate(ctx, clientID, secret)
 	return err
 }
 
 // ClientCredentials authenticates a machine principal at the token endpoint.
 func (s *Storage) ClientCredentials(ctx context.Context, clientID, secret string) (op.Client, error) {
-	row, err := s.register.Authenticate(ctx, clientID, secret)
+	row, err := s.svc.Register.Authenticate(ctx, clientID, secret)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +127,7 @@ func (s *Storage) ClientCredentials(ctx context.Context, clientID, secret string
 func (s *Storage) ClientCredentialsTokenRequest(
 	ctx context.Context, clientID string, scopes []string,
 ) (op.TokenRequest, error) {
-	row, err := s.register.ByClientID(ctx, clientID)
+	row, err := s.svc.Register.ByClientID(ctx, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -163,8 +176,24 @@ func audience(row schemas.Client) []string {
 // self-contained JWT cannot be taken back, and an agent's credential that
 // cannot be taken back is one that has to be waited out.
 func (s *Storage) CreateAccessToken(ctx context.Context, request op.TokenRequest) (string, time.Time, error) {
-	granted, ok := request.(tokenRequest)
-	if !ok {
+	var clientID, subject string
+	var scopes, auds []string
+	var lifetime time.Duration
+	switch granted := request.(type) {
+	case tokenRequest:
+		clientID, subject, scopes, auds = granted.clientID, granted.subject, granted.scopes, granted.audience
+		lifetime = granted.lifetime
+	case op.AuthRequest:
+		// A browser flow names the human as the subject and the app
+		// that sent them here as the audience.
+		clientID, subject = granted.GetClientID(), granted.GetSubject()
+		scopes, auds = granted.GetScopes(), granted.GetAudience()
+		row, err := s.svc.Register.ByClientID(ctx, clientID)
+		if err != nil {
+			return "", time.Time{}, fmt.Errorf("oidc: read the client: %w", err)
+		}
+		lifetime = row.TokenLifetime(s.cfg.AccessTokenTTL)
+	default:
 		return "", time.Time{}, fmt.Errorf("oidc: %T is not a grant registre issues yet", request)
 	}
 	id, err := ids.New()
@@ -172,10 +201,10 @@ func (s *Storage) CreateAccessToken(ctx context.Context, request op.TokenRequest
 		return "", time.Time{}, fmt.Errorf("oidc: mint a token id: %w", err)
 	}
 	issued := s.now()
-	expires := issued.Add(granted.lifetime)
+	expires := issued.Add(lifetime)
 	row := schemas.AccessToken{
-		ID: id, ClientID: granted.clientID, Subject: granted.subject,
-		Scopes: granted.scopes, Audiences: granted.audience,
+		ID: id, ClientID: clientID, Subject: subject,
+		Scopes: scopes, Audiences: auds,
 		IssuedAt: issued, ExpiresAt: expires,
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
@@ -197,43 +226,6 @@ func (s *Storage) RevokeToken(ctx context.Context, tokenOrTokenID, _, clientID s
 	if err != nil {
 		return zoidc.ErrServerError().WithParent(err)
 	}
-	return nil
-}
-
-// SetIntrospectionFromToken answers what a token is, for a caller entitled to
-// ask. An app is entitled when it is an audience of the token or issued it;
-// anyone else gets the same inactive answer as for a token that never existed.
-func (s *Storage) SetIntrospectionFromToken(
-	ctx context.Context, response *zoidc.IntrospectionResponse, tokenID, _, clientID string,
-) error {
-	row, err := s.liveToken(ctx, tokenID)
-	if err != nil {
-		return err
-	}
-	if row.ClientID != clientID && !row.Audiences.Contains(clientID) {
-		return errors.New("oidc: the caller is not an audience of this token")
-	}
-	response.Subject = row.Subject
-	response.ClientID = row.ClientID
-	response.Scope = zoidc.SpaceDelimitedArray(row.Scopes)
-	response.Audience = zoidc.Audience(row.Audiences)
-	response.Expiration = zoidc.FromTime(row.ExpiresAt)
-	response.IssuedAt = zoidc.FromTime(row.IssuedAt)
-	response.TokenType = zoidc.BearerToken
-	response.Issuer = s.cfg.Issuer
-	response.JWTID = row.ID
-	return nil
-}
-
-// SetUserinfoFromToken answers the userinfo endpoint. A machine principal has
-// a subject and nothing else — no name, no address, no email — so that is what
-// it gets, rather than a fabricated profile.
-func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *zoidc.UserInfo, tokenID, _, _ string) error {
-	row, err := s.liveToken(ctx, tokenID)
-	if err != nil {
-		return err
-	}
-	userinfo.Subject = row.Subject
 	return nil
 }
 

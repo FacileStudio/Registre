@@ -15,10 +15,10 @@ import (
 
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
-	"github.com/FacileStudio/Registre/apps/api/internal/ids"
+	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/internal/testdb"
-	"github.com/FacileStudio/Registre/apps/api/schemas"
+	"github.com/FacileStudio/Registre/apps/api/modules/login"
 
 	"github.com/go-chi/chi/v5"
 	jose "github.com/go-jose/go-jose/v4"
@@ -44,6 +44,7 @@ type fixture struct {
 	db       *gorm.DB
 	keys     *keys.Service
 	register *clients.Service
+	users    *identity.Service
 	storage  *Storage
 	provider *op.Provider
 	server   *httptest.Server
@@ -106,7 +107,10 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 		t.Fatalf("minting the first key: %v", err)
 	}
 	register := clients.New(db, credentials.New(4))
-	storage := NewStorage(db, keyring, register, Config{
+	users := identity.New(db, credentials.New(4))
+	storage := NewStorage(db, Services{
+		Keys: keyring, Register: register, Users: users,
+	}, Config{
 		Issuer: issuer, AccessTokenTTL: time.Hour, Now: ticking.now,
 	}, logs)
 
@@ -116,12 +120,13 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	}
 	router := chi.NewRouter()
 	Mount(router, provider)
+	login.Mount(router, login.New(users, logs))
 	server.Config.Handler = router
 	server.Start()
 	t.Cleanup(server.Close)
 
 	return &fixture{
-		t: t, db: db, keys: keyring, register: register, storage: storage,
+		t: t, db: db, keys: keyring, register: register, users: users, storage: storage,
 		provider: provider, server: server, issuer: issuer, clock: ticking,
 	}
 }
@@ -130,32 +135,6 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 // rotates on its own during a test.
 func defaultKeyConfig() keys.Config {
 	return keys.Config{RotateEvery: time.Hour, PublishDelay: time.Minute, Retention: 2 * time.Hour}
-}
-
-// account writes a service account into the register and returns its secret.
-func (f *fixture) account(clientID string, scopes, audiences []string) string {
-	f.t.Helper()
-	secret, err := ids.Secret()
-	if err != nil {
-		f.t.Fatalf("minting a secret: %v", err)
-	}
-	hash, err := f.register.HashSecret(context.Background(), secret)
-	if err != nil {
-		f.t.Fatalf("hashing the secret: %v", err)
-	}
-	subject, err := ids.New()
-	if err != nil {
-		f.t.Fatalf("minting a subject: %v", err)
-	}
-	row := schemas.Client{
-		ClientID: clientID, Subject: subject, Name: clientID, Kind: schemas.KindServiceAccount,
-		SecretHash: hash, GrantTypes: schemas.StringList{"client_credentials"},
-		Scopes: schemas.StringList(scopes), Audiences: schemas.StringList(audiences), Managed: true,
-	}
-	if _, err := f.register.Upsert(context.Background(), row); err != nil {
-		f.t.Fatalf("seeding %s: %v", clientID, err)
-	}
-	return secret
 }
 
 // tokenResponse is the successful half of a token endpoint answer.

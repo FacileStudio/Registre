@@ -37,6 +37,11 @@ type Client struct {
 	// working everywhere.
 	Audiences StringList `gorm:"type:jsonb"`
 
+	// RedirectURIs is the exact-match list an application client may send
+	// the browser back to. Service accounts have none: they never start a
+	// browser flow.
+	RedirectURIs StringList `gorm:"type:jsonb"`
+
 	AccessTokenTTL int64
 
 	// Managed marks a row the YAML seed owns. The seed rewrites it at every
