@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -103,23 +104,54 @@ func (s *singleCookie) getNoFollow(t *testing.T, rawURL string) *http.Response {
 	return s.get(t, rawURL)
 }
 
-func (s *singleCookie) postForm(t *testing.T, rawURL string, form url.Values) *http.Response {
+// postJSONNoFollow posts a JSON body with redirects left standing, so the
+// test can assert on the Location the way a browser's address bar would show
+// it.
+func (s *singleCookie) postJSONNoFollow(t *testing.T, rawURL string, body string) *http.Response {
 	t.Helper()
-	request, err := http.NewRequest(http.MethodPost, rawURL, strings.NewReader(form.Encode()))
+	request, err := http.NewRequest(http.MethodPost, rawURL, strings.NewReader(body))
 	if err != nil {
 		t.Fatalf("building POST %s: %v", rawURL, err)
 	}
-	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Content-Type", "application/json")
+	s.noFollow = true
+	defer func() { s.noFollow = false }()
 	return s.do(t, request)
 }
 
-// postFormNoFollow is postForm with redirects left standing, so the test can
-// assert on the Location the way a browser's address bar would show it.
-func (s *singleCookie) postFormNoFollow(t *testing.T, rawURL string, form url.Values) *http.Response {
-	t.Helper()
-	s.noFollow = true
-	defer func() { s.noFollow = false }()
-	return s.postForm(t, rawURL, form)
+// submitLogin signs a human in through the client app's endpoint: pull the
+// pending auth request out of the authorize page, POST credentials as JSON,
+// follow the returned redirect to the callback.
+func (f *fixture) submitLogin(jar *singleCookie, email, password string) callbackResult {
+	f.t.Helper()
+	id := extractAuthRequest(jar.lastBody.String())
+	if id == "" {
+		f.t.Fatal("the authorize page carries no auth_request parameter")
+	}
+	payload, err := json.Marshal(map[string]string{
+		"auth_request": id,
+		"email":        email,
+		"password":     password,
+	})
+	if err != nil {
+		f.t.Fatalf("encoding the login body: %v", err)
+	}
+	response := jar.postJSONNoFollow(f.t, f.issuer+"/api/login", string(payload))
+	if response.StatusCode != http.StatusOK {
+		f.t.Fatalf("POST /api/login = %d: %s", response.StatusCode, jar.lastBody.String())
+	}
+	var body struct {
+		Redirect string `json:"redirect"`
+	}
+	if err := json.Unmarshal([]byte(jar.lastBody.String()), &body); err != nil || body.Redirect == "" {
+		f.t.Fatalf("POST /api/login answered %q", jar.lastBody.String())
+	}
+	jar.lastBody.Reset()
+	codeResponse := jar.getNoFollow(f.t, f.issuer+body.Redirect)
+	if codeResponse.StatusCode != http.StatusFound {
+		f.t.Fatalf("callback = %d: %s", codeResponse.StatusCode, jar.lastBody.String())
+	}
+	return parseCallback(codeResponse.Header.Get("Location"))
 }
 
 func (f *fixture) application(clientID string, redirect string) string {
@@ -195,29 +227,7 @@ func driveToTheCode(
 	if got := jar.get(t, authorizeURL); got.StatusCode != http.StatusOK {
 		t.Fatalf("GET /authorize = %d: %s", got.StatusCode, jar.lastBody.String())
 	}
-	id := extractAuthRequest(jar.lastBody.String())
-	if id == "" {
-		t.Fatal("the login page carries no auth_request parameter")
-	}
-
-	form := url.Values{
-		"auth_request": {id},
-		"email":        {"yann@facile.studio"},
-		"password":     {"correct horse battery staple"},
-	}
-	loginResponse := jar.postFormNoFollow(t, f.issuer+"/login", form)
-	if loginResponse.StatusCode != http.StatusSeeOther {
-		t.Fatalf("POST /login = %d: %s", loginResponse.StatusCode, jar.lastBody.String())
-	}
-	callback := loginResponse.Header.Get("Location")
-	if !strings.HasPrefix(callback, "/authorize/callback?id=") {
-		t.Fatalf("login redirected to %q, want the authorize callback", callback)
-	}
-	codeResponse := jar.getNoFollow(t, f.issuer+callback)
-	if codeResponse.StatusCode != http.StatusFound {
-		t.Fatalf("callback = %d: %s", codeResponse.StatusCode, jar.lastBody.String())
-	}
-	return parseCallback(codeResponse.Header.Get("Location"))
+	return f.submitLogin(jar, "yann@facile.studio", "correct horse battery staple")
 }
 
 // assertIDTokenNonce checks that the ID token carries the nonce the flow sent.

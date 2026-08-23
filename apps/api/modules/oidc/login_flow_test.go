@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
@@ -67,14 +68,17 @@ func TestAWrongPasswordDoesNotAuthenticateTheFlow(t *testing.T) {
 	if got := jar.get(t, authorizeURL); got.StatusCode != http.StatusOK {
 		t.Fatalf("GET /authorize = %d", got.StatusCode)
 	}
-	form := url.Values{
-		"auth_request": {extractAuthRequest(jar.lastBody.String())},
-		"email":        {"yann@facile.studio"},
-		"password":     {"wrong password entirely"},
+	payload, err := json.Marshal(map[string]string{
+		"auth_request": extractAuthRequest(jar.lastBody.String()),
+		"email":        "yann@facile.studio",
+		"password":     "wrong password entirely",
+	})
+	if err != nil {
+		t.Fatalf("encoding the login body: %v", err)
 	}
-	got := jar.postFormNoFollow(t, fixture.issuer+"/login", form)
-	if got.StatusCode != http.StatusOK || !strings.Contains(jar.lastBody.String(), "Wrong email or password") {
-		t.Fatalf("a wrong password answered %d %q, want the form with the generic refusal",
+	got := jar.postJSONNoFollow(t, fixture.issuer+"/api/login", string(payload))
+	if got.StatusCode != http.StatusUnauthorized || !strings.Contains(jar.lastBody.String(), `"error":"invalid"`) {
+		t.Fatalf("a wrong password answered %d %q, want the generic JSON refusal",
 			got.StatusCode, jar.lastBody.String())
 	}
 }

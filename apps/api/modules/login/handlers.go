@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"time"
@@ -13,8 +12,9 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 )
 
-// Service is the login UI: the pages a human sees between the app that sent
-// them here and the code that sends them back.
+// Service is registre's login backend: it checks credentials for the client
+// app, which owns every page a human sees between the app that sent them here
+// and the code that sends them back.
 type Service struct {
 	identity *identity.Service
 	logger   *slog.Logger
@@ -25,54 +25,6 @@ type Service struct {
 func New(identityService *identity.Service, logger *slog.Logger) *Service {
 	return &Service{identity: identityService, logger: logger, now: func() time.Time { return time.Now().UTC() }}
 }
-
-var form = template.Must(template.New("login").Parse(`<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="/login/favicon.svg" type="image/svg+xml">
-<title>Sign in — registre</title>
-<style>
-  body { font-family: system-ui, sans-serif; display: grid; place-items: center;
-         min-height: 100vh; margin: 0; background: #f6f6f4; color: #1a1a18; }
-  main { background: #fff; padding: 2.5rem; border-radius: 12px; width: 20rem;
-         box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-  h1 { font-size: 1.15rem; margin: 0 0 1.5rem; }
-  label { display: block; font-size: .85rem; margin-bottom: .25rem; }
-  input { width: 100%; box-sizing: border-box; padding: .55rem .7rem; margin-bottom: 1rem;
-          border: 1px solid #ccc7bf; border-radius: 8px; font-size: 1rem; }
-  button { width: 100%; padding: .6rem; border: 0; border-radius: 8px;
-           background: #1a1a18; color: #fff; font-size: 1rem; cursor: pointer; }
-  .error { color: #a32121; font-size: .85rem; margin-bottom: 1rem; }
-</style>
-</head>
-<body>
-<main>
-<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"
-     style="display:block;margin:0 auto 1rem;color:#1a1a18">
-  <circle cx="12" cy="12" r="4" fill="currentColor"/>
-  <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
-    <path d="M12 2v2"/><path d="M12 20v2"/>
-    <path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
-    <path d="M2 12h2"/><path d="M20 12h2"/>
-    <path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
-  </g>
-</svg>
-<h1>Sign in to registre</h1>
-{{if .Error}}<p class="error">Wrong email or password.</p>{{end}}
-<form method="post" action="/login">
-  <input type="hidden" name="auth_request" value="{{.AuthRequest}}">
-  <label for="email">Email</label>
-  <input id="email" name="email" type="email" autocomplete="username" required autofocus>
-  <label for="password">Password</label>
-  <input id="password" name="password" type="password" autocomplete="current-password" required>
-  <button type="submit">Sign in</button>
-</form>
-</main>
-</body>
-</html>
-`))
 
 // home is what a human poking at the domain root sees. It says what this is
 // instead of answering 404, and links nothing because there is nothing yet.
@@ -87,45 +39,14 @@ There is nothing to see here; sign-in starts from the app you are trying to reac
 	}
 }
 
-// form renders the sign-in page for a pending browser flow.
+// jsonSubmit answers the client app's fetch with the decision that matters:
+// a redirect target on success, one generic refusal otherwise. The browser
+// follows the redirect as a full navigation, so the code exchange never runs
+// inside JavaScript.
 //
-// An unknown or expired auth request gets the same page as any other failure
-// state rather than an explanation: telling a visitor their login link died
-// tells a phisher theirs did not.
-func (s *Service) form(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("auth_request")
-	if id == "" {
-		http.Error(w, "missing auth request", http.StatusBadRequest)
-		return
-	}
-	s.render(w, struct{ AuthRequest, Error string }{AuthRequest: id})
-}
-
-// submit checks the credentials and, on success, marks the flow
-// authenticated and sends the browser back to zitadel's callback, which is
-// what issues the code and redirects into the app.
-//
-// Every refusal re-renders the same form with the same generic message. The
-// identity service already equalises timing between unknown address and wrong
-// password, so nothing here can distinguish them either.
-func (s *Service) submit(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad form", http.StatusBadRequest)
-		return
-	}
-	id := r.PostFormValue("auth_request")
-	redirect, err := s.authenticate(r.Context(), id, r.PostFormValue("email"), r.PostFormValue("password"))
-	if err != nil {
-		s.refuse(w, id, err)
-		return
-	}
-	http.Redirect(w, r, redirect, http.StatusSeeOther)
-}
-
-// jsonSubmit answers the client app's fetch with the same decision the form
-// POST makes: a redirect target on success, one generic refusal otherwise.
-// The browser still follows the redirect as a full navigation, so the code
-// exchange never runs inside JavaScript.
+// Every refusal carries the same body. The identity service already equalises
+// timing between unknown address and wrong password, so nothing here can
+// distinguish them either.
 func (s *Service) jsonSubmit(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		AuthRequest string `json:"auth_request"`
@@ -140,6 +61,7 @@ func (s *Service) jsonSubmit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		status := http.StatusUnauthorized
 		if !errors.Is(err, identity.ErrInvalid) && !errors.Is(err, errAuthRequestGone) {
+			s.logger.Error("registre: login verification failed", slog.Any("error", err))
 			status = http.StatusInternalServerError
 		}
 		encode(w, map[string]string{"error": "invalid"}, status)
@@ -157,8 +79,9 @@ func encode(w http.ResponseWriter, body map[string]string, status int) {
 	}
 }
 
-// authenticate is everything both submissions share: validate the pending
-// auth request, verify the credentials, mark the flow authenticated.
+// authenticate validates the pending auth request, verifies the credentials,
+// marks the flow authenticated and returns the callback to send the browser
+// to, which is where zitadel issues the code and redirects into the app.
 func (s *Service) authenticate(ctx context.Context, id, email, password string) (string, error) {
 	authReq, err := s.identity.AuthRequestByID(ctx, id)
 	if err != nil || !authReq.ExpiresAt.After(s.now()) || authReq.Done() {
@@ -174,24 +97,5 @@ func (s *Service) authenticate(ctx context.Context, id, email, password string) 
 	return "/authorize/callback?id=" + id, nil
 }
 
-// refuse renders the generic failure. Internal errors log; refusals do not,
-// because every refusal already looks identical from outside.
-func (s *Service) refuse(w http.ResponseWriter, id string, err error) {
-	if !errors.Is(err, identity.ErrInvalid) && !errors.Is(err, errAuthRequestGone) {
-		s.logger.Error("registre: login verification failed", slog.Any("error", err))
-		http.Error(w, "something went wrong", http.StatusInternalServerError)
-		return
-	}
-	s.render(w, struct{ AuthRequest, Error string }{AuthRequest: id, Error: "invalid"})
-}
-
 // errAuthRequestGone marks an unknown, expired or already-used login link.
 var errAuthRequestGone = errors.New("login: auth request is gone")
-
-func (s *Service) render(w http.ResponseWriter, data any) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	if err := form.Execute(w, data); err != nil {
-		s.logger.Error("registre: failed to render the login page", slog.Any("error", err))
-	}
-}

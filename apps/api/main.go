@@ -167,11 +167,10 @@ type services struct {
 // assemble wires the process's services into routes. The dependencies travel
 // together as one value so the function stays inside the parameter ceiling.
 //
-// Route precedence is explicit here because chi is last-registration-wins:
-// the embedded client mounts first and login.Mount second, so the
-// server-rendered form owns GET and POST /login as the no-JS fallback while
-// the client app serves every other /login path, assets included. Swapping
-// the two registrations silently deletes the fallback.
+// Route precedence: oidc.Mount first, then the embedded client, then
+// login.Mount last for "/" and POST /api/login, which no SPA path collides
+// with. The client app owns GET /login entirely; there is no Go-rendered
+// fallback form.
 func assemble(
 	ctx context.Context,
 	db *gorm.DB,
