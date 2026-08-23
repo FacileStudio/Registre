@@ -38,6 +38,6 @@ declare module "$app/types" {
 		};
 		Pathname(): "/";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
-		Asset(): "/favicon.svg" | string & {};
+		Asset(): "/apple-touch-icon.png" | "/favicon.ico" | "/favicon.svg" | "/icon-192.png" | "/icon-512.png" | "/logo.svg" | "/site.webmanifest" | string & {};
 	}
 }

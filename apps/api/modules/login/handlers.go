@@ -31,6 +31,7 @@ var form = template.Must(template.New("login").Parse(`<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/login/favicon.svg" type="image/svg+xml">
 <title>Sign in — registre</title>
 <style>
   body { font-family: system-ui, sans-serif; display: grid; place-items: center;
@@ -48,6 +49,16 @@ var form = template.Must(template.New("login").Parse(`<!doctype html>
 </head>
 <body>
 <main>
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+     style="display:block;margin:0 auto 1rem;color:#1a1a18">
+  <circle cx="12" cy="12" r="4" fill="currentColor"/>
+  <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <path d="M12 2v2"/><path d="M12 20v2"/>
+    <path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
+    <path d="M2 12h2"/><path d="M20 12h2"/>
+    <path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+  </g>
+</svg>
 <h1>Sign in to registre</h1>
 {{if .Error}}<p class="error">Wrong email or password.</p>{{end}}
 <form method="post" action="/login">
