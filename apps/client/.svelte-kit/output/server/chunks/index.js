@@ -1176,6 +1176,19 @@ function attributes(attrs, css_hash, classes, styles, flags = 0) {
   }
   return attr_str;
 }
+function stringify(value) {
+  return typeof value === "string" ? value : value == null ? "" : value + "";
+}
+function attr_class(value, hash, directives) {
+  var result = to_class(value, hash, directives);
+  return result ? ` class="${escape_html(result, true)}"` : "";
+}
+function ensure_array_like(array_like_or_iterator) {
+  if (array_like_or_iterator) {
+    return array_like_or_iterator.length !== void 0 ? array_like_or_iterator : Array.from(array_like_or_iterator);
+  }
+  return [];
+}
 function once(get_value) {
   let value = (
     /** @type {V} */
@@ -1187,6 +1200,11 @@ function once(get_value) {
     }
     return value;
   };
+}
+function props_id(renderer) {
+  const uid = renderer.global.uid();
+  renderer.push("<!--$" + uid + "-->");
+  return uid;
 }
 function derived(fn) {
   const get_value = ssr_context === null ? fn : once(fn);
@@ -1233,9 +1251,14 @@ export {
   render as a1,
   setContext as a2,
   derived as a3,
-  head as a4,
+  props_id as a4,
   attributes as a5,
   clsx as a6,
+  stringify as a7,
+  attr_class as a8,
+  head as a9,
+  ensure_array_like as aa,
+  attr as ab,
   HYDRATION_START as b,
   HYDRATION_START_ELSE as c,
   array_prototype as d,
