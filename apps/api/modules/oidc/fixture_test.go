@@ -54,6 +54,14 @@ type fixture struct {
 // clock is the shared, movable now the fixture hands to every service. It is
 // locked because the HTTP handler reads it on the server's goroutine while the
 // test writes it on its own.
+//
+// It starts at the real time rather than a fixed date, which is the opposite of
+// what a deterministic fixture usually wants. zitadel/oidc computes the token
+// response's expires_in as `exp - time.Now()` and takes no clock, so only half
+// the pair can be injected: a fixture pinned to a literal date drifts past it,
+// validity goes negative, and uint64(negative) wraps to ~1.8e19. That is a test
+// that passes when it is written and fails hours later for no reason anyone
+// changed.
 type clock struct {
 	mu sync.Mutex
 	at time.Time
@@ -90,7 +98,7 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	slog.SetDefault(logs)
 	server := httptest.NewUnstartedServer(nil)
 	issuer := "http://" + server.Listener.Addr().String()
-	ticking := &clock{at: time.Date(2026, time.August, 23, 12, 0, 0, 0, time.UTC)}
+	ticking := &clock{at: time.Now().UTC()}
 
 	cfg.Now = ticking.now
 	keyring := keys.New(db, rootKey, cfg, logs)
@@ -154,7 +162,7 @@ func (f *fixture) account(clientID string, scopes, audiences []string) string {
 type tokenResponse struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
-	ExpiresIn   int64  `json:"expires_in"`
+	ExpiresIn   uint64 `json:"expires_in"`
 	Scope       string `json:"scope"`
 	Error       string `json:"error"`
 	Description string `json:"error_description"`

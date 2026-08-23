@@ -24,6 +24,11 @@ func TestAMachineTokenVerifiesAgainstThePublishedKeySet(t *testing.T) {
 	if granted.TokenType != "Bearer" {
 		t.Errorf("token_type = %q, want Bearer", granted.TokenType)
 	}
+	if granted.ExpiresIn == 0 || granted.ExpiresIn > 3600 {
+		t.Errorf("expires_in = %d, want a plausible remainder of the one-hour default: "+
+			"zitadel computes it as exp minus the real clock, so a value near 2^64 means "+
+			"the issuing clock and the real one have drifted apart", granted.ExpiresIn)
+	}
 
 	claims, err := fixture.verify(granted.AccessToken)
 	if err != nil {
