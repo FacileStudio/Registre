@@ -1,0 +1,25 @@
+name: filet
+
+# The style gate, kept in its own workflow so it can be dropped into a wider
+# ci.yml as a single job or deleted as a single file. The rules it enforces live
+# in filet.yml at the repository root, not here.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  filet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: FacileStudio/filet@v0.3.0
+        with:
+          version: v0.3.0
+          fail-on: error
+          antenne-url: ${{ secrets.ANTENNE_FILET_SECRET != '' && 'https://antenne.facile.studio/webhook/filet' || '' }}
+          antenne-secret: ${{ secrets.ANTENNE_FILET_SECRET }}

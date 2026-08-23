@@ -1,0 +1,38 @@
+monorepo_root = true
+
+[settings]
+experimental = true
+lockfile = true
+
+[monorepo]
+config_roots = ["apps/api"]
+
+[tools]
+lefthook = "latest"
+go = "1.25"
+
+[hooks]
+postinstall = "lefthook install"
+
+[tasks.bootstrap]
+description = "Install repository dependencies"
+depends = ["//apps/api:deps"]
+run = "true"
+
+[tasks.build]
+description = "Build the API"
+depends = ["//apps/api:build"]
+run = "true"
+
+[tasks.check]
+description = "Run the full quality gate"
+run = "sh ./scripts/check.sh"
+
+[tasks.format]
+description = "Format the Go sources in place"
+run = "sh ./scripts/check.sh --format"
+
+[tasks.dev]
+description = "Run the API development server"
+depends = ["//apps/api:dev"]
+run = "true"

@@ -84,12 +84,26 @@ starts with the half that does not touch human authentication.
 
 Full replacement, in five phases. Each ends somewhere usable.
 
-### Phase 0 — skeleton and machine tokens
+### Phase 0 — skeleton and machine tokens — built 2026-08-23
 
 Discovery, JWKS with rotation, `client_credentials`, service accounts, YAML seed. No login page.
 
-**Exit:** an agent authenticates to Courrier with a registre-signed token and porte accepts it
-unchanged. A key rotation is exercised end to end without a single 401.
+**Exit, as written:** an agent authenticates to Courrier with a registre-signed token and porte
+accepts it unchanged. A key rotation is exercised end to end without a single 401.
+
+**The second half is done; the first half is not reachable and was wrong to write.** porte has no
+path that accepts a signed token. `session/session.go:375` reads the `Authorization` header,
+hashes what it finds and looks the hash up in the app's own `sessions` table — the credential is
+opaque and revocable by construction, which `porte/session.go:9` says is deliberate and staying.
+`porte/SPEC.md` does not contain the words `client_credentials` or *service account* anywhere. So
+there is no version of "porte accepts it unchanged" for a machine token: accepting one is a
+capability porte would have to gain, not a contract registre can satisfy. That is open question 6.
+
+**Exit, corrected — what phase 0 actually proves:** a service account authenticates with
+`client_credentials` and receives an RS256 JWT that verifies against the JWKS registre publishes,
+carrying its own `sub`, the audiences the register grants it and nothing it asked for; and a key
+rotation runs publish → activate → retire without invalidating a token issued before it. Both are
+asserted end to end over real HTTP against real Postgres in `modules/oidc`.
 
 ### Phase 1 — human login
 
@@ -127,6 +141,16 @@ Authentik off.
 Go-family suite app, `GoSvelteBoilerplate` shape. Module `github.com/FacileStudio/Registre/apps/api`
 — never bare `module api`.
 
+**A package under `modules/` owns HTTP and says so in `router.go`. A domain
+service that owns no routes lives under `internal/`.** That is the suite's rule,
+it is what `filet.yml` enforces, and it is worth stating because the first draft
+of this section got it wrong: `keys` and `clients` were listed under `modules/`,
+where they arrived with no routes and an exception written into `filet.yml` to
+excuse them. Suppressing an architecture rule to fit a layout is the erosion the
+rule exists to prevent, so the packages moved instead. They never need to move
+back: `admin/` below is the module that owns their HTTP when the dashboard
+arrives in phase 3.
+
 ```
 apps/api/
   main.go              func main() { os.Exit(run()) }; a failed migration exits 1
@@ -134,11 +158,13 @@ apps/api/
   schemas/             GORM models
   modules/
     oidc/              the zitadel/oidc Storage implementation — the load-bearing file
+    admin/             the dashboard's API (phase 3), over the services below
+  internal/
     keys/              signing keys and rotation (§7)
-    local/             password identities, argon2id
-    users/ clients/    people, applications, service accounts
-    admin/             the dashboard's API
-  internal/seed/       idempotent YAML bootstrap
+    clients/           the register: applications, service accounts
+    credentials/       argon2id, and the ceiling on how much of it runs at once (§7)
+    users/             people (phase 1)
+    seed/              idempotent YAML bootstrap
   cmd/import-authentik/  phase 4 only
 apps/client/           SvelteKit 5 + muse admin UI and login page
 ```
@@ -177,7 +203,18 @@ administrator that does not federate, or Authentik stays warm as a fallback issu
 implement, and *test the recovery* — an untested break-glass is decoration. This gates phase 4.
 
 **A refusal must cost what an acceptance costs.** No early return before the argon2 hash on the
-login path; that is a timing oracle for account existence.
+login path; that is a timing oracle for account existence. `internal/credentials` folds the
+equalisation into the one function that verifies, so no caller can forget it, and
+`scripts/check.sh` refuses a second importer of `porte/local`.
+
+**Cap how many hashes run at once, or the equalisation above is a denial of service.** argon2id at
+porte's parameters allocates 64 MiB per call, and the token endpoint must hash before it can refuse
+a bad credential — so without a ceiling every concurrent request is 64 MiB of registre's own memory,
+from anyone, unauthenticated. Measured here before the ceiling existed: 148 MB resident for one bad
+credential, 3.2 GB at fifty concurrent, 11.1 GB at two hundred. Keycloak shipped the same fix for
+the same bug (keycloak#28477): a semaphore defaulting to the core count, because argon2 is CPU bound
+and hashing more at once than there are cores buys nothing. Callers past the ceiling **wait**; a
+refusal would reach the client as `invalid_client`, which is a lie about their credentials.
 
 **No enumeration in recovery.** Same response and same timing whether the address is known.
 
@@ -241,6 +278,21 @@ Cut over one app by changing `OIDC_ISSUER`, soak it, then the rest. Authentik go
    off the live instance *before* it is decommissioned.
 5. **Does registre emit to `antenne`?** Login, logout and administrative changes are exactly the
    events the bus exists for, keyed on `actor_email`. Emit-only, if so.
+6. **How does an app consume a machine token?** Found while building phase 0, and it blocks the
+   half of §4's exit that was struck through above. porte authenticates a bearer by hashing it and
+   finding the row; a registre-signed JWT matches nothing. Two ways to close it, and the choice is
+   porte's to make, in a version of its own:
+   - **Verify offline.** porte grows a bearer path that, on a token shaped like a JWT, verifies it
+     against the issuer's JWKS and checks `aud` against its own client id. No round trip, no new
+     failure mode at request time, and it inherits the key rotation phase 0 already proves. It
+     also means a revoked token keeps working until it expires, which is what the short default
+     lifetime is for.
+   - **Introspect.** porte calls `/oauth/introspect` with its own client credentials. Revocation
+     is immediate and the app learns the scopes without parsing anything, at the cost of a round
+     trip on every request and an identity provider that is now in the hot path of every app.
+   Offline verification is the one to build; introspection already works and is there for the case
+   that needs it. Whichever lands, the app-side identity is `(issuer, sub)` exactly as it is for a
+   human — a service account is a principal, not a special case.
 
 ---
 

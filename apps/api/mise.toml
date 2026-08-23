@@ -1,0 +1,60 @@
+[tools]
+go = "1.25"
+
+[env]
+GO_BIN = { value = "{{tools.go.path}}/bin/go", tools = true }
+
+[tasks.deps]
+description = "Download Go module dependencies"
+sources = ["go.mod", "go.sum"]
+run = '"$GO_BIN" mod download'
+
+[tasks.build]
+description = "Build the API binary at ./bin/api"
+depends = [":deps"]
+run = ["mkdir -p bin", '"$GO_BIN" build -o bin/api .']
+
+[tasks.check]
+description = "Check formatting, vet and test the API without modifying files"
+run = "sh ../../scripts/check.sh"
+
+[tasks.format]
+description = "Format the API sources in place"
+run = "sh ../../scripts/check.sh --format"
+
+[tasks.test]
+description = "Run Go tests"
+depends = [":deps"]
+run = '"$GO_BIN" test ./...'
+
+[tasks.tidy]
+description = "Sync go.mod and go.sum"
+run = '"$GO_BIN" mod tidy'
+
+[tasks.dev]
+description = "Run the API with local defaults"
+depends = [":deps"]
+run = '''
+if [ -f .env ]; then
+  set -a
+  . ./.env
+  set +a
+fi
+
+APP_ENV="${APP_ENV:-development}"
+DATABASE_URL="${DATABASE_URL:-postgres://postgres:postgres@127.0.0.1:5433/registre?sslmode=disable}"
+PORT="${PORT:-4000}"
+REGISTRE_ISSUER="${REGISTRE_ISSUER:-http://127.0.0.1:$PORT}"
+
+echo "starting registre on :$PORT as $REGISTRE_ISSUER"
+
+exec env \
+  APP_ENV="$APP_ENV" \
+  DATABASE_URL="$DATABASE_URL" \
+  PORT="$PORT" \
+  REGISTRE_ISSUER="$REGISTRE_ISSUER" \
+  LOG_LEVEL="${LOG_LEVEL:-debug}" \
+  ENCRYPTION_KEY="$ENCRYPTION_KEY" \
+  REGISTRE_SEED_FILE="${REGISTRE_SEED_FILE:-}" \
+  "$GO_BIN" run .
+'''

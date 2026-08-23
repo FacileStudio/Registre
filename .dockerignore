@@ -1,0 +1,12 @@
+# The build needs apps/api and nothing else. Everything here is either large,
+# secret, or a local artefact that would invalidate the layer cache on every
+# commit.
+.git
+.github
+.local
+bin
+dist
+docs
+node_modules
+apps/api/bin
+apps/api/.env

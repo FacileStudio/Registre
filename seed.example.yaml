@@ -1,0 +1,28 @@
+# registre's declarative bootstrap. Copy it, point REGISTRE_SEED_FILE at the
+# copy, and every boot brings the register up to what this file says.
+#
+# It carries no credentials and must not. Each account names the environment
+# variable holding its secret; registre reads that variable, hashes the value
+# with argon2id and stores only the hash. A secret written here would be a
+# credential committed to git.
+#
+# Applying is an upsert keyed on client_id, and it never deletes: an account
+# removed from this file is reported at boot and left working, because a client
+# vanishing because somebody edited YAML is not a surprise anyone wants.
+
+service_accounts:
+  # An agent working on the user's behalf, with an identity of its own so that
+  # every audit trail can tell the two apart and revoking one leaves the other
+  # signed in.
+  - client_id: agent-claude
+    name: Claude agent
+    secret_env: REGISTRE_SEED_AGENT_CLAUDE_SECRET
+    scopes:
+      - courrier.read
+      - opus.write
+    # The apps this credential works at. A token names them in its aud claim,
+    # and an app that is not in this list refuses it.
+    audiences:
+      - courrier
+      - opus
+    access_token_ttl: 1h
