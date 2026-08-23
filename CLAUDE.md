@@ -12,6 +12,10 @@ commit.
 accounts and the YAML seed. `sh scripts/check.sh` is the gate; the tests that matter need a real
 Postgres and skip loudly without `TEST_DATABASE_URL`.
 
+**[ROADMAP.md](ROADMAP.md) is where to start.** It carries what is left, what is blocked on a
+human, what has never been verified, and what was deferred on purpose with the reason. Read it
+before proposing work, or you will propose something already decided against.
+
 **No app can consume a registre token yet.** porte authenticates a bearer by hashing it and
 finding the row in its own `sessions` table; a signed JWT matches nothing. That is SPEC §10
 question 6 and it is a porte change, not a registre one. Do not "fix" it here.

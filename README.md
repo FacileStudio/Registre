@@ -79,6 +79,7 @@ routes lives under `internal/`. `filet.yml` enforces that with no exceptions.
 ## Documentation
 
 - [SPEC.md](SPEC.md) — decisions, contract, phases, open questions
+- [ROADMAP.md](ROADMAP.md) — what is done, what is left, and what is blocked on a human
 - [docs/](docs/README.md) — architecture, configuration, development, deployment
 - [porte/SPEC.md](https://github.com/FacileStudio/porte/blob/main/SPEC.md) — the client half,
   whose contract is frozen and which registre exists to satisfy
