@@ -103,7 +103,7 @@ const options = {
     app: ({ head, body, assets, nonce, env }) => '<!doctype html>\n<html lang="en" class="dark">\n	<head>\n		<meta charset="utf-8" />\n		<link rel="icon" href="' + assets + '/favicon.svg" type="image/svg+xml" />\n		<link rel="alternate icon" href="' + assets + '/favicon.ico" sizes="any" />\n		<link rel="apple-touch-icon" href="' + assets + '/apple-touch-icon.png" />\n		<link rel="manifest" href="' + assets + '/site.webmanifest" />\n		<meta name="viewport" content="width=device-width, initial-scale=1" />\n		<meta name="theme-color" content="#0a0a0a" />\n		' + head + '\n	</head>\n	<body data-sveltekit-preload-data="hover" class="bg-fc-page text-fc-fg">\n		<div style="display: contents">' + body + "</div>\n	</body>\n</html>\n",
     error
   },
-  version_hash: "1h6zspm"
+  version_hash: "2bda8q"
 };
 async function get_hooks() {
   let handle;
