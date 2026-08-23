@@ -33,13 +33,21 @@ suite's secret source of truth, migrate those two values there before anyone tru
 
 ## Next, in order
 
-1. [ ] **Point porte at registre.** The smallest useful cross-repo check available today: porte's
-       `oidc.New` does discovery and builds its verifier, so a test asserting porte can boot
-       against a running registre proves the discovery document is acceptable to the client that
-       has to read it. Nothing outside this repo has ever looked at what registre serves.
-2. [ ] **Decide SPEC §10 question 6 and build it in porte.** Offline JWKS verification is the one
-       to build; introspection already works here if immediate revocation is wanted instead.
+1. [x] **Point porte at registre.** Done 2026-08-23: porte commit `e857531` adds
+       `oidc/registre_test.go`, `TestNewBootsAgainstRegistre`. Skips unless `REGISTRE_ISSUER_URL`
+       is set; run
+       `REGISTRE_ISSUER_URL=https://sso.facile.studio go test ./oidc -run Registre`.
+       Builds the full kit (`session.New` + `oidc.New`) against a live registre and asserts the
+       discovery document parses and carries a `jwks_uri`. Passed against the deployed instance.
+       It proves discovery only; verifying an actual minted JWT still needs real client
+       credentials or a published local port.
+2. [ ] **Extend the discovery test to a full token round trip, then decide SPEC §10 question 6**
+       and build it in porte. Minting and verifying a real `client_credentials` JWT needs either
+       per-app client credentials in the environment or a published port on the local docker
+       registre so the test can run offline. Offline JWKS verification is the one to build;
+       introspection already works here if immediate revocation is wanted instead.
 3. [ ] Phase 1.
+
 
 ## Phase 0 — machine tokens — shipped 2026-08-23
 
