@@ -49,6 +49,11 @@ once, and there is no moment where the suite has only an unproven identity provi
 
 ## Secrets live in Casier
 
+**As deployed 2026-08-23:** the secrets went into Dokploy's compose environment instead, because
+the `casier` CLI was not available on the machine doing the deploy. The commands below are still
+the target state; migrate `ENCRYPTION_KEY` and `POSTGRES_PASSWORD` into Casier before relying on
+`casier check` for this project.
+
 `casier.yml` declares the project (`registre`) and environment. The deployment's secrets belong
 there rather than in a `.env` next to the compose file:
 

@@ -14,22 +14,22 @@ the hash up in the app's own `sessions` table, so a signed JWT matches nothing. 
 provider with no consumer until that changes, and the change is in `porte`, not here. SPEC §10
 question 6 has the two ways to close it.
 
-**registre is not deployed.** It has only ever run against a throwaway local database. There is no
-container, no Traefik router and nothing answering at `sso.facile.studio`.
+**registre is deployed.** 2026-08-23: Dokploy compose on la ruche, `sso.facile.studio` behind
+Traefik with a Let's Encrypt cert, `/ready` green, discovery and JWKS answering from the real
+hostname. Secrets (`ENCRYPTION_KEY`, `POSTGRES_PASSWORD`) went into Dokploy's compose environment,
+**not Casier**, because no machine this session had a working `casier` CLI. If Casier becomes the
+suite's secret source of truth, migrate those two values there before anyone trusts `casier check`.
 
-## Blocked on a human, not on code
+## Blocked on a human
 
-Neither can be done from ruche. The wiki page `tools/casier.md` has why.
-
-- [ ] Set registre's secrets in Casier: `ENCRYPTION_KEY`, `POSTGRES_PASSWORD`, and one
-      `*_SECRET` per service account the seed declares. Commands are in
-      [docs/deployment.md](docs/deployment.md). The `casier` CLI cannot store its token on a
-      headless box: no `org.freedesktop.secrets`, no env fallback.
-- [ ] Mint a per-app `JOURNAL_TOKEN` from Journal's dashboard Keys page. `journal`'s CLI is
-      read-only by design and has no path to it. The SDK wiring is done and ships the moment
-      `JOURNAL_URL` and `JOURNAL_TOKEN` are both set.
-- [ ] First deploy: compose stack up behind Traefik, seed file mounted, `/ready` green and
-      discovery reachable at the real hostname.
+- [ ] Mint a per-app `JOURNAL_TOKEN` from Journal's dashboard Keys page and set `JOURNAL_URL`
+      (`http://journal-api:4010/api`) plus the token in Dokploy's environment for the compose. The
+      SDK wiring is done and ships the moment both are set.
+- [ ] Set `REGISTRE_SEED_FILE` with a mounted seed volume and one `*_SECRET` per service account,
+      when phase 0's first real consumer exists. Until then the database is the only source of
+      clients, which the boot log records.
+- [ ] Back up `ENCRYPTION_KEY` somewhere that is not the Dokploy panel. It cannot be regenerated;
+      see [docs/deployment.md](docs/deployment.md).
 
 ## Next, in order
 
@@ -107,9 +107,11 @@ end to end in `apps/api/modules/oidc`.
 
 ## Verification that has not happened
 
-- [ ] porte has never been pointed at registre (see Next, item 1)
-- [ ] Never run behind Traefik, so the issuer has only ever been a loopback address and
-      proxy behaviour is untested
+- [x] ~~porte has never been pointed at registre~~ — partially: the live discovery document is now
+      served from `https://sso.facile.studio` and fetched successfully by hand; a porte test
+      against it (Next item 1) is still open
+- [x] Behind Traefik: the issuer is the real hostname, discovery fetched over https through
+      Traefik + Cloudflare, 2026-08-23
 - [ ] Rotation has only been driven by a fake clock. Nothing has watched a key rotate over real
       wall-clock time across a restart
 - [ ] Multi-replica is untested. The advisory lock and partial unique index are correct by
