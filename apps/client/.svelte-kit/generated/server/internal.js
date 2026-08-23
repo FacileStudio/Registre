@@ -26,7 +26,7 @@ export const options = {
 		app: ({ head, body, assets, nonce, env }) => "<!doctype html>\n<html lang=\"en\" class=\"dark\">\n\t<head>\n\t\t<meta charset=\"utf-8\" />\n\t\t<link rel=\"icon\" href=\"" + assets + "/favicon.svg\" />\n\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n\t\t" + head + "\n\t</head>\n\t<body data-sveltekit-preload-data=\"hover\" class=\"bg-fc-page text-fc-fg\">\n\t\t<div style=\"display: contents\">" + body + "</div>\n\t</body>\n</html>\n",
 		error
 	},
-	version_hash: "1fevoi8"
+	version_hash: "1su21rr"
 };
 
 export async function get_hooks() {

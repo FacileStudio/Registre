@@ -1,5 +1,6 @@
 bin/
-dist/
+/apps/client/build/
+/apps/client/.svelte-kit/
 node_modules/
 .env
 .local/

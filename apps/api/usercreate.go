@@ -21,18 +21,20 @@ import (
 func runUserCreate(ctx context.Context, db *gorm.DB, verifier *credentials.Verifier, log *slog.Logger) int {
 	fs := flag.NewFlagSet("user-create", flag.ContinueOnError)
 	email := fs.String("email", "", "the user's email address (required)")
-	password := fs.String("password", "", "the user's initial password (required)")
 	name := fs.String("name", "", "the user's display name")
 	admin := fs.Bool("admin", false, "grant the admin role")
 	if err := fs.Parse(os.Args[2:]); err != nil {
 		return 2
 	}
-	if *email == "" || *password == "" {
-		fmt.Fprintln(os.Stderr, "usage: registre user-create --email <address> --password <secret> [--name <name>] [--admin]")
+	password := os.Getenv("REGISTRE_USER_PASSWORD")
+	if *email == "" || password == "" {
+		fmt.Fprintln(os.Stderr, "usage: REGISTRE_USER_PASSWORD=<secret> registre user-create --email <address> [--admin]")
+		fmt.Fprintln(os.Stderr, "the password comes from REGISTRE_USER_PASSWORD, never the command line:")
+		fmt.Fprintln(os.Stderr, "a flag lands in shell history and ps output")
 		return 2
 	}
 	users := identity.New(db, verifier)
-	user, err := users.Create(ctx, *email, *password, *name, *admin)
+	user, err := users.Create(ctx, *email, password, *name, *admin)
 	if errors.Is(err, identity.ErrInvalid) {
 		log.Error("registre: refused to create the user", slog.Any("error", err))
 		return 1
