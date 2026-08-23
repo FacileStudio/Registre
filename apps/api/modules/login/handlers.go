@@ -1,7 +1,10 @@
 package login
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -100,31 +103,79 @@ func (s *Service) submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.PostFormValue("auth_request")
-	email := r.PostFormValue("email")
-	password := r.PostFormValue("password")
-
-	authReq, err := s.identity.AuthRequestByID(r.Context(), id)
-	if err != nil || !authReq.ExpiresAt.After(s.now()) || authReq.Done() {
-		s.render(w, struct{ AuthRequest, Error string }{AuthRequest: id, Error: "invalid"})
-		return
-	}
-	user, err := s.identity.Verify(r.Context(), email, password)
-	if errors.Is(err, identity.ErrInvalid) {
-		s.render(w, struct{ AuthRequest, Error string }{AuthRequest: id, Error: "invalid"})
-		return
-	}
+	redirect, err := s.authenticate(r.Context(), id, r.PostFormValue("email"), r.PostFormValue("password"))
 	if err != nil {
+		s.refuse(w, id, err)
+		return
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
+}
+
+// jsonSubmit answers the client app's fetch with the same decision the form
+// POST makes: a redirect target on success, one generic refusal otherwise.
+// The browser still follows the redirect as a full navigation, so the code
+// exchange never runs inside JavaScript.
+func (s *Service) jsonSubmit(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		AuthRequest string `json:"auth_request"`
+		Email       string `json:"email"`
+		Password    string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "bad body", http.StatusBadRequest)
+		return
+	}
+	redirect, err := s.authenticate(r.Context(), body.AuthRequest, body.Email, body.Password)
+	if err != nil {
+		status := http.StatusUnauthorized
+		if !errors.Is(err, identity.ErrInvalid) && !errors.Is(err, errAuthRequestGone) {
+			status = http.StatusInternalServerError
+		}
+		encode(w, map[string]string{"error": "invalid"}, status)
+		return
+	}
+	encode(w, map[string]string{"redirect": redirect}, http.StatusOK)
+}
+
+// encode writes one JSON object with the given status.
+func encode(w http.ResponseWriter, body map[string]string, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		http.Error(w, "response write failed", http.StatusInternalServerError)
+	}
+}
+
+// authenticate is everything both submissions share: validate the pending
+// auth request, verify the credentials, mark the flow authenticated.
+func (s *Service) authenticate(ctx context.Context, id, email, password string) (string, error) {
+	authReq, err := s.identity.AuthRequestByID(ctx, id)
+	if err != nil || !authReq.ExpiresAt.After(s.now()) || authReq.Done() {
+		return "", errAuthRequestGone
+	}
+	user, err := s.identity.Verify(ctx, email, password)
+	if err != nil {
+		return "", err
+	}
+	if err := s.identity.Complete(ctx, id, user.ID, s.now()); err != nil {
+		return "", fmt.Errorf("identity: complete the login: %w", err)
+	}
+	return "/authorize/callback?id=" + id, nil
+}
+
+// refuse renders the generic failure. Internal errors log; refusals do not,
+// because every refusal already looks identical from outside.
+func (s *Service) refuse(w http.ResponseWriter, id string, err error) {
+	if !errors.Is(err, identity.ErrInvalid) && !errors.Is(err, errAuthRequestGone) {
 		s.logger.Error("registre: login verification failed", slog.Any("error", err))
 		http.Error(w, "something went wrong", http.StatusInternalServerError)
 		return
 	}
-	if err := s.identity.Complete(r.Context(), id, user.ID, s.now()); err != nil {
-		s.logger.Error("registre: failed to complete a login", slog.Any("error", err))
-		http.Error(w, "something went wrong", http.StatusInternalServerError)
-		return
-	}
-	http.Redirect(w, r, "/authorize/callback?id="+id, http.StatusSeeOther)
+	s.render(w, struct{ AuthRequest, Error string }{AuthRequest: id, Error: "invalid"})
 }
+
+// errAuthRequestGone marks an unknown, expired or already-used login link.
+var errAuthRequestGone = errors.New("login: auth request is gone")
 
 func (s *Service) render(w http.ResponseWriter, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

@@ -16,4 +16,5 @@ func Mount(router chi.Router, service *Service) {
 	router.Get("/", service.home)
 	router.Get("/login", service.form)
 	router.Post("/login", service.submit)
+	router.Post("/api/login", service.jsonSubmit)
 }

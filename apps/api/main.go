@@ -25,6 +25,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/internal/seed"
+	"github.com/FacileStudio/Registre/apps/api/internal/web"
 	"github.com/FacileStudio/Registre/apps/api/migrations"
 	"github.com/FacileStudio/Registre/apps/api/modules/login"
 	"github.com/FacileStudio/Registre/apps/api/modules/oidc"
@@ -120,10 +121,15 @@ func run() int {
 		return code
 	}
 
+	verifier := credentials.New(cfg.VerifyConcurrency)
+	if len(os.Args) > 1 && os.Args[1] == "user-create" {
+		return runUserCreate(context.Background(), db, verifier, log)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	router, err := assemble(ctx, db, root, cfg, log)
+	router, err := assemble(ctx, db, root, cfg, services{verifier: verifier, log: log})
 	if err != nil {
 		log.Error("registre: failed to start", slog.Any("error", err))
 		return 1
@@ -151,33 +157,44 @@ func migrateSchema(sqlDB *sql.DB, log *slog.Logger) (int, bool) {
 }
 
 // assemble builds every service and returns the router they are mounted on.
-func assemble(ctx context.Context, db *gorm.DB, root []byte, cfg env.Config, log *slog.Logger) (chi.Router, error) {
+// services bundles the process-wide dependencies assemble wires into routes,
+// so the function stays under the parameter ceiling as registre grows.
+type services struct {
+	verifier *credentials.Verifier
+	log      *slog.Logger
+}
+
+// assemble wires the process's services into routes. The dependencies travel
+// together as one value so the function stays inside the parameter ceiling.
+func assemble(
+	ctx context.Context,
+	db *gorm.DB,
+	root []byte,
+	cfg env.Config,
+	svc services,
+) (chi.Router, error) {
 	keyring := keys.New(db, root, keys.Config{
 		RotateEvery:  cfg.RotationEvery,
 		PublishDelay: cfg.PublishDelay,
 		Retention:    cfg.KeyRetention,
-	}, log)
+	}, svc.log)
 	if err := keyring.Ensure(ctx); err != nil {
 		return nil, err
 	}
 	keyring.Start(ctx)
 
-	// One verifier for every password and client-secret check in the
-	// process: a second instance would be a second ceiling, which is the
-	// same memory amplifier the ceiling exists to close.
-	verifier := credentials.New(cfg.VerifyConcurrency)
-	register := clients.New(db, verifier)
-	if err := applySeed(ctx, register, cfg.SeedFile, log); err != nil {
+	register := clients.New(db, svc.verifier)
+	if err := applySeed(ctx, register, cfg.SeedFile, svc.log); err != nil {
 		return nil, err
 	}
-	users := identity.New(db, verifier)
+	users := identity.New(db, svc.verifier)
 
 	storage := oidc.NewStorage(db, oidc.Services{
 		Keys: keyring, Register: register, Users: users,
 	}, oidc.Config{
 		Issuer:         cfg.Issuer,
 		AccessTokenTTL: cfg.AccessTokenTTL,
-	}, log)
+	}, svc.log)
 	storage.StartPurge(ctx, tokenRecordRetention)
 
 	provider, err := oidc.NewProvider(storage, oidc.ProviderConfig{
@@ -197,7 +214,7 @@ func assemble(ctx context.Context, db *gorm.DB, root []byte, cfg env.Config, log
 		TrustedProxies: cfg.TrustedProxies,
 		CDNProxies:     cfg.CDNProxies,
 		CDNHeader:      cfg.CDNHeader,
-		Logger:         log,
+		Logger:         svc.log,
 		CORS: troncmiddleware.CORSConfig{
 			AllowedOrigins:   cfg.CORSAllowedOrigins,
 			AllowCredentials: true,
@@ -205,7 +222,9 @@ func assemble(ctx context.Context, db *gorm.DB, root []byte, cfg env.Config, log
 	})
 	health.Mount(router, health.DB(sqlDB))
 	oidc.Mount(router, provider)
-	login.Mount(router, login.New(users, log))
+	login.Mount(router, login.New(users, svc.log))
+	router.Handle("/login", web.Handler())
+	router.Handle("/login/*", web.Handler())
 	return router, nil
 }
 

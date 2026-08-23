@@ -1,0 +1,46 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"flag"
+	"fmt"
+	"log/slog"
+	"os"
+
+	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
+	"github.com/FacileStudio/Registre/apps/api/internal/identity"
+
+	"gorm.io/gorm"
+)
+
+// runUserCreate answers `registre user-create`, the phase-1 way to mint the
+// first human accounts before any admin UI exists. It shares the process's
+// database handle and credentials ceiling so a created password is hashed
+// exactly like one that arrives through the login page.
+func runUserCreate(ctx context.Context, db *gorm.DB, verifier *credentials.Verifier, log *slog.Logger) int {
+	fs := flag.NewFlagSet("user-create", flag.ContinueOnError)
+	email := fs.String("email", "", "the user's email address (required)")
+	password := fs.String("password", "", "the user's initial password (required)")
+	name := fs.String("name", "", "the user's display name")
+	admin := fs.Bool("admin", false, "grant the admin role")
+	if err := fs.Parse(os.Args[2:]); err != nil {
+		return 2
+	}
+	if *email == "" || *password == "" {
+		fmt.Fprintln(os.Stderr, "usage: registre user-create --email <address> --password <secret> [--name <name>] [--admin]")
+		return 2
+	}
+	users := identity.New(db, verifier)
+	user, err := users.Create(ctx, *email, *password, *name, *admin)
+	if errors.Is(err, identity.ErrInvalid) {
+		log.Error("registre: refused to create the user", slog.Any("error", err))
+		return 1
+	}
+	if err != nil {
+		log.Error("registre: failed to create the user", slog.Any("error", err))
+		return 1
+	}
+	fmt.Printf("created user %s (%s)\n", user.ID, user.Email)
+	return 0
+}
