@@ -27,8 +27,11 @@ suite's secret source of truth, migrate those two values there before anyone tru
       (`http://journal-api:4010/api`) plus the token in Dokploy's environment for the compose. The
       SDK wiring is done and ships the moment both are set.
 - [ ] Set `REGISTRE_SEED_FILE` with a mounted seed volume and one `*_SECRET` per service account,
-      when phase 0's first real consumer exists. Until then the database is the only source of
-      clients, which the boot log records.
+      when phase 0's first real consumer exists. ~~Until then the database is the only source of~~
+      **Done 2026-08-25**: `seed.yaml` committed, mounted read-only, applied at boot — the
+      `suite-ci` account exists in production and its secret lives in Dokploy's compose
+      environment (copy in `~/registre-secrets/registre.env` on lucy). Applications get added at
+      cutover.
 - [ ] Back up `ENCRYPTION_KEY` somewhere that is not the Dokploy panel. It cannot be regenerated;
       see [docs/deployment.md](docs/deployment.md).
 
@@ -86,9 +89,13 @@ end to end in `apps/api/modules/oidc`.
       must exceed the access token TTL or boot fails
 - [x] Answer SPEC §10 question 1: yes, invite tokens never hashes; implementation lands with
       phase 3's admin slice (SPEC §10 amended in the same commit)
-- [ ] **Exit:** porte's own test suite passes against registre — still open, and still the gate.
-      Everything above is asserted by registre's own end-to-end tests over real HTTP and real
-      Postgres (`modules/oidc`), but §8's cheapest conformance check has not run
+- [x] **Exit:** porte's own suite passes against registre — closed 2026-08-25. Both live gates
+      ran green against `sso.facile.studio`: porte boots on the deployed discovery document
+      (`TestNewBootsAgainstRegistre`), and a real `client_credentials` token minted by the
+      seeded `suite-ci` account verifies through porte's offline verifier and is refused when
+      tampered (`registre`'s TestALiveRegistreIssuesAVerifiableToken, and the consumer-side
+      `TestAVerifierConsumesALiveRegistreToken` in porte/oidc/jwt). Porte's remaining tests are
+      mock-based by design; the protocol-level conformance run is phase 2's gate, not this one.
 
 ## Phase 2 — integration parity
 
