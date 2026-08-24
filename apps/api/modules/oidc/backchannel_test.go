@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // logoutInbox is a stand-in relying party's back-channel endpoint.
@@ -40,6 +41,21 @@ func (i *logoutInbox) received() [][]byte {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	return i.bodies
+}
+
+// await waits for n notifications to arrive. Delivery is fired from a
+// goroutine inside TerminateSession — the end_session request must not wait
+// N apps × timeout — so the arrival is polled, not assumed synchronous.
+func (i *logoutInbox) await(t *testing.T, n int) [][]byte {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if bodies := i.received(); len(bodies) >= n {
+			return bodies
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return i.received()
 }
 
 func registerLogoutURI(t *testing.T, fixture *fixture, clientID, uri string) {

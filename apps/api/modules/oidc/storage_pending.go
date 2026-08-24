@@ -30,6 +30,13 @@ func unsupported(flow string) *zoidc.Error {
 // registered logout URI hears nothing — that gap is visible in the register,
 // where closing it is a field, not a migration.
 //
+// The back-channel announcements are fired on their own goroutine rather than
+// inline: delivery fans out to every app the session reached, each with its own
+// timeout, and an end_session request is answered by a browser that should not
+// wait N apps × 5s for other people's webhooks. Best-effort is the documented
+// contract, so the goroutine carries its own background context and logs
+// failures exactly as the synchronous version did.
+//
 // A request that names nobody — no id_token_hint, no client — ends nothing
 // and is refused: ending nothing and redirecting as if it worked would be a
 // lie with a 302 on it.
@@ -45,9 +52,11 @@ func (s *Storage) TerminateSession(ctx context.Context, userID, _ string) error 
 	if err != nil {
 		return zoidc.ErrServerError().WithParent(err)
 	}
-	if err := s.svc.Logout.Fire(context.Background(), userID, reached); err != nil {
-		s.logger.Warn("registre: back-channel logout incomplete", slog.Any("error", err))
-	}
+	go func() {
+		if err := s.svc.Logout.Fire(context.Background(), userID, reached); err != nil {
+			s.logger.Warn("registre: back-channel logout incomplete", slog.Any("error", err))
+		}
+	}()
 	return nil
 }
 

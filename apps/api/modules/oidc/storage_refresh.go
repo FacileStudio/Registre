@@ -30,6 +30,13 @@ func refreshTokenHash(token string) string {
 // CreateAccessAndRefreshTokens issues the access token and, alongside it, a
 // renewable grant bound to the same human, app and authentication event.
 //
+// Before anything is issued the subject is resolved against the register of
+// humans: a disabled one gets nothing, whatever their grants say. This is
+// defense in depth — EndSessions already revokes a disabled user's grants —
+// because a future call site that mints without ending sessions would
+// otherwise resurrect exactly the bug this file exists not to have. A subject
+// with no user row is a machine principal and passes untouched.
+//
 // Rotation is unconditional: every redemption ends the presented grant and
 // mints a fresh one. That is what makes a stolen refresh token detectable
 // rather than silently usable forever — the next legitimate redemption finds
@@ -37,8 +44,18 @@ func refreshTokenHash(token string) string {
 func (s *Storage) CreateAccessAndRefreshTokens(
 	ctx context.Context, request op.TokenRequest, currentRefreshToken string,
 ) (string, string, time.Time, error) {
-	clientID := grantPrincipal(request).clientID
-	subject := grantPrincipal(request).subject
+	principal := grantPrincipal(request)
+	clientID, subject := principal.clientID, principal.subject
+	if s.svc.Users != nil {
+		user, err := s.svc.Users.ByID(ctx, subject)
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
+		case err != nil:
+			return "", "", time.Time{}, fmt.Errorf("oidc: read the grant's owner: %w", err)
+		case !user.Enabled():
+			return "", "", time.Time{}, errors.New("oidc: the account is disabled")
+		}
+	}
 
 	row, err := s.svc.Register.ByClientID(ctx, clientID)
 	if err != nil {

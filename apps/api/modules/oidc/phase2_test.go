@@ -87,6 +87,49 @@ func TestARefreshTokenRotatesAndTheOldOneDies(t *testing.T) {
 	}
 }
 
+// TestDisablingTheUserKillsTheirRefreshGrant walks the whole offline_access
+// story: a working grant, then a deactivation, then the same grant answering
+// invalid_grant. Access tokens verify offline, so the refresh grant is the
+// only door left to close — leaving it open would let whoever holds it mint
+// fresh tokens for the full TTL after every session is already dead. The
+// machine principal at the end proves the enabled check keys on humans: a
+// service account has no user row and must not be caught by it.
+func TestDisablingTheUserKillsTheirRefreshGrant(t *testing.T) {
+	fixture := newFixture(t, defaultKeyConfig())
+	secret := fixture.application("sablier", "http://127.0.0.1:9999/callback", "offline_access")
+	fixture.human("yann@facile.studio", "correct horse battery staple")
+
+	client := testClient{id: "sablier", secret: secret, redirect: redirectOf("sablier")}
+	granted := signInAndExchange(t, fixture, client, "openid offline_access")
+	token, _ := granted["refresh_token"].(string)
+	if token == "" {
+		t.Fatal("offline_access was requested but no refresh token arrived")
+	}
+
+	redeem := func(value string) (map[string]any, int) {
+		return fixture.post("/oauth/token", "sablier", secret, url.Values{
+			"grant_type": {"refresh_token"}, "refresh_token": {value},
+		})
+	}
+	user, err := fixture.users.ByEmail(context.Background(), "yann@facile.studio")
+	if err != nil {
+		t.Fatalf("reading the user: %v", err)
+	}
+	if _, err := fixture.users.Disable(context.Background(), user.ID, fixture.clock.now()); err != nil {
+		t.Fatalf("disabling the user: %v", err)
+	}
+	refused, status := redeem(token)
+	if status != http.StatusBadRequest || refused["error"] != "invalid_grant" {
+		t.Errorf("a disabled user's grant answered %d %v, want 400 invalid_grant", status, refused["error"])
+	}
+
+	agentSecret := fixture.account("agent-courrier", []string{"courrier.read"}, []string{"courrier"})
+	machine, status := fixture.token("agent-courrier", agentSecret, "")
+	if status != http.StatusOK || machine.AccessToken == "" {
+		t.Errorf("a machine principal answered %d %q; service accounts have no user row and must pass the enabled check untouched", status, machine.Error)
+	}
+}
+
 func TestRolesArriveFilteredPerClient(t *testing.T) {
 	fixture := newFixture(t, defaultKeyConfig())
 	sablierSecret := fixture.application("sablier", "http://127.0.0.1:9999/callback", "roles")
@@ -158,7 +201,7 @@ func TestBackChannelLogoutNotifiesTheAppsTheSessionReached(t *testing.T) {
 		t.Fatalf("ending the sessions: %v", err)
 	}
 
-	bodies := inbox.received()
+	bodies := inbox.await(t, 1)
 	if len(bodies) != 1 {
 		t.Fatalf("the app received %d logout notifications, want 1", len(bodies))
 	}

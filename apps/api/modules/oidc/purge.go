@@ -12,8 +12,15 @@ import (
 // PurgeGrants drops refresh grants and sessions that expired or ended more
 // than retention ago. The rows outlive their usefulness on purpose — an audit
 // question asked tomorrow morning is why — but not forever.
+//
+// Sessions live on the grant clock, not the token clock: the passed-in
+// retention is derived from the access-token lifetime, but a refresh grant may
+// be configured far outlive it (REGISTRE_REFRESH_TOKEN_TTL), and a back-channel
+// logout needs the session row to name the apps to notify. So the effective
+// retention is whichever is longer between the passed value and the configured
+// refresh TTL plus 24h of breathing room.
 func (s *Storage) PurgeGrants(ctx context.Context, retention time.Duration) error {
-	cutoff := s.now().Add(-retention)
+	cutoff := s.now().Add(-s.grantRetention(retention))
 	err := s.db.WithContext(ctx).Where("expires_at < ?", cutoff).Delete(&schemas.RefreshToken{}).Error
 	if err != nil {
 		return fmt.Errorf("oidc: purge refresh tokens: %w", err)
@@ -62,6 +69,18 @@ func (s *Storage) StartPurge(ctx context.Context, retention time.Duration) {
 			}
 		}
 	}()
+}
+
+// grantRetention is the retention actually applied to grants and sessions:
+// never shorter than the passed-in token-record retention, and never shorter
+// than a still-redeemable refresh grant plus a day, so no live grant loses the
+// session row its eventual logout depends on.
+func (s *Storage) grantRetention(retention time.Duration) time.Duration {
+	floor := s.refreshTTL() + 24*time.Hour
+	if retention > floor {
+		return retention
+	}
+	return floor
 }
 
 // PurgeTokens drops token records that expired more than retention ago. The

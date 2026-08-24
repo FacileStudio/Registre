@@ -25,9 +25,10 @@ type AuthRequest struct {
 	AuthenticatedAt     *time.Time
 	ExpiresAt           time.Time
 
-	// SessionID names the provider session this login created. It is how
-	// the token exchange later records which app the session reached, so
-	// back-channel logout can notify exactly the apps that saw the user.
+	// SessionID names the provider session this login created, kept as audit
+	// data linking a browser flow to that session. Which apps a session
+	// reached is recorded at login time by identity.StartSession; nothing
+	// reads SessionID to decide who to log out.
 	SessionID string
 
 	// Code is the authorization code while it is unspent. It is stored

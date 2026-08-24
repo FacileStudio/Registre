@@ -185,11 +185,22 @@ func (s *Service) StartSession(ctx context.Context, userID, clientID string, at 
 
 // EndSessions terminates every live session of user and returns the distinct
 // set of apps those sessions had reached, so the caller can fire back-channel
-// logout at each. Ending all of a user's sessions rather than one is coarse
-// and deliberate: porte made the same choice for the same reason — a sid-only
-// revocation needs session bookkeeping per relying party that buys precision
-// nobody has asked for yet.
+// logout at each. It takes the user's live refresh grants with them: access
+// tokens verify offline against the JWKS, so nothing downstream re-checks the
+// account, and a renewable grant left alive would let whoever holds it mint
+// fresh tokens until its TTL long after every session is dead. A session that
+// outlives its logout notification is this bug wearing a different hat.
+//
+// Ending all of a user's sessions rather than one is coarse and deliberate:
+// porte made the same choice for the same reason — a sid-only revocation needs
+// session bookkeeping per relying party that buys precision nobody has asked
+// for yet.
 func (s *Service) EndSessions(ctx context.Context, userID string, at time.Time) ([]string, error) {
+	if err := s.db.WithContext(ctx).Model(&schemas.RefreshToken{}).
+		Where("user_id = ? AND revoked_at IS NULL", userID).
+		Update("revoked_at", at).Error; err != nil {
+		return nil, fmt.Errorf("identity: revoke the refresh grants: %w", err)
+	}
 	result := s.db.WithContext(ctx).Model(&schemas.Session{}).
 		Where("user_id = ? AND ended_at IS NULL", userID).
 		Update("ended_at", at)

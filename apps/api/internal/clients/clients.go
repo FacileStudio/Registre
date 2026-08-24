@@ -116,12 +116,25 @@ func declared(row schemas.Client) map[string]any {
 	return fields
 }
 
-// Upsert writes the declarative half of a client, keying on its client id.
+// Upsert replaces the whole declarative half of the row keyed by client id:
+// name, kind, grant_types, scopes, audiences, access_token_ttl, managed,
+// redirect_uris, backchannel_logout_uri and visible_roles are each written
+// exactly as given, including as empty.
+//
+// Every caller must therefore read-modify-write first — fetch the existing row
+// through ByClientID or rawByClientID, change only the fields it owns, and
+// pass the complete result back here. An upsert built from a partially-filled
+// struct silently blanks whatever was left zero, and the JSONB columns
+// (redirect_uris, backchannel_logout_uri, visible_roles) are the ones most
+// painful to lose: an application loses every allowed redirect URI and stops
+// logging anyone in; an app loses its logout endpoint and stops being told
+// about logouts; a role whitelist widening or vanishing changes what tokens
+// may claim without any error anywhere.
 //
 // A row that already exists keeps its subject, because that is what every app
 // matched the account on and re-keying it orphans the client everywhere it has
-// ever authenticated. It keeps its disabled_at for the reason above, and its
-// secret when the caller supplies none.
+// ever authenticated. It keeps its disabled_at so a revocation cannot be
+// undone by a re-apply, and its secret when the caller supplies none.
 func (s *Service) Upsert(ctx context.Context, row schemas.Client) (schemas.Client, error) {
 	existing, err := s.rawByClientID(ctx, row.ClientID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {

@@ -55,6 +55,9 @@ services:
       start_period: 10s
     environment:
       APP_ENV: ${APP_ENV:-production}
+      # The login rate limiter keys on RemoteAddr, which is only the real
+      # client address once TRUSTED_PROXIES is set. Unset behind Traefik, every
+      # human shares one 5 req/s bucket and the whole suite cannot log in.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       DATABASE_URL: postgres://${POSTGRES_USER:-registre}:${POSTGRES_PASSWORD:-registre-internal-db}@registre-db:5432/${POSTGRES_DB:-registre}?sslmode=disable
       PORT: "4000"

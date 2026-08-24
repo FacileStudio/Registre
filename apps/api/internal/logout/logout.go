@@ -38,16 +38,18 @@ const backchannelLogoutEvent = "http://schemas.openid.net/event/backchannel-logo
 const tokenTTL = 2 * time.Minute
 
 // postTimeout bounds one delivery. A slow app must not hold up ending the
-// session that asked for the notification.
+// session that asked for the notification. The Service's shared http.Client
+// carries it, reusing connections across deliveries.
 const postTimeout = 5 * time.Second
 
 // Service mints and delivers logout tokens.
 type Service struct {
-	keys     *keys.Service
-	register *clients.Service
-	issuer   string
-	logger   *slog.Logger
-	now      func() time.Time
+	keys       *keys.Service
+	register   *clients.Service
+	issuer     string
+	logger     *slog.Logger
+	now        func() time.Time
+	deliveries *http.Client
 }
 
 // New builds the service over the keyring and the register.
@@ -55,6 +57,7 @@ func New(keyring *keys.Service, register *clients.Service, issuer string, logger
 	return &Service{
 		keys: keyring, register: register, issuer: issuer,
 		logger: logger, now: func() time.Time { return time.Now().UTC() },
+		deliveries: &http.Client{Timeout: postTimeout},
 	}
 }
 
@@ -100,7 +103,7 @@ func (s *Service) deliver(ctx context.Context, userID, clientID, uri string) err
 	}
 	post.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	sent := time.Now()
-	response, err := (&http.Client{Timeout: postTimeout}).Do(post)
+	response, err := s.deliveries.Do(post)
 	if err != nil {
 		return fmt.Errorf("logout: deliver: %w", err)
 	}
