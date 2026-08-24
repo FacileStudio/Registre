@@ -118,4 +118,20 @@ networks:
 
 volumes:
   db_data:
-    name: registre_db_data
+    # Renamed from registre_db_data on 2026-08-24, which is how this database
+    # was reinitialised rather than repaired.
+    #
+    # POSTGRES_PASSWORD only applies at initdb. When the Dokploy environment
+    # block was replaced and the custom password lost, the volume kept the
+    # password it had been initialised with while the panel and the container
+    # env both reported the compose default, so no client could authenticate
+    # and no lookup could recover the real value. Pointing at a new volume
+    # reinitialises Postgres with the password the compose file actually
+    # sends.
+    #
+    # The old volume is deliberately left on the host rather than deleted. It
+    # is the only copy of the signing keys that existed before this, and
+    # nothing in the suite consumed a registre token yet, so keeping it costs
+    # a little disk and buys the option of recovering it if the password ever
+    # turns up. Delete it by hand once nobody wants it.
+    name: registre_db_data_v2
