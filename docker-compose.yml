@@ -77,10 +77,9 @@ services:
       # transient memory the token endpoint may hold under load. Unset means
       # one per core, which is what the CPU can actually use.
       REGISTRE_VERIFY_CONCURRENCY: ${REGISTRE_VERIFY_CONCURRENCY:-}
-      # Seeding needs two more things this file cannot guess: the seed file
-      # mounted into the container (see the commented volume below) and every
-      # secret_env it names added to this block by name. Setting the path alone
-      # fails the boot, which is the intended failure but a confusing one.
+      # Seeding needs the mounted seed.yaml and every secret_env it names
+      # added to this block by name. Setting the path alone fails the boot,
+      # which is the intended failure but a confusing one.
       REGISTRE_SEED_FILE: ${REGISTRE_SEED_FILE:-}
       # Log shipping. Both are needed or nothing ships; the token is a per-app
       # key from Journal's Keys page, and the URL must end in /api. registre's
@@ -88,8 +87,8 @@ services:
       # the suite's auth audit trail, so this is not optional in production.
       JOURNAL_URL: ${JOURNAL_URL:-}
       JOURNAL_TOKEN: ${JOURNAL_TOKEN:-}
-    # volumes:
-    #   - ./seed.yaml:/etc/registre/seed.yaml:ro
+    volumes:
+      - ./seed.yaml:/etc/registre/seed.yaml:ro
     depends_on:
       registre-db:
         condition: service_healthy

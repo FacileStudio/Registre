@@ -1,0 +1,25 @@
+# registre's production seed, deployed at sso.facile.studio. It carries no
+# credentials and must not: each account names the environment variable holding
+# its secret, and a missing one fails the boot rather than leaving an account
+# nobody can authenticate as. The secret values live in Dokploy's compose
+# environment and in ~/registre-secrets/ on lucy until the backup task lands.
+#
+# Applying is an upsert keyed on client_id, and it never deletes.
+
+service_accounts:
+  # The suite CI account. Drives the live round-trip test
+  # (TestALiveRegistreIssuesAVerifiableToken) and, later, whatever automation
+  # needs to prove it is a machine and not a human.
+  - client_id: suite-ci
+    name: Suite CI
+    secret_env: REGISTRE_SEED_SUITE_CI_SECRET
+    scopes:
+      - courrier.read
+    audiences:
+      - courrier
+    access_token_ttl: 1h
+
+# No applications yet: an application entry names a secret_env that must be set
+# at boot, and no app has been cut over to registre for login. Add them here,
+# with their redirect URIs and their secrets in the compose environment, when
+# phase 4's cutover starts.
