@@ -212,6 +212,16 @@ Two facts already gathered that the tool has to satisfy:
 
 ## Deferred by decision, with the reason
 
+- [ ] **`internal/web` duplicates `tronc/spa`, and the duplicate is what carried the deep-link
+      bug.** tronc's version already gets the fallback right, serves the index's content instead
+      of rewriting the path into a file server, sets the same cache policy, refuses a path with an
+      extension so a missing bundle 404s, and answers 405 rather than serving a page to a POST.
+      They cannot simply be swapped: `tronc/spa` reads from `http.Dir` and registre embeds its
+      build with `//go:embed`, so adopting it means teaching tronc an `fs.FS`, which is a change
+      in tronc and not here. Until then `internal/web` keeps its own copy and its own test. The
+      lesson is worth more than the code: the copy existed because embedding made the shared one
+      look inapplicable, and the copy is where the bug was.
+
 - [ ] **Rate limiting.** The argon2 ceiling bounds memory absolutely; the residual is latency
       under flood, which an edge rate limit answers. `docker-compose.yml` carries a commented
       Traefik `ratelimit` middleware because the numbers are a deployment policy, not a default
