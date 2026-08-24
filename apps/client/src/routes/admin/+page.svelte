@@ -134,7 +134,7 @@
 </script>
 
 <svelte:head>
-	<title>Dashboard — registre</title>
+	<title>Dashboard — Registre</title>
 </svelte:head>
 
 <main class="mx-auto min-h-dvh max-w-4xl bg-fc-page px-4 py-8">
@@ -142,7 +142,7 @@
 		<Card class="mx-auto mt-10 w-full max-w-sm p-8">
 			<h1 class="mb-1 text-fc-lg font-semibold text-fc-fg">Operator sign-in</h1>
 			<p class="mb-6 text-fc-sm text-fc-fg-muted">
-				The registre dashboard. Operator accounts only.
+				The Registre dashboard. Operator accounts only.
 			</p>
 			<form onsubmit={signIn} class="flex flex-col gap-4">
 				{#if error}
@@ -162,7 +162,7 @@
 	{:else}
 		<div class="flex flex-col gap-6">
 			<header>
-				<h1 class="text-fc-lg font-semibold text-fc-fg">registre dashboard</h1>
+				<h1 class="text-fc-lg font-semibold text-fc-fg">Registre dashboard</h1>
 				<p class="text-fc-sm text-fc-fg-muted">
 					Signed in as {email}. Secrets and tokens are shown once — copy them now.
 				</p>

@@ -37,12 +37,12 @@
 </script>
 
 <svelte:head>
-	<title>Sign in — registre</title>
+	<title>Sign in — Registre</title>
 </svelte:head>
 
 <main class="grid min-h-dvh place-items-center bg-fc-page px-4">
 	<Card class="w-full max-w-sm p-8">
-		<h1 class="mb-1 text-fc-lg font-semibold text-fc-fg">Sign in to registre</h1>
+		<h1 class="mb-1 text-fc-lg font-semibold text-fc-fg">Sign in to Registre</h1>
 		<p class="mb-6 text-fc-sm text-fc-fg-muted">
 			The Facile Suite's identity provider. Sign-in starts from the app you are trying to reach.
 		</p>

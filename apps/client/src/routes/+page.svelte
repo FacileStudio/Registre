@@ -24,7 +24,7 @@
 </script>
 
 <svelte:head>
-	<title>registre — the Facile Suite's identity provider</title>
+	<title>Registre — the Facile Suite's identity provider</title>
 	<meta
 		name="description"
 		content="Registre signs the Facile Suite's users and services in. One account, one sign-in, every app."
@@ -36,7 +36,7 @@
 		<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
 			<div class="flex h-14 items-center gap-3">
 				<img src="/logo.svg" alt="" width={24} height={24} class="block shrink-0" />
-				<span class="font-fc-title text-fc-xl font-semibold tracking-tight">registre</span>
+				<span class="font-fc-title text-fc-xl font-semibold tracking-tight">Registre</span>
 			</div>
 			<Button variant="ghost" href="/login" class="rounded-fc-md">Log in</Button>
 		</div>
@@ -98,7 +98,7 @@
 
 	<footer class="border-t border-fc-border">
 		<div class="mx-auto max-w-5xl px-6 py-6 text-center text-fc-sm text-fc-fg-muted">
-			© {new Date().getFullYear()} registre by
+			© {new Date().getFullYear()} Registre by
 			<a
 				href="https://facile.studio"
 				class="font-semibold underline underline-offset-2 transition-colors hover:text-fc-fg"

@@ -41,14 +41,14 @@
 </script>
 
 <svelte:head>
-	<title>Set your password — registre</title>
+	<title>Set your password — Registre</title>
 </svelte:head>
 
 <main class="grid min-h-dvh place-items-center bg-fc-page px-4">
 	<Card class="w-full max-w-sm p-8">
 		<h1 class="mb-1 text-fc-lg font-semibold text-fc-fg">Set your password</h1>
 		<p class="mb-6 text-fc-sm text-fc-fg-muted">
-			Your invitation from the registre operator. Choose a password for your account.
+			Your invitation from the Registre operator. Choose a password for your account.
 		</p>
 
 		{#if done}
