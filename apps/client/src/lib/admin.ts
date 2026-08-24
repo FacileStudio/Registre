@@ -1,3 +1,15 @@
+/**
+ * The operator dashboard's HTTP client and view types.
+ *
+ * The operator credential is HTTP Basic on every /api/admin request, and it
+ * lives in this module's memory for exactly as long as the tab does. It is
+ * never written to localStorage or sessionStorage: a long-lived password in
+ * web storage is readable by any script that reaches the page, and a reload
+ * dropping the operator back to the sign-in form is the cheap, correct
+ * failure.
+ */
+
+/** UserView is a person as /api/admin/users reports them. */
 export interface UserView {
 	id: string;
 	email: string;
@@ -9,6 +21,7 @@ export interface UserView {
 	disabled_at?: string;
 }
 
+/** ClientView is an application or service account in the register. */
 export interface ClientView {
 	client_id: string;
 	subject: string;
@@ -17,10 +30,15 @@ export interface ClientView {
 	grant_types?: string[];
 	scopes?: string[];
 	audiences?: string[];
+	redirect_uris?: string[];
+	visible_roles?: string[];
+	backchannel_logout_uri?: string;
+	managed: boolean;
 	created_at: string;
 	disabled_at?: string;
 }
 
+/** InviteView is a single-use invitation and whether it has been redeemed. */
 export interface InviteView {
 	email: string;
 	created_by: string;
@@ -29,6 +47,7 @@ export interface InviteView {
 	redeemed: boolean;
 }
 
+/** KeyState is one signing key's position in the rotation lifecycle. */
 export interface KeyState {
 	id: string;
 	algorithm: string;
@@ -39,8 +58,151 @@ export interface KeyState {
 	expires_at?: string;
 }
 
+/** NewUser is the body /api/admin/users accepts. */
+export interface NewUser {
+	email: string;
+	name?: string;
+	password: string;
+	admin?: boolean;
+}
+
+/**
+ * NewClient is the body /api/admin/clients accepts.
+ *
+ * An application is refused without at least one redirect URI, and a service
+ * account is refused with any: the server enforces both, because an
+ * application registered without one is accepted here and then rejected at
+ * /authorize, which reads as registre being broken rather than as the row
+ * being half-filled.
+ *
+ * visible_roles and backchannel_logout_uri default to nothing on purpose. An
+ * app that sees no roles denies its own authorization checks, and one with no
+ * logout URI never learns a session was terminated, so both are choices an
+ * operator makes per app rather than defaults that leak.
+ */
+export interface NewClient {
+	client_id: string;
+	name: string;
+	kind: string;
+	redirect_uris?: string[];
+	visible_roles?: string[];
+	backchannel_logout_uri?: string;
+}
+
+/** CreatedClient carries the client plus its secret, shown exactly once. */
+export interface CreatedClient {
+	client: ClientView;
+	secret: string;
+}
+
+/** CreatedInvite carries the invitation token, shown exactly once. */
+export interface CreatedInvite {
+	email: string;
+	token: string;
+}
+
 const encoder = new TextEncoder();
 
+/** authHeader builds the HTTP Basic value for an operator credential. */
 export function authHeader(email: string, password: string): string {
 	return 'Basic ' + btoa(String.fromCharCode(...encoder.encode(`${email}:${password}`)));
+}
+
+let credential = '';
+let operator = '';
+
+/** setOperator holds the operator credential in memory for this tab. */
+export function setOperator(email: string, password: string): void {
+	credential = authHeader(email, password);
+	operator = email;
+}
+
+/** clearOperator forgets the operator credential. */
+export function clearOperator(): void {
+	credential = '';
+	operator = '';
+}
+
+/** operatorEmail is the signed-in operator's address, empty when signed out. */
+export function operatorEmail(): string {
+	return operator;
+}
+
+/** hasOperator reports whether a credential is held. */
+export function hasOperator(): boolean {
+	return credential !== '';
+}
+
+/**
+ * AdminError carries the status alongside the message so a caller can tell a
+ * refused credential from a rejected body.
+ */
+export class AdminError extends Error {
+	readonly status: number;
+
+	constructor(status: number, message: string) {
+		super(message);
+		this.name = 'AdminError';
+		this.status = status;
+	}
+}
+
+async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+	const headers = new Headers(init.headers);
+	headers.set('Authorization', credential);
+	if (init.body) headers.set('Content-Type', 'application/json');
+	let response: Response;
+	try {
+		response = await fetch(path, { ...init, headers });
+	} catch {
+		throw new AdminError(0, 'Registre did not answer. Check the connection and try again.');
+	}
+	const body = await response.json().catch(() => null);
+	if (!response.ok) {
+		const message =
+			body && typeof body.error === 'string' ? body.error : `Request failed (${response.status}).`;
+		throw new AdminError(response.status, message);
+	}
+	return body as T;
+}
+
+/** admin is the dashboard's API surface, one method per route. */
+export const admin = {
+	listUsers: () => call<UserView[]>('/api/admin/users'),
+	createUser: (user: NewUser) =>
+		call<UserView>('/api/admin/users', { method: 'POST', body: JSON.stringify(user) }),
+	disableUser: (id: string) =>
+		call<{ disabled: string; logout_targets: number }>(`/api/admin/users/${id}/disable`, {
+			method: 'POST'
+		}),
+	listInvites: () => call<InviteView[]>('/api/admin/invites'),
+	createInvite: (email: string) =>
+		call<CreatedInvite>('/api/admin/invites', { method: 'POST', body: JSON.stringify({ email }) }),
+	listClients: () => call<ClientView[]>('/api/admin/clients'),
+	createClient: (client: NewClient) =>
+		call<CreatedClient>('/api/admin/clients', { method: 'POST', body: JSON.stringify(client) }),
+	rotateSecret: (clientID: string) =>
+		call<{ client_id: string; secret: string }>(
+			`/api/admin/clients/${encodeURIComponent(clientID)}/secret`,
+			{ method: 'POST' }
+		),
+	listKeys: () => call<KeyState[]>('/api/admin/keys')
+};
+
+/**
+ * formatDate renders an API timestamp as a plain calendar day. The API sends
+ * UTC and the dashboard is an audit view, so the day is the useful precision.
+ */
+export function formatDate(value?: string): string {
+	if (!value) return '—';
+	const parsed = new Date(value);
+	if (Number.isNaN(parsed.getTime())) return value;
+	return parsed.toISOString().slice(0, 10);
+}
+
+/** errorMessage turns anything thrown by admin into a line a human can read. */
+export function errorMessage(cause: unknown, fallback: string): string {
+	if (cause instanceof AdminError) return cause.message;
+	if (cause instanceof Error && cause.message) return cause.message;
+	return fallback;
 }

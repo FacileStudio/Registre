@@ -19,9 +19,11 @@ ignore:
   - testdata
   - coverage
 
-# Only Go and shell ship today. TypeScript and Svelte arrive with the login
-# page in SPEC §4 phase 1, and this list moves with them.
-extensions: [.go, .sh]
+# Go, shell, and the SvelteKit client. The client was promised to this list
+# "with the login page in phase 1" and phase 1 shipped, so it joins now: a
+# gate that names a directory it never reads is the erosion the architecture
+# block below exists to prevent.
+extensions: [.go, .sh, .ts, .svelte]
 
 limits:
   fileLines: 300 # ESLint max-lines
@@ -37,10 +39,7 @@ limits:
   interfaceMethods: 5
 
 architecture:
-  # apps/client joins this list in phase 1. Phase 0 has no login page and no
-  # admin UI, so a scaffolded client directory would be an empty promise in the
-  # repository layout.
-  requiredDirs: [apps/api]
+  requiredDirs: [apps/api, apps/client]
   # No exceptions, deliberately. A package under modules/ owns HTTP and says so
   # in router.go; a domain service that owns no routes lives under internal/.
   # keys and clients were briefly under modules/ with an exception written here

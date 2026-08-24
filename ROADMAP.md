@@ -5,9 +5,10 @@
 > [SPEC.md](SPEC.md) owns the decisions, the frozen contract and the phase definitions. This file
 > tracks only what is done and what is left. Where they disagree, SPEC wins.
 >
-> Last updated 2026-08-25: admin dashboard slice built (modules/admin + apps/client pages),
-> the deactivation drill passes locally (4 ms delivery); the conformance suite is blocked on a
-> docker daemon and the live drill on production credentials.
+> Last updated 2026-08-24: phase 3 closed except WebAuthn. TOTP with recovery codes, an account
+> session of registre's own, password recovery over facteur, and a tested break-glass. The client
+> is rebuilt on muse with an app shell, and a bug that made every deep link unreachable is fixed.
+> Phase 4 is blocked on reading the live Authentik instance rather than on code.
 
 ## Read this first
 
@@ -29,7 +30,7 @@ suite's secret source of truth, migrate those two values there before anyone tru
       SDK wiring is done and ships the moment both are set.
 - [ ] Set `REGISTRE_SEED_FILE` with a mounted seed volume and one `*_SECRET` per service account,
       when phase 0's first real consumer exists. ~~Until then the database is the only source of~~
-      **Done 2026-08-25**: `seed.yaml` committed, mounted read-only, applied at boot — the
+      **Done 2026-08-24**: `seed.yaml` committed, mounted read-only, applied at boot — the
       `suite-ci` account exists in production and its secret lives in Dokploy's compose
       environment (copy in `~/registre-secrets/registre.env` on lucy). Applications get added at
       cutover.
@@ -90,7 +91,7 @@ end to end in `apps/api/modules/oidc`.
       must exceed the access token TTL or boot fails
 - [x] Answer SPEC §10 question 1: yes, invite tokens never hashes; implementation lands with
       phase 3's admin slice (SPEC §10 amended in the same commit)
-- [x] **Exit:** porte's own suite passes against registre — closed 2026-08-25. Both live gates
+- [x] **Exit:** porte's own suite passes against registre — closed 2026-08-24. Both live gates
       ran green against `sso.facile.studio`: porte boots on the deployed discovery document
       (`TestNewBootsAgainstRegistre`), and a real `client_credentials` token minted by the
       seeded `suite-ci` account verifies through porte's offline verifier and is refused when
@@ -116,7 +117,7 @@ end to end in `apps/api/modules/oidc`.
       every app within seconds — the mechanism is built and tested (`user-disable`, back-channel
       delivery, session termination). The drill now exists as
       `TestDisablingAUserDropsThemFromEveryAppWithinSeconds` (modules/oidc/drill_test.go) and
-      passed locally on 2026-08-25 with the logout token arriving 4 ms after user-disable; the
+      passed locally on 2026-08-24 with the logout token arriving 4 ms after user-disable; the
       run against sso.facile.studio remains. The OpenID Foundation suite needs a docker daemon,
       which lucy does not have — run it from a machine that does, pointed at a local registre.
       Discovery no longer over-advertises: `filteredDiscovery` strips implicit and jwt-bearer
@@ -124,27 +125,66 @@ end to end in `apps/api/modules/oidc`.
 
 ## Phase 3 — the hard half
 
-- [x] `modules/admin`: the dashboard's API — shipped 2026-08-25. Operator-only over HTTP Basic
+- [x] `modules/admin`: the dashboard's API — shipped 2026-08-24. Operator-only over HTTP Basic
       checked through `identity.Verify` under the argon2 ceiling; clients (create, rotate secret),
       users (create, disable), invite tokens (issue, list, redeem at `/api/invites/redeem`,
       rate-limited like login), key status. SPEC §10 q1's invite-token seed discipline landed
       with it: single-use, expiring, shown once.
-- [x] `apps/client` admin UI — shipped 2026-08-25. `/admin` (operator sign-in, users,
+- [x] `apps/client` admin UI — shipped 2026-08-24. `/admin` (operator sign-in, users,
       invitations, clients, signing keys) and the public `/invites/redeem` password-set page;
       SvelteKit 5 + muse, secrets shown once with a copy-now warning. The dashboard authenticates
       with HTTP Basic held in browser memory; when a cookie session ever replaces it,
       X-Facile-CSRF comes with the change.
-- [ ] TOTP, then WebAuthn
-- [ ] Account recovery over `facteur`, with no enumeration and equal timing
-- [ ] `modules/admin`: the dashboard's API, which is what will own HTTP for `internal/keys` and
+- [x] TOTP — shipped 2026-08-24. `internal/totp` over `pquerna/otp`, seed sealed under the root
+      key like a signing key, RFC 6238 §5.2 replay guard on a `totp_last_step` column, ten
+      single-use recovery codes stored as digests. Enrolment is a `Begin`/`Confirm` pair so an
+      abandoned attempt can never gate a login. The second factor interposes at
+      `POST /api/login/totp` through `internal/challenges`, which holds the "password was right"
+      state server-side rather than handing it to the browser, with a five-attempt budget per
+      challenge
+- [ ] WebAuthn. Deferred with a reason: it needs a fixed origin to bind to and a credential store
+      of its own, and TOTP plus recovery codes already closes the phase 3 exit. Doing both at once
+      would have shipped neither well
+- [x] Account recovery over `facteur`, with no enumeration and equal timing — shipped 2026-08-24.
+      `internal/recovery` pays the argon2 cost on both paths and `modules/reset` answers the same
+      status and the same body for a known and an unknown address, including on its own internal
+      errors. Delivery is handed to a goroutine before the SMTP round trip starts, because a
+      synchronous send is only on the known path and would put back the timing oracle the
+      equalisation removes
+- [x] `modules/admin`: the dashboard's API, which is what will own HTTP for `internal/keys` and
       `internal/clients` rather than moving them back under `modules/`
-- [ ] Break-glass, tested. An untested break-glass is decoration, and it gates phase 4
-- [ ] **Exit:** a human can enrol a second factor, lose it, and recover without anyone touching
-      the database
+- [x] Break-glass, tested — shipped 2026-08-24. `registre break-glass --email <address>`, over
+      `internal/breakglass`, in one transaction, with the drill in `breakglass_test.go`. SPEC §7
+      carries the decision and why the fallback-issuer option was never available to an issuer
+- [x] **Exit: closed 2026-08-24.** A human enrols a second factor at `/account/security`, and if
+      they lose the device they spend a recovery code at the login challenge, or reset their
+      password from `/recover` if that is what went. No operator and no database access is
+      involved in any of it. Asserted end to end against a running binary over real HTTP, and in
+      `internal/totp`, `modules/account` and `modules/login`
 
 ## Phase 4 — migration and cutover
 
-- [ ] `cmd/import-authentik`: export, mint fresh ids, emit an old-sub to new-sub map
+**Blocked on reading the live Authentik instance, not on writing code.** `authentik-config`
+carries only the two expression policies and one scope mapping; it holds no user or application
+data, and its README says the repo is a mirror rather than the source. There is **no API token on
+that instance**, so an export means a base64-encoded Django script over
+`ssh ruche "docker exec ... ak shell -c"`. Nothing here should be written against a guess at what
+comes back: an importer built blind, against a cutover SPEC §9 says is one-way, is a liability
+rather than progress. Do the export first, by hand, and write the tool against the artifact.
+
+Two facts already gathered that the tool has to satisfy:
+
+- Every adopted app now carries `porte_identities` keyed `(provider, subject)`, and six of them
+  (Agenda, Courrier, Nuage, Plume, Sablier, Vision) also still carry `users.oidc_subject` plus a
+  one-shot backfill. `provider` is the **issuer URL**, so it changes per app at cutover, not just
+  the subject.
+- Authentik issues one issuer per application, `https://porte.facile.studio/application/o/<slug>/`,
+  and registre serves a single issuer at the root. Every app therefore changes `OIDC_ISSUER`
+  whatever else happens, which is what makes a one-app-at-a-time cutover possible.
+
+- [ ] `import-authentik`: export, mint fresh ids, emit an old-sub to new-sub map. Note the
+      repository's actual convention is a subcommand file beside `main.go`, as `user-create`,
+      `user-disable` and `break-glass` are, not a `cmd/` directory
 - [ ] `--dry-run` printing every change per app
 - [ ] Verification pass asserting zero orphans and zero duplicate subjects. Fresh identities were
       chosen deliberately, so this is the only safety net and cutover is one-way
@@ -182,10 +222,39 @@ end to end in `apps/api/modules/oidc`.
 - [ ] Ten `op.Storage` methods refuse by name rather than pretending. That is the phase ordering
       working, not a gap
 
+## Fixed on the way through, 2026-08-24
+
+- [x] **Every client route except "/" was unreachable by URL.** `internal/web` rewrote an unknown
+      path to `/index.html` and handed it to `http.FileServerFS`, which canonicalises that name by
+      redirecting to `./`. So `/login` answered 301 to the origin root and the route was discarded:
+      reload, bookmark and the redirect back from an OIDC flow all landed on the marketing page.
+      Production was answering **404** for `/login` and `/admin` when this was found, so the login
+      page had never worked at the deployed URL. The handler now writes the index bytes directly,
+      `internal/web/web_test.go` asserts every route answers 200 and HTML, and an unrouted `/api`
+      path answers JSON 404 instead of a page, which is the failure `env.go` already documents
+      Journal losing reports to.
+- [x] **The dashboard could only mint unusable applications.** `POST /api/admin/clients` accepted
+      no `redirect_uris`, no `visible_roles` and no `backchannel_logout_uri`, and defaulted no
+      grant types, so a client registered through the UI was refused at `/authorize` for a missing
+      redirect URI and then for a missing response type. All three fields are accepted and shown
+      now, the grants and scopes default to the seed's per kind so the two registration paths
+      cannot disagree, and an application without a redirect URI is refused at creation with a
+      message that names the problem.
+- [x] **muse was pinned at `file:../../../muse`**, the only repo in the suite doing so, against a
+      local checkout eleven commits behind `origin/main`. Now `github:FacileStudio/muse#v0.6.4`.
+- [x] **`JOURNAL_BROWSER_URL` and `JOURNAL_BROWSER_KEY` were never forwarded by
+      `docker-compose.yml`**, so the browser error reporting shipped in `c0ac7b4` could not be
+      switched on in production however the Dokploy environment was set. Same trap the seed secret
+      hit: compose forwards by name, and a variable this block does not list never reaches the
+      container. Both are in the block now.
+- [x] **`filet.yml` never linted the client.** It said TypeScript and Svelte would join the
+      extension list "with the login page in phase 1"; phase 1 shipped long ago. `.ts` and
+      `.svelte` are in the list now and `apps/client` is a required directory.
+
 ## Known small things
 
 - [x] ~~Discovery over-advertises `authorization_code`, `implicit` and the JWT bearer grant~~ —
-      fixed 2026-08-25, see the phase 2 exit note above
+      fixed 2026-08-24, see the phase 2 exit note above
 - [ ] `Ensure` and `Upsert` both read-then-create, so two replicas booting in the same instant
       means one fails on a unique violation and restarts into a correct state. Self-healing, noisy
 - [ ] A retired key with a NULL `expires_at` stays in the JWKS forever. Only reachable by a manual

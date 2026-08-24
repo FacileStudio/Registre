@@ -22,7 +22,7 @@
     "vite": "^7.3.1"
   },
   "dependencies": {
-    "@facile/muse": "file:../../../muse",
+    "@facile/muse": "github:FacileStudio/muse#v0.6.4",
     "@facile/journal": "github:FacileStudio/Journal#ts"
   }
 }

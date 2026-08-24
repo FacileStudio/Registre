@@ -11,7 +11,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/challenges"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
+	"github.com/FacileStudio/Registre/apps/api/internal/totp"
+	"github.com/FacileStudio/Registre/apps/api/schemas"
 
 	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 )
@@ -35,11 +38,25 @@ type Service struct {
 	logger   *slog.Logger
 	now      func() time.Time
 	browser  map[string]any
+	factor   SecondFactor
 }
 
 // New builds the login service over identity.
 func New(identityService *identity.Service, logger *slog.Logger) *Service {
 	return &Service{identity: identityService, logger: logger, now: func() time.Time { return time.Now().UTC() }}
+}
+
+// WithSecondFactor wires the TOTP step and the account cookie.
+//
+// A service built without it logs a human in on the password alone and sets
+// no cookie, which is what registre did before the factor existed, so nothing
+// on that path may dereference these. What it must not do is fail open: an
+// account that has enrolled a factor is refused outright by a deployment that
+// cannot check one, because letting it through would make the enrolment
+// itself the way around the enrolment.
+func (s *Service) WithSecondFactor(deps SecondFactor) *Service {
+	s.factor = deps
+	return s
 }
 
 // WithBrowserConfig adds what GET /api/config hands to the client build. Both
@@ -55,21 +72,38 @@ func (s *Service) WithBrowserConfig(url, key string) *Service {
 // MountWithLimits registers the login routes with an explicit per-address
 // budget. Tests use it to make the limiter reachable without hammering the
 // real default; production goes through Mount.
+//
+// Both credential endpoints share one limiter instance, so the two steps draw
+// on a single per-address budget. A second-factor endpoint with a budget of
+// its own is where a guesser moves once the password endpoint is throttled,
+// and six digits is a far smaller space than a password.
 func MountWithLimits(router chi.Router, service *Service, limit float64, burst int) {
-	router.With(troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
+	budget := troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
 		Limit: limit, Burst: burst,
-	})).Post("/api/login", service.jsonSubmit)
+	})
+	router.With(budget).Post("/api/login", service.jsonSubmit)
+	router.With(budget).Post("/api/login/totp", service.jsonSecondFactor)
 	router.Get("/api/config", service.browserConfig)
 }
 
+// decision is what a credential check that got past the password hands the
+// client: either the callback to navigate to, or the challenge that still
+// owes a second factor. Never both.
+type decision struct {
+	Redirect  string `json:"redirect,omitempty"`
+	Challenge string `json:"challenge,omitempty"`
+}
+
 // jsonSubmit answers the client app's fetch with the decision that matters:
-// a redirect target on success, one generic refusal otherwise. The browser
-// follows the redirect as a full navigation, so the code exchange never runs
-// inside JavaScript.
+// a redirect target on success, a challenge when the account has a second
+// factor, one generic refusal otherwise. The browser follows the redirect as
+// a full navigation, so the code exchange never runs inside JavaScript.
 //
 // Every refusal carries the same body. The identity service already equalises
 // timing between unknown address and wrong password, so nothing here can
-// distinguish them either.
+// distinguish them either. Answering a challenge instead of a redirect does
+// tell the caller the account has a factor, which is unavoidable: they have
+// already proven the password by then.
 func (s *Service) jsonSubmit(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		AuthRequest string `json:"auth_request"`
@@ -80,17 +114,30 @@ func (s *Service) jsonSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad body", http.StatusBadRequest)
 		return
 	}
-	redirect, err := s.authenticate(r.Context(), body.AuthRequest, body.Email, body.Password)
+	answer, err := s.authenticate(r.Context(), w, body.AuthRequest, body.Email, body.Password)
 	if err != nil {
-		status := http.StatusUnauthorized
-		if !errors.Is(err, identity.ErrInvalid) && !errors.Is(err, errAuthRequestGone) {
-			s.logger.Error("registre: login verification failed", slog.Any("error", err))
-			status = http.StatusInternalServerError
-		}
-		encode(w, map[string]string{"error": "invalid"}, status)
+		s.refuse(w, err)
 		return
 	}
-	encode(w, map[string]string{"redirect": redirect}, http.StatusOK)
+	encode(w, answer, http.StatusOK)
+}
+
+// refuse writes the one refusal both endpoints make. A refusal registre
+// caused rather than the caller is logged and answered 500, with the same
+// body, so an operator can find it without the client learning anything.
+func (s *Service) refuse(w http.ResponseWriter, err error) {
+	status := http.StatusUnauthorized
+	switch {
+	case errors.Is(err, identity.ErrInvalid), errors.Is(err, errAuthRequestGone),
+		errors.Is(err, challenges.ErrInvalid), errors.Is(err, totp.ErrInvalid):
+	case errors.Is(err, errNoSecondFactor):
+		s.logger.Error("registre: an enrolled account met a build with no second factor service",
+			slog.Any("error", err))
+	default:
+		s.logger.Error("registre: login verification failed", slog.Any("error", err))
+		status = http.StatusInternalServerError
+	}
+	encode(w, map[string]string{"error": "invalid"}, status)
 }
 
 // encode writes one JSON object with the given status.
@@ -102,26 +149,71 @@ func encode(w http.ResponseWriter, body any, status int) {
 	}
 }
 
-// authenticate validates the pending auth request, verifies the credentials,
-// marks the flow authenticated and returns the callback to send the browser
-// to, which is where zitadel issues the code and redirects into the app.
-func (s *Service) authenticate(ctx context.Context, id, email, password string) (string, error) {
+// authenticate validates the pending auth request and verifies the
+// credentials. An account with no second factor is logged in here; one that
+// has a factor gets a challenge and nothing else, because a session opened
+// now is a session the password alone opened.
+func (s *Service) authenticate(
+	ctx context.Context, w http.ResponseWriter, id, email, password string,
+) (decision, error) {
 	authReq, err := s.identity.AuthRequestByID(ctx, id)
 	if err != nil || !authReq.ExpiresAt.After(s.now()) || authReq.Done() {
-		return "", errAuthRequestGone
+		return decision{}, errAuthRequestGone
 	}
 	user, err := s.identity.Verify(ctx, email, password)
 	if err != nil {
-		return "", err
+		return decision{}, err
 	}
-	sessionID, err := s.identity.StartSession(ctx, user.ID, authReq.ClientID, s.now())
+	if user.TOTPEnrolled() {
+		if s.factor.Challenges == nil || s.factor.Codes == nil {
+			return decision{}, errNoSecondFactor
+		}
+		token, err := s.factor.Challenges.Issue(ctx, user.ID, authReq.ID)
+		if err != nil {
+			return decision{}, err
+		}
+		return decision{Challenge: token}, nil
+	}
+	redirect, err := s.complete(ctx, w, user.ID, authReq)
+	if err != nil {
+		return decision{}, err
+	}
+	return decision{Redirect: redirect}, nil
+}
+
+// complete opens the provider session, marks the browser flow authenticated,
+// hands the human registre's own account cookie and returns the callback to
+// navigate to, which is where zitadel issues the code and redirects into the
+// app.
+func (s *Service) complete(
+	ctx context.Context, w http.ResponseWriter, userID string, authReq schemas.AuthRequest,
+) (string, error) {
+	sessionID, err := s.identity.StartSession(ctx, userID, authReq.ClientID, s.now())
 	if err != nil {
 		return "", fmt.Errorf("identity: start the session: %w", err)
 	}
-	if err := s.identity.Complete(ctx, id, user.ID, sessionID, s.now()); err != nil {
+	if err := s.identity.Complete(ctx, authReq.ID, userID, sessionID, s.now()); err != nil {
 		return "", fmt.Errorf("identity: complete the login: %w", err)
 	}
-	return "/authorize/callback?id=" + id, nil
+	if err := s.writeAccountCookie(ctx, w, sessionID); err != nil {
+		return "", err
+	}
+	return "/authorize/callback?id=" + authReq.ID, nil
+}
+
+// writeAccountCookie hands the human the session registre's own account pages
+// read. A deployment wired without the account service logs in exactly as it
+// did before, so an absent service is a no-op here and not a nil dereference.
+func (s *Service) writeAccountCookie(ctx context.Context, w http.ResponseWriter, sessionID string) error {
+	if s.factor.Accounts == nil {
+		return nil
+	}
+	token, err := s.factor.Accounts.Issue(ctx, sessionID)
+	if err != nil {
+		return fmt.Errorf("accounts: issue the account session: %w", err)
+	}
+	s.factor.Cookies.Write(w, token)
+	return nil
 }
 
 // errAuthRequestGone marks an unknown, expired or already-used login link.

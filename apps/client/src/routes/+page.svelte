@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Divider, Icon, TextElevate, icons } from '@facile/muse';
+	import { Button, Card, Divider, Icon, Inline, Page, Stack, TextElevate, icons } from '@facile/muse';
 
 	const features = [
 		{
@@ -33,77 +33,73 @@
 
 <div class="min-h-dvh bg-fc-page text-fc-fg">
 	<header class="border-b border-fc-border">
-		<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+		<div class="mx-auto flex max-w-fc-xl items-center justify-between px-6 py-4">
 			<div class="flex h-14 items-center gap-3">
 				<img src="/logo.svg" alt="" width={24} height={24} class="block shrink-0" />
-				<span class="font-fc-title text-fc-xl font-semibold tracking-tight">Registre</span>
+				<span class="text-fc-xl font-semibold tracking-tight">Registre</span>
 			</div>
-			<Button variant="ghost" href="/login" class="rounded-fc-md">Log in</Button>
+			<Button variant="ghost" href="/login">Log in</Button>
 		</div>
 	</header>
 
 	<main>
-		<section class="mx-auto max-w-5xl px-6 py-24 text-center">
-			<h1 class="font-fc-title text-fc-3xl font-semibold tracking-tight">
-				<span class="block"><TextElevate text="One account." delay={0.1} /></span>
-				<span class="block"><TextElevate text="Every app." delay={0.25} /></span>
-			</h1>
-			<p class="mx-auto mt-6 max-w-xl text-fc-md text-fc-fg-muted">
-				Registre is the identity provider behind the Facile Suite. Sign in through the app you came
-				from — there is nothing to do here by hand.
-			</p>
-			<div class="mt-10 flex flex-wrap justify-center gap-3">
-				<Button size="lg" href="/login" iconRight={icons.arrow} class="rounded-fc-md">
-					Sign in
-				</Button>
-				<Button
-					size="lg"
-					variant="outline"
-					href="https://facile.studio"
-					class="rounded-fc-md">About Facile</Button
-				>
-			</div>
-		</section>
+		<Page width="xl">
+			<Stack gap="content" class="items-center py-12 text-center">
+				<h1 class="text-fc-3xl font-semibold tracking-tight">
+					<span class="block"><TextElevate text="One account." delay={0.1} /></span>
+					<span class="block"><TextElevate text="Every app." delay={0.25} /></span>
+				</h1>
+				<p class="max-w-xl text-fc-md text-fc-fg-muted">
+					Registre is the identity provider behind the Facile Suite. Sign in through the app you
+					came from — there is nothing to do here by hand.
+				</p>
+				<Inline gap="tight" class="justify-center pt-4">
+					<Button size="lg" href="/login" iconRight={icons.arrow}>Sign in</Button>
+					<Button size="lg" variant="outline" href="https://facile.studio">About Facile</Button>
+				</Inline>
+			</Stack>
 
-		<Divider class="my-0" />
+			<Divider />
 
-		<section class="mx-auto max-w-5xl px-6 py-20">
-			<div class="grid gap-6 md:grid-cols-3">
+			<div class="grid gap-4 md:grid-cols-3 [&>*]:min-w-0">
 				{#each features as feature (feature.title)}
-					<div class="rounded-fc-lg border border-fc-border p-6">
-						<div
-							class="mb-3 flex size-10 items-center justify-center rounded-fc-md border border-fc-border"
-						>
-							<Icon icon={feature.icon} size={20} />
-						</div>
-						<h3 class="text-fc-lg font-semibold">{feature.title}</h3>
-						<p class="mt-1.5 text-fc-sm text-fc-fg-muted">{feature.description}</p>
-					</div>
+					<Card>
+						<Stack gap="bound">
+							<span
+								class="mb-2 flex size-10 items-center justify-center rounded-fc-md bg-fc-surface text-fc-fg"
+							>
+								<Icon icon={feature.icon} size={20} />
+							</span>
+							<h2 class="text-fc-lg font-semibold">{feature.title}</h2>
+							<p class="text-fc-sm text-fc-fg-muted">{feature.description}</p>
+						</Stack>
+					</Card>
 				{/each}
 			</div>
-		</section>
 
-		<Divider class="my-0" />
+			<Divider />
 
-		<section class="mx-auto max-w-5xl px-6 py-20 text-center">
-			<h2 class="font-fc-title text-fc-2xl font-semibold tracking-tight">Ready when you are</h2>
-			<p class="mt-4 text-fc-sm text-fc-fg-muted">
-				Head back to the app you were using; it will bring you here when it needs you.
-			</p>
-			<div class="mt-8 flex justify-center">
-				<Button size="lg" href="/login" class="rounded-fc-md">Sign in</Button>
-			</div>
-		</section>
+			<Stack gap="content" class="items-center py-8 text-center">
+				<h2 class="text-fc-2xl font-semibold tracking-tight">Ready when you are</h2>
+				<p class="text-fc-sm text-fc-fg-muted">
+					Head back to the app you were using; it will bring you here when it needs you.
+				</p>
+				<Button size="lg" href="/login">Sign in</Button>
+			</Stack>
+		</Page>
 	</main>
 
 	<footer class="border-t border-fc-border">
-		<div class="mx-auto max-w-5xl px-6 py-6 text-center text-fc-sm text-fc-fg-muted">
+		<div class="mx-auto max-w-fc-xl px-6 py-6 text-center text-fc-sm text-fc-fg-muted">
 			© {new Date().getFullYear()} Registre by
 			<a
 				href="https://facile.studio"
-				class="font-semibold underline underline-offset-2 transition-colors hover:text-fc-fg"
-				>Facile.</a
+				class="rounded-fc-xs font-semibold underline underline-offset-2 transition-colors
+					hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2
+					focus-visible:outline-fc-ring"
 			>
+				Facile.
+			</a>
 		</div>
 	</footer>
 </div>

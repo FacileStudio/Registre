@@ -29,6 +29,18 @@ import (
 	"github.com/FacileStudio/porte/local"
 )
 
+// MinPasswordLength is the floor every path that sets a human password
+// enforces: the account page, the emailed reset, and invitation redemption.
+//
+// It lives here rather than in each module because it was three numbers
+// before, and they disagreed. A reset accepted eight characters while the
+// account page demanded twelve, which made the emailed link the way around
+// the stricter form. A floor that one path undercuts is the floor.
+//
+// Break-glass keeps a higher one of its own, for a reason that does not
+// generalise: that password is chosen under pressure and opens every app.
+const MinPasswordLength = 12
+
 // DefaultConcurrency is how many verifications run at once when the
 // configuration says nothing: one per core.
 //

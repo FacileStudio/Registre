@@ -82,6 +82,46 @@ and the variable it names must be set or the boot fails saying which one is miss
 Applying is an upsert keyed on `client_id`, and it never deletes: an account dropped from the file
 is logged at boot and left working.
 
+## Password recovery
+
+| Variable | Default | What it decides |
+|---|---|---|
+| `SMTP_HOST` | unset | The mail server. Absent means recovery is off |
+| `SMTP_PORT` | `587` | 465 gets implicit TLS, anything else STARTTLS when offered |
+| `SMTP_USER` | unset | Empty means no authentication |
+| `SMTP_PASS` | unset | |
+| `SMTP_FROM` | unset | The From address. Absent means recovery is off |
+| `SMTP_FROM_NAME` | unset | The display name |
+
+These are the suite-wide names, read by `facteur` and `facteur-ts` alike, so one set of variables
+is documented for every app that sends mail.
+
+**Recovery off is a supported state, not a broken one.** `POST /api/recover` and
+`POST /api/recover/reset` mount whatever the configuration says. With no mailer the request route
+still answers the same status and the same body it always does, so a caller cannot detect the
+difference. The boot log says which state the instance is in.
+
+**The send is deliberately asynchronous.** `internal/recovery` pays an argon2 cost on both the
+known and the unknown path so the two take the same time, and only the known path has a mail to
+send. A synchronous SMTP round trip would put the difference straight back as latency, which is
+the same enumeration oracle wearing a stopwatch. Delivery failures reach the log rather than the
+caller, which is the right trade: the caller has been told a link is on its way whether or not
+their address was known, so there is no answer a failure could usefully change.
+
+## Break-glass
+
+| Variable | Default | What it decides |
+|---|---|---|
+| `REGISTRE_BREAK_GLASS_PASSWORD` | unset | The password `registre break-glass` sets, minimum 16 characters |
+
+Read only by the `break-glass` subcommand, and never by the server. It is an environment variable
+rather than a flag because a flag lands in shell history and in `ps` output. See
+[SPEC §7](../SPEC.md) for what the command does and why it is not a route.
+
+```sh
+REGISTRE_BREAK_GLASS_PASSWORD='...' registre break-glass --email operator@facile.studio
+```
+
 ## Inherited from tronc
 
 `APP_ENV`, `PORT`, `LOG_LEVEL`, `CORS_ALLOWED_ORIGINS`, `TRUSTED_PROXIES`, `JOURNAL_URL`,
@@ -98,6 +138,19 @@ machine tokens are fetched server to server and no browser calls the token endpo
 |---|---|---|
 | `JOURNAL_URL` | unset | Journal's API, which must end in `/api`. On la ruche, `http://journal-api:4010/api` |
 | `JOURNAL_TOKEN` | unset | The per-app key from Journal's Keys page |
+| `JOURNAL_BROWSER_URL` | unset | Journal's API for the client build, also ending in `/api` |
+| `JOURNAL_BROWSER_KEY` | unset | The public, origin-locked key the browser reports with |
+
+The browser pair is not the server pair. `JOURNAL_URL` and `JOURNAL_TOKEN` are the Go SDK's
+secret credential; `JOURNAL_BROWSER_URL` and `JOURNAL_BROWSER_KEY` are handed to the client over
+`GET /api/config` and ship in a response to any visitor, so they must be the public kind of key.
+Serving them rather than baking them into the bundle is what makes rotating one an environment
+change instead of a rebuild.
+
+**Three boot-refusing rules apply to the browser pair**, all in `internal/env`: both must be set
+or neither, the URL must end in `/api`, and the same `/api` rule the server pair has. A URL
+without the suffix is answered by Journal's own SPA catch-all with `200` and a page of HTML,
+which the reporting client reads as success, so the reports disappear with no error anywhere.
 
 Both or neither: with one missing, nothing ships and nothing says so.
 

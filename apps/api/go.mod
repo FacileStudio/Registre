@@ -17,7 +17,9 @@ require (
 )
 
 require (
+	github.com/FacileStudio/facteur v0.0.0-20260814111820-82eb01e894f9 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -31,6 +33,7 @@ require (
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/muhlemmer/httpforwarded v0.1.0 // indirect
+	github.com/pquerna/otp v1.5.0 // indirect
 	github.com/pressly/goose/v3 v3.27.3 // indirect
 	github.com/rs/cors v1.11.1 // indirect
 	github.com/sethvargo/go-retry v0.4.0 // indirect

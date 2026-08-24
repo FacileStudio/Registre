@@ -26,6 +26,12 @@ import (
 // whoever is guessing.
 var ErrInvalid = errors.New("invites: invalid or expired invitation")
 
+// ErrTooShort is a password under the floor every path that sets one shares.
+// It is separate from ErrInvalid because the caller may safely say this one
+// out loud: it describes what the person just typed, not whether their
+// invitation exists.
+var ErrTooShort = errors.New("invites: the password is too short")
+
 // DefaultTTL is how long an invitation stays redeemable. Short by design:
 // it is a credential in whatever channel carried it.
 const DefaultTTL = 72 * time.Hour
@@ -113,6 +119,9 @@ func (s *Service) Redeem(ctx context.Context, token, password string) error {
 	}
 	if notFound || row.RedeemedAt != nil || !row.ExpiresAt.After(s.now()) {
 		return ErrInvalid
+	}
+	if len(password) < credentials.MinPasswordLength {
+		return ErrTooShort
 	}
 	now := s.now()
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

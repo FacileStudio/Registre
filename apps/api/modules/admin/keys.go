@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
@@ -52,6 +53,12 @@ func (s *Service) redeemInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.invites.Redeem(r.Context(), body.Token, body.Password); err != nil {
+		if errors.Is(err, invites.ErrTooShort) {
+			encode(w, map[string]any{
+				"error": "password_too_short", "minimum": credentials.MinPasswordLength,
+			}, http.StatusBadRequest)
+			return
+		}
 		if errors.Is(err, invites.ErrInvalid) {
 			encode(w, map[string]string{"error": "invalid"}, http.StatusUnauthorized)
 			return

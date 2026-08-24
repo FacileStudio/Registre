@@ -158,15 +158,40 @@ apps/api/
   modules/
     oidc/              the zitadel/oidc Storage implementation — the load-bearing file
     admin/             the dashboard's API (phase 3), over the services below
+    login/             the credential check and the second-factor step (phase 3)
+    account/           the pages a human manages their own security from (phase 3)
+    reset/             password recovery, request and redeem (phase 3)
   internal/
     keys/              signing keys and rotation (§7)
     clients/           the register: applications, service accounts
     credentials/       argon2id, and the ceiling on how much of it runs at once (§7)
-    users/             people (phase 1)
+    identity/          people (phase 1). SPEC's first draft called this users/
     seed/              idempotent YAML bootstrap
-  cmd/import-authentik/  phase 4 only
-apps/client/           SvelteKit 5 + muse admin UI and login page
+    invites/           single-use invitations (§10 q1)
+    logout/            back-channel logout delivery
+    web/               the embedded client build, served as the catch-all
+    totp/              the second factor and its recovery codes (phase 3)
+    challenges/        a password proven with a factor still owed (phase 3)
+    accounts/          the session registre holds with a human directly (phase 3)
+    recovery/          password reset over facteur (phase 3)
+    breakglass/        the way back in when the way in is the problem (§7)
+apps/client/           SvelteKit 5 + muse admin UI, login, account and recovery pages
 ```
+
+Two of those need a word, because neither was in the original layout.
+
+**`internal/accounts` exists because registre cannot be its own relying party.** Every other app in
+the suite gets its session from registre. registre has nowhere to get one, so the account pages
+need a session of their own. It is a random bearer stored as a digest, hung off the provider
+`sessions` row that login already creates rather than a table of its own, so `end_session`,
+`registre user-disable` and back-channel logout all close the account pages in the same statement
+that closes everything else. A second session table would have been a second thing to remember to
+revoke.
+
+**Subcommands live flat in `apps/api/`, not under `cmd/`.** `user-create`, `user-disable` and
+`break-glass` are files beside `main.go` dispatched on `os.Args[1]`, which is the shape phase 1
+already set. `cmd/import-authentik/` above is therefore aspirational rather than descriptive; when
+phase 4 arrives it should match the convention the repository actually has.
 
 ---
 
@@ -200,6 +225,28 @@ after last use. Build this in phase 0, with a test that rotates and asserts no r
 is lost, all eleven apps are gone at once and there is no cheap recovery. Either a local
 administrator that does not federate, or Authentik stays warm as a fallback issuer. Decide,
 implement, and *test the recovery* — an untested break-glass is decoration. This gates phase 4.
+
+**Decided 2026-08-24: the local administrator, restored by an offline subcommand.** The second
+option was never really available. registre is the issuer, so it federates to nothing, and
+"Authentik stays warm as a fallback" only helps an app that can be pointed at a second issuer,
+not registre itself. `registre break-glass --email <address>` therefore takes one address and
+puts it back into a state it can sign in from: re-enabled, second factor and recovery codes
+removed, password set from `REGISTRE_BREAK_GLASS_PASSWORD`, admin granted, every live session and
+refresh grant ended. It mints the account when the address has none, because the case this exists
+for at its worst is the last administrator row deleted.
+
+Three properties, each of which is the reason for the one before it:
+
+- **It is a subcommand and must never become a route.** Running it already requires the database,
+  so it grants nobody anything they did not have. Reachable over HTTP it would be a back door with
+  a nicer name.
+- **It is one transaction.** A half-applied restore is the worst outcome available: an account
+  enabled with its factor cleared but its password unchanged is an account somebody else may now
+  be able to reach, and the operator cannot tell from the error which half landed.
+- **It is tested, which is the whole point.** `internal/breakglass` builds the worst state the
+  account can be in and asserts one call answers all of it, including that no recovery code and no
+  session survives. The password floor is 16 characters because this password is chosen under
+  pressure by somebody improvising.
 
 **A refusal must cost what an acceptance costs.** No early return before the argon2 hash on the
 login path; that is a timing oracle for account existence. `internal/credentials` folds the

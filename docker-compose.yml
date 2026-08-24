@@ -90,6 +90,22 @@ services:
       # the suite's auth audit trail, so this is not optional in production.
       JOURNAL_URL: ${JOURNAL_URL:-}
       JOURNAL_TOKEN: ${JOURNAL_TOKEN:-}
+      # The browser half of Journal, handed to the client over GET /api/config
+      # rather than baked into the bundle. Both or neither, and the URL ends
+      # in /api like the pair above.
+      JOURNAL_BROWSER_URL: ${JOURNAL_BROWSER_URL:-}
+      JOURNAL_BROWSER_KEY: ${JOURNAL_BROWSER_KEY:-}
+      # Password recovery. Absent SMTP_HOST or SMTP_FROM means recovery is off:
+      # the routes still answer identically, they just send nothing, and the
+      # boot log says which state this instance is in. Listing them here is the
+      # load-bearing part, because an entry in Dokploy's environment store that
+      # this block does not name never reaches the container.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-}
     volumes:
       - ./seed.yaml:/etc/registre/seed.yaml:ro
     depends_on:

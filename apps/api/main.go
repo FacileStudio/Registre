@@ -17,31 +17,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/crypto"
 	"github.com/FacileStudio/Registre/apps/api/internal/database"
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
-	"github.com/FacileStudio/Registre/apps/api/internal/identity"
-	"github.com/FacileStudio/Registre/apps/api/internal/invites"
-	"github.com/FacileStudio/Registre/apps/api/internal/keys"
-	"github.com/FacileStudio/Registre/apps/api/internal/logout"
-	"github.com/FacileStudio/Registre/apps/api/internal/seed"
-	"github.com/FacileStudio/Registre/apps/api/internal/web"
 	"github.com/FacileStudio/Registre/apps/api/migrations"
-	"github.com/FacileStudio/Registre/apps/api/modules/admin"
-	"github.com/FacileStudio/Registre/apps/api/modules/login"
-	"github.com/FacileStudio/Registre/apps/api/modules/oidc"
 
 	"github.com/FacileStudio/Journal/sdk/journal"
-	"github.com/FacileStudio/tronc/health"
 	"github.com/FacileStudio/tronc/healthcheck"
-	"github.com/FacileStudio/tronc/httpx"
 	"github.com/FacileStudio/tronc/logger"
-	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 	"github.com/FacileStudio/tronc/migrate"
 	"github.com/go-chi/chi/v5"
-	"gorm.io/gorm"
 )
 
 // tokenRecordRetention is how long a token's row outlives the token itself.
@@ -131,6 +117,9 @@ func run() int {
 	if len(os.Args) > 1 && os.Args[1] == "user-disable" {
 		return runUserDisable(context.Background(), db, verifier, log)
 	}
+	if len(os.Args) > 1 && os.Args[1] == "break-glass" {
+		return runBreakGlass(context.Background(), db, verifier, log)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -160,102 +149,6 @@ func migrateSchema(sqlDB *sql.DB, log *slog.Logger) (int, bool) {
 		return 1, true
 	}
 	return 0, false
-}
-
-// assemble builds every service and returns the router they are mounted on.
-// services bundles the process-wide dependencies assemble wires into routes,
-// so the function stays under the parameter ceiling as registre grows.
-type services struct {
-	verifier *credentials.Verifier
-	log      *slog.Logger
-}
-
-// assemble wires the process's services into routes. The dependencies travel
-// together as one value so the function stays inside the parameter ceiling.
-//
-// Route precedence: oidc.Mount and login.Mount first, then the embedded
-// client as the catch-all, so every page a human sees — "/" included — is the
-// SvelteKit app while API routes keep priority over it.
-func assemble(
-	ctx context.Context,
-	db *gorm.DB,
-	root []byte,
-	cfg env.Config,
-	svc services,
-) (chi.Router, error) {
-	keyring := keys.New(db, root, keys.Config{
-		RotateEvery:  cfg.RotationEvery,
-		PublishDelay: cfg.PublishDelay,
-		Retention:    cfg.KeyRetention,
-	}, svc.log)
-	if err := keyring.Ensure(ctx); err != nil {
-		return nil, err
-	}
-	keyring.Start(ctx)
-
-	register := clients.New(db, svc.verifier)
-	if err := applySeed(ctx, register, cfg.SeedFile, svc.log); err != nil {
-		return nil, err
-	}
-	users := identity.New(db, svc.verifier)
-	invitationService := invites.New(db, svc.verifier)
-
-	storage := oidc.NewStorage(db, oidc.Services{
-		Keys: keyring, Register: register, Users: users,
-		Logout: logout.New(keyring, register, cfg.Issuer, svc.log),
-	}, oidc.Config{
-		Issuer:          cfg.Issuer,
-		AccessTokenTTL:  cfg.AccessTokenTTL,
-		RefreshTokenTTL: cfg.RefreshTokenTTL,
-	}, svc.log)
-	storage.StartPurge(ctx, tokenRecordRetention)
-
-	provider, err := oidc.NewProvider(storage, oidc.ProviderConfig{
-		Issuer:   cfg.Issuer,
-		RootKey:  root,
-		Insecure: cfg.InsecureIssuer(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, err
-	}
-	router := httpx.NewRouter(httpx.Config{
-		TrustedProxies: cfg.TrustedProxies,
-		CDNProxies:     cfg.CDNProxies,
-		CDNHeader:      cfg.CDNHeader,
-		Logger:         svc.log,
-		CORS: troncmiddleware.CORSConfig{
-			AllowedOrigins:   cfg.CORSAllowedOrigins,
-			AllowCredentials: true,
-		},
-	})
-	health.Mount(router, health.DB(sqlDB))
-	oidc.Mount(router, provider)
-	login.Mount(router, login.New(users, svc.log).
-		WithBrowserConfig(cfg.JournalBrowserURL, cfg.JournalBrowserKey))
-	admin.Mount(router, admin.New(admin.Services{
-		Register: register, Users: users, Keys: keyring, Invites: invitationService,
-		Logout: logout.New(keyring, register, cfg.Issuer, svc.log),
-	}, svc.log))
-	router.Handle("/*", web.Handler())
-	return router, nil
-}
-
-// applySeed brings the register up to the file, when one is configured.
-func applySeed(ctx context.Context, register *clients.Service, path string, log *slog.Logger) error {
-	if path == "" {
-		log.Info("registre: no seed file configured, the database is the only source of clients")
-		return nil
-	}
-	file, err := seed.Load(path)
-	if err != nil {
-		return err
-	}
-	return seed.Apply(ctx, register, file, log)
 }
 
 // serve runs the HTTP server until it is signalled to stop.

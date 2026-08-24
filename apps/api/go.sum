@@ -1,5 +1,7 @@
 github.com/FacileStudio/Journal/sdk/journal v0.0.0-20260708221941-db985ad2b1ba h1:/DSby1r2Ix9vsPKfDky0rRY/skp8p2Nq+I/B3cc9M9g=
 github.com/FacileStudio/Journal/sdk/journal v0.0.0-20260708221941-db985ad2b1ba/go.mod h1:mb3rZqpSwA4CMrP9LQe2eWdM/4np3xzkRy6l/WWSaUg=
+github.com/FacileStudio/facteur v0.0.0-20260814111820-82eb01e894f9 h1:8X9CO20PSL5Wqdtv8fj2M3MTOEKLsfq8NKC2zzhaXnY=
+github.com/FacileStudio/facteur v0.0.0-20260814111820-82eb01e894f9/go.mod h1:JWnYNYXLHhhzB81xjwVHO5GZ7gvy1pkveibuBcgH4Sk=
 github.com/FacileStudio/porte v0.3.1 h1:Mu0CPuldv37mHyknoY7HF6lx2Nkb5IQhu5838M0Cuzc=
 github.com/FacileStudio/porte v0.3.1/go.mod h1:dXC79PY1VUB8mpirq2IBA0/8/hpEAWH4+ZhsJ1D57h0=
 github.com/FacileStudio/tronc v0.15.0 h1:Pd1s1P3o5gBUWFnNy83cU343SzOtduxRcW0CGDVmz+s=
@@ -10,6 +12,8 @@ github.com/FacileStudio/tronc/testdb v0.1.1 h1:PTwGRnPcibkhzEdCM+YTxare8L2vneuUr
 github.com/FacileStudio/tronc/testdb v0.1.1/go.mod h1:49KIfUnXScKflXJBJM+UiaI3Zvl9d1Z21Cp95mLIUR4=
 github.com/bmatcuk/doublestar/v4 v4.10.0 h1:zU9WiOla1YA122oLM6i4EXvGW62DvKZVxIe6TYWexEs=
 github.com/bmatcuk/doublestar/v4 v4.10.0/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
+github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc h1:biVzkmvwrH8WK8raXaxBx6fRVTlJILwEwQGL1I/ByEI=
+github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -64,6 +68,8 @@ github.com/ncruces/go-strftime v1.0.0 h1:HMFp8mLCTPp341M/ZnA4qaf7ZlsbTc+miZjCLOF
 github.com/ncruces/go-strftime v1.0.0/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/pquerna/otp v1.5.0 h1:NMMR+WrmaqXU4EzdGJEE1aUUI0AMRzsp96fFFWNPwxs=
+github.com/pquerna/otp v1.5.0/go.mod h1:dkJfzwRKNiegxyNb54X/3fLwhCynbMspSyWKnvi1AEg=
 github.com/pressly/goose/v3 v3.27.3 h1:pIglVHjw99r4e/hDHHwbl9vfOsDMqUokfkXo6+n/RxA=
 github.com/pressly/goose/v3 v3.27.3/go.mod h1:Dag+xpV6o20HR2LFY1j0q6MDwc3f7vPUFDA77R+0yGY=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94icq4NjY3clb7Lk8O1qJ8BdBEF8z0ibU0rE=

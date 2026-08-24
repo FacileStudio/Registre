@@ -45,7 +45,9 @@ func (s *Storage) TerminateSession(ctx context.Context, userID, _ string) error 
 		return zoidc.ErrInvalidRequest().WithDescription("end session names no user")
 	}
 	if s.svc.Logout == nil {
-		s.svc.Users.EndSessions(ctx, userID, s.now())
+		if _, err := s.svc.Users.EndSessions(ctx, userID, s.now()); err != nil {
+			return zoidc.ErrServerError().WithParent(err)
+		}
 		return nil
 	}
 	reached, err := s.svc.Users.EndSessions(ctx, userID, s.now())

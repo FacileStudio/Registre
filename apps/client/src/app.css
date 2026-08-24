@@ -1,3 +1,10 @@
-@import 'tailwindcss';
+/*
+ * The documented muse consumer recipe, exactly two lines.
+ *
+ * tokens.css imports tailwindcss itself, so a second `@import 'tailwindcss'`
+ * here is a duplicate. `@source` is what makes Tailwind generate the fc-*
+ * utilities: v4 does not scan node_modules, and without it every muse class is
+ * purged and the app renders structurally correct and completely unstyled.
+ */
 @import '@facile/muse/styles';
 @source '../node_modules/@facile/muse/src';
