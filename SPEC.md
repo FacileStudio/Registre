@@ -283,20 +283,24 @@ Cut over one app by changing `OIDC_ISSUER`, soak it, then the rest. Authentik go
    off the live instance *before* it is decommissioned.
 5. **Does registre emit to `antenne`?** Login, logout and administrative changes are exactly the
    events the bus exists for, keyed on `actor_email`. Emit-only, if so.
-6. **How does an app consume a machine token?** Found while building phase 0, and it blocks the
+6. **How does an app consume a machine token?** **Answered 2026-08-24: offline JWKS
+   verification is the default; introspection is the opt-in.** Found while building phase 0, and it blocks the
    half of §4's exit that was struck through above. porte authenticates a bearer by hashing it and
    finding the row; a registre-signed JWT matches nothing. Two ways to close it, and the choice is
    porte's to make, in a version of its own:
    - **Verify offline.** porte grows a bearer path that, on a token shaped like a JWT, verifies it
-     against the issuer's JWKS and checks `aud` against its own client id. No round trip, no new
-     failure mode at request time, and it inherits the key rotation phase 0 already proves. It
-     also means a revoked token keeps working until it expires, which is what the short default
-     lifetime is for.
+     against the issuer's JWKS and checks `aud` against its own client id; anything else keeps
+     hashing into `sessions`. Cache keys by `kid`; on an unknown `kid`, refetch the JWKS once,
+     then refuse — being unable to verify is a reason to refuse, not to proceed. No round trip,
+     no new failure mode at request time, and it inherits the key rotation phase 0 already proves.
+     A revoked token works until expiry, which is what the short default lifetime is for; callers
+     who need instant revocation use introspection instead and pay its round trip knowingly.
    - **Introspect.** porte calls `/oauth/introspect` with its own client credentials. Revocation
      is immediate and the app learns the scopes without parsing anything, at the cost of a round
      trip on every request and an identity provider that is now in the hot path of every app.
-   Offline verification is the one to build; introspection already works and is there for the case
-   that needs it. Whichever lands, the app-side identity is `(issuer, sub)` exactly as it is for a
+   Offline verification is the default because a per-request network hop to the IdP across all
+   eleven apps buys nothing that short token lifetimes do not — that is the argon2-ceiling lesson:
+   do not make one component an amplifier every caller depends on per-request. Whichever lands, the app-side identity is `(issuer, sub)` exactly as it is for a
    human — a service account is a principal, not a special case.
 
 ---

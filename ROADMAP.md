@@ -42,11 +42,12 @@ suite's secret source of truth, migrate those two values there before anyone tru
        discovery document parses and carries a `jwks_uri`. Passed against the deployed instance.
        It proves discovery only; verifying an actual minted JWT still needs real client
        credentials or a published local port.
-2. [ ] **Extend the discovery test to a full token round trip, then decide SPEC §10 question 6**
-       and build it in porte. Minting and verifying a real `client_credentials` JWT needs either
-       per-app client credentials in the environment or a published port on the local docker
-       registre so the test can run offline. Offline JWKS verification is the one to build;
-       introspection already works here if immediate revocation is wanted instead.
+2. [x] **Extend the discovery test to a full token round trip, decide SPEC §10 question 6, build
+       it in porte.** Done 2026-08-24, three slices: `modules/oidc/roundtrip_test.go` mints a real
+       `client_credentials` JWT over HTTP and verifies it offline against `/keys` (offline test
+       green; the live variant skips until a service account exists on sso.facile.studio);
+       SPEC §10 q6 answered (offline JWKS default); porte grew `oidc/jwt` — a kid-cached verifier
+       wired behind `OIDC_MACHINE_AUDIENCE`, opaque tokens unchanged.
 3. [ ] Phase 1.
 
 
@@ -183,4 +184,5 @@ SPEC §10 carries them in full. Short form, and none is answered:
 4. Session lifetime and refresh policy — read Authentik's values off the live instance **before**
    it is decommissioned
 5. Does registre emit to antenne
-6. How does an app consume a machine token (see Read this first)
+6. ~~How does an app consume a machine token~~ — answered 2026-08-24, SPEC §10: offline JWKS
+   verification is the default, introspection the opt-in
