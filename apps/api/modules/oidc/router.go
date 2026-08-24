@@ -10,6 +10,7 @@ package oidc
 
 import (
 	"crypto/sha256"
+	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -84,7 +85,11 @@ func NewProvider(storage *Storage, cfg ProviderConfig) (*op.Provider, error) {
 // specification; the rest are wherever discovery says they are.
 func Mount(router chi.Router, provider *op.Provider) {
 	for _, path := range Paths(provider) {
-		router.Handle(path, provider)
+		handler := http.Handler(provider)
+		if path == oidc.DiscoveryEndpoint {
+			handler = filteredDiscovery(provider)
+		}
+		router.Handle(path, handler)
 	}
 }
 

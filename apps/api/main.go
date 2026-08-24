@@ -23,11 +23,13 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/database"
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
+	"github.com/FacileStudio/Registre/apps/api/internal/invites"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
 	"github.com/FacileStudio/Registre/apps/api/internal/seed"
 	"github.com/FacileStudio/Registre/apps/api/internal/web"
 	"github.com/FacileStudio/Registre/apps/api/migrations"
+	"github.com/FacileStudio/Registre/apps/api/modules/admin"
 	"github.com/FacileStudio/Registre/apps/api/modules/login"
 	"github.com/FacileStudio/Registre/apps/api/modules/oidc"
 
@@ -196,6 +198,7 @@ func assemble(
 		return nil, err
 	}
 	users := identity.New(db, svc.verifier)
+	invitationService := invites.New(db, svc.verifier)
 
 	storage := oidc.NewStorage(db, oidc.Services{
 		Keys: keyring, Register: register, Users: users,
@@ -233,6 +236,10 @@ func assemble(
 	health.Mount(router, health.DB(sqlDB))
 	oidc.Mount(router, provider)
 	login.Mount(router, login.New(users, svc.log))
+	admin.Mount(router, admin.New(admin.Services{
+		Register: register, Users: users, Keys: keyring, Invites: invitationService,
+		Logout: logout.New(keyring, register, cfg.Issuer, svc.log),
+	}, svc.log))
 	router.Handle("/*", web.Handler())
 	return router, nil
 }

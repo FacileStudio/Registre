@@ -5,8 +5,9 @@
 > [SPEC.md](SPEC.md) owns the decisions, the frozen contract and the phase definitions. This file
 > tracks only what is done and what is left. Where they disagree, SPEC wins.
 >
-> Last updated 2026-08-24: phases 1 and 2 built; the phase 1 exit (porte's suite against
-> registre) and the phase 2 exit (conformance + a live deactivation drill) remain.
+> Last updated 2026-08-25: admin dashboard slice built (modules/admin + apps/client pages),
+> the deactivation drill passes locally (4 ms delivery); the conformance suite is blocked on a
+> docker daemon and the live drill on production credentials.
 
 ## Read this first
 
@@ -113,10 +114,26 @@ end to end in `apps/api/modules/oidc`.
       fallback can finally fire. Self-service signup will create unverified accounts
 - [ ] **Exit:** OpenID Foundation conformance suite green; deactivating a user drops them from
       every app within seconds — the mechanism is built and tested (`user-disable`, back-channel
-      delivery, session termination); the conformance run and a live deactivation drill remain
+      delivery, session termination). The drill now exists as
+      `TestDisablingAUserDropsThemFromEveryAppWithinSeconds` (modules/oidc/drill_test.go) and
+      passed locally on 2026-08-25 with the logout token arriving 4 ms after user-disable; the
+      run against sso.facile.studio remains. The OpenID Foundation suite needs a docker daemon,
+      which lucy does not have — run it from a machine that does, pointed at a local registre.
+      Discovery no longer over-advertises: `filteredDiscovery` strips implicit and jwt-bearer
+      from `grant_types_supported`, asserted by TestDiscoveryAdvertisesOnlyServedGrants.
 
 ## Phase 3 — the hard half
 
+- [x] `modules/admin`: the dashboard's API — shipped 2026-08-25. Operator-only over HTTP Basic
+      checked through `identity.Verify` under the argon2 ceiling; clients (create, rotate secret),
+      users (create, disable), invite tokens (issue, list, redeem at `/api/invites/redeem`,
+      rate-limited like login), key status. SPEC §10 q1's invite-token seed discipline landed
+      with it: single-use, expiring, shown once.
+- [x] `apps/client` admin UI — shipped 2026-08-25. `/admin` (operator sign-in, users,
+      invitations, clients, signing keys) and the public `/invites/redeem` password-set page;
+      SvelteKit 5 + muse, secrets shown once with a copy-now warning. The dashboard authenticates
+      with HTTP Basic held in browser memory; when a cookie session ever replaces it,
+      X-Facile-CSRF comes with the change.
 - [ ] TOTP, then WebAuthn
 - [ ] Account recovery over `facteur`, with no enumeration and equal timing
 - [ ] `modules/admin`: the dashboard's API, which is what will own HTTP for `internal/keys` and
@@ -167,9 +184,8 @@ end to end in `apps/api/modules/oidc`.
 
 ## Known small things
 
-- [ ] Discovery over-advertises `authorization_code`, `implicit` and the JWT bearer grant, which
-      zitadel writes unconditionally. Every advertised endpoint is mounted and refuses cleanly, so
-      it is an optimistic document rather than a 404
+- [x] ~~Discovery over-advertises `authorization_code`, `implicit` and the JWT bearer grant~~ —
+      fixed 2026-08-25, see the phase 2 exit note above
 - [ ] `Ensure` and `Upsert` both read-then-create, so two replicas booting in the same instant
       means one fails on a unique violation and restarts into a correct state. Self-healing, noisy
 - [ ] A retired key with a NULL `expires_at` stays in the JWKS forever. Only reachable by a manual

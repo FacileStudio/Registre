@@ -17,6 +17,7 @@ type logoutInbox struct {
 	server *httptest.Server
 	mu     sync.Mutex
 	bodies [][]byte
+	hits   []time.Time
 }
 
 func newLogoutInbox(t *testing.T) *logoutInbox {
@@ -26,6 +27,7 @@ func newLogoutInbox(t *testing.T) *logoutInbox {
 		body, _ := io.ReadAll(r.Body)
 		inbox.mu.Lock()
 		inbox.bodies = append(inbox.bodies, body)
+		inbox.hits = append(inbox.hits, time.Now())
 		inbox.mu.Unlock()
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -41,6 +43,14 @@ func (i *logoutInbox) received() [][]byte {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	return i.bodies
+}
+
+// arrivals returns when each notification landed, for drills that measure the
+// disable-to-ejection interval.
+func (i *logoutInbox) arrivals() []time.Time {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.hits
 }
 
 // await waits for n notifications to arrive. Delivery is fired from a

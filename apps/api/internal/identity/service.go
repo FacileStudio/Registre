@@ -44,12 +44,22 @@ func New(db *gorm.DB, verifier *credentials.Verifier) *Service {
 // minted by an operator, who attests the address by creating it, and truthful
 // emission of the claim is worth nothing if the only truth it can tell is no.
 // Self-service signup, when it arrives, creates unverified accounts instead.
-func (s *Service) Create(ctx context.Context, email, password, name string, admin bool, roles ...string) (schemas.User, error) {
-	email = strings.ToLower(strings.TrimSpace(email))
+
+// NewUser carries the fields for a fresh account. Roles is optional.
+type NewUser struct {
+	Email    string
+	Password string
+	Name     string
+	Admin    bool
+	Roles    []string
+}
+
+func (s *Service) Create(ctx context.Context, in NewUser) (schemas.User, error) {
+	email := strings.ToLower(strings.TrimSpace(in.Email))
 	if email == "" || !strings.Contains(email, "@") {
 		return schemas.User{}, fmt.Errorf("identity: %q is not an email address", email)
 	}
-	hash, err := s.verifier.Hash(ctx, password)
+	hash, err := s.verifier.Hash(ctx, in.Password)
 	if err != nil {
 		return schemas.User{}, fmt.Errorf("identity: hash the password: %w", err)
 	}
@@ -58,12 +68,12 @@ func (s *Service) Create(ctx context.Context, email, password, name string, admi
 		return schemas.User{}, fmt.Errorf("identity: mint a subject: %w", err)
 	}
 	row := schemas.User{
-		ID: subject, Email: email, Name: name,
-		PasswordHash: hash, Admin: admin,
+		ID: subject, Email: email, Name: in.Name,
+		PasswordHash: hash, Admin: in.Admin,
 		EmailVerified: true,
 	}
-	if len(roles) > 0 {
-		row.Roles = schemas.StringList(roles)
+	if len(in.Roles) > 0 {
+		row.Roles = schemas.StringList(in.Roles)
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return schemas.User{}, fmt.Errorf("identity: create the user: %w", err)

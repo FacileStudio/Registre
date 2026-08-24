@@ -37,7 +37,10 @@ func runUserCreate(ctx context.Context, db *gorm.DB, verifier *credentials.Verif
 		return 2
 	}
 	users := identity.New(db, verifier)
-	user, err := users.Create(ctx, *email, password, *name, *admin, splitRoles(*roles)...)
+	user, err := users.Create(ctx, identity.NewUser{
+		Email: *email, Password: password, Name: *name,
+		Admin: *admin, Roles: splitRoles(*roles),
+	})
 	if errors.Is(err, identity.ErrInvalid) {
 		log.Error("registre: refused to create the user", slog.Any("error", err))
 		return 1

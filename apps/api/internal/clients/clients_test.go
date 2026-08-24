@@ -80,7 +80,8 @@ func TestUpsertWithAPartialRowBlanksTheDeclarativeLists(t *testing.T) {
 		t.Errorf("the partial upsert destroyed the secret: %v", authErr)
 	}
 	if len(row.RedirectURIs) != 0 || len(row.VisibleRoles) != 0 || len(row.Scopes) != 0 {
-		t.Errorf("expected the declarative lists to be blanked per the contract, got redirect_uris %v visible_roles %v scopes %v",
+		t.Errorf("expected the declarative lists to be blanked per the contract, got "+
+			"redirect_uris %v visible_roles %v scopes %v",
 			row.RedirectURIs, row.VisibleRoles, row.Scopes)
 	}
 	if row.BackchannelLogoutURI != "" {

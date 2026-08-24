@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
@@ -189,7 +190,9 @@ func (f *fixture) application(clientID string, redirect string, extraScopes ...s
 
 func (f *fixture) human(email, password string) {
 	f.t.Helper()
-	if _, err := f.users.Create(context.Background(), email, password, "Yann", true); err != nil {
+	if _, err := f.users.Create(context.Background(), identity.NewUser{
+		Email: email, Password: password, Name: "Yann", Admin: true,
+	}); err != nil {
 		f.t.Fatalf("creating the user: %v", err)
 	}
 }
