@@ -4,6 +4,7 @@ package env
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
@@ -60,6 +61,15 @@ type Config struct {
 	// a memory ceiling wearing a count: multiply it by 64 MiB to get the
 	// transient memory the token endpoint may hold under load.
 	VerifyConcurrency int
+
+	// JournalBrowserURL and JournalBrowserKey are the client pages' half of
+	// Journal, handed to the browser over GET /api/config rather than baked
+	// into the bundle, so rotating the public key is an env change and not a
+	// rebuild. They are deliberately separate from JournalURL and
+	// JournalToken: those are the server SDK's secret key, this pair is the
+	// origin-locked public kind that ships in responses to any visitor.
+	JournalBrowserURL string
+	JournalBrowserKey string
 }
 
 // InsecureIssuer reports whether a plain-http issuer is tolerated. Only a
@@ -89,6 +99,8 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg.SeedFile = troncenv.String("REGISTRE_SEED_FILE", "")
+	cfg.JournalBrowserURL = strings.TrimSuffix(troncenv.String("JOURNAL_BROWSER_URL", ""), "/")
+	cfg.JournalBrowserKey = troncenv.String("JOURNAL_BROWSER_KEY", "")
 
 	cfg.VerifyConcurrency, err = troncenv.Int("REGISTRE_VERIFY_CONCURRENCY", credentials.DefaultConcurrency())
 	if err != nil {
@@ -101,6 +113,17 @@ func Load() (Config, error) {
 			cfg.VerifyConcurrency)
 	}
 
+	if cfg.JournalBrowserURL != "" && !strings.HasSuffix(cfg.JournalBrowserURL, "/api") {
+		return Config{}, fmt.Errorf(
+			"env: JOURNAL_BROWSER_URL must end in /api (got %q), otherwise Journal's SPA catch-all "+
+				"answers every report with 200 and HTML and the reports are lost in silence",
+			cfg.JournalBrowserURL)
+	}
+	if (cfg.JournalBrowserURL == "") != (cfg.JournalBrowserKey == "") {
+		return Config{}, fmt.Errorf(
+			"env: JOURNAL_BROWSER_URL and JOURNAL_BROWSER_KEY must be set together: " +
+				"a URL without a key reports nothing and a key without a URL has nowhere to report")
+	}
 	if err := validateIssuer(cfg.Issuer, cfg.InsecureIssuer()); err != nil {
 		return Config{}, err
 	}

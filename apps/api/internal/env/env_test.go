@@ -95,3 +95,41 @@ func TestTheDefaultsAddUp(t *testing.T) {
 		t.Error("a production configuration tolerates a plain-http issuer")
 	}
 }
+
+// TestABrowserJournalURLWithoutTheAPIPathIsRefused catches the silent-loss
+// shape: Journal's SPA catch-all answers any path with 200 and HTML, so a
+// base URL that stops short of /api turns every browser report into a
+// successful-looking POST nobody ever reads.
+func TestABrowserJournalURLWithoutTheAPIPathIsRefused(t *testing.T) {
+	base(t)
+	t.Setenv("JOURNAL_BROWSER_URL", "https://journal.facile.studio")
+	t.Setenv("JOURNAL_BROWSER_KEY", "journal_registre_public")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("a JOURNAL_BROWSER_URL without /api was accepted")
+	}
+	if !strings.Contains(err.Error(), "JOURNAL_BROWSER_URL") {
+		t.Errorf("the error does not name the variable to fix: %v", err)
+	}
+}
+
+// TestAHalfConfiguredBrowserJournalIsRefused keeps the off switch binary:
+// one variable set and the other empty would look like reporting to a reader
+// of the config endpoint while nothing ships, or ship to nowhere.
+func TestAHalfConfiguredBrowserJournalIsRefused(t *testing.T) {
+	base(t)
+	t.Setenv("JOURNAL_BROWSER_KEY", "journal_registre_public")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("a key without a URL was accepted")
+	}
+
+	base(t)
+	t.Setenv("JOURNAL_BROWSER_URL", "https://journal.facile.studio/api")
+	t.Setenv("JOURNAL_BROWSER_KEY", "")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("a URL without a key was accepted")
+	}
+}

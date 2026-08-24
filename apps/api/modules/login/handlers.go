@@ -34,11 +34,22 @@ type Service struct {
 	identity *identity.Service
 	logger   *slog.Logger
 	now      func() time.Time
+	browser  map[string]any
 }
 
 // New builds the login service over identity.
 func New(identityService *identity.Service, logger *slog.Logger) *Service {
 	return &Service{identity: identityService, logger: logger, now: func() time.Time { return time.Now().UTC() }}
+}
+
+// WithBrowserConfig adds what GET /api/config hands to the client build. Both
+// values come from one env pair, so a nil map means reporting is off and the
+// endpoint answers without the journal key at all.
+func (s *Service) WithBrowserConfig(url, key string) *Service {
+	if url != "" && key != "" {
+		s.browser = map[string]any{"url": url, "key": key}
+	}
+	return s
 }
 
 // MountWithLimits registers the login routes with an explicit per-address
@@ -48,6 +59,7 @@ func MountWithLimits(router chi.Router, service *Service, limit float64, burst i
 	router.With(troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
 		Limit: limit, Burst: burst,
 	})).Post("/api/login", service.jsonSubmit)
+	router.Get("/api/config", service.browserConfig)
 }
 
 // jsonSubmit answers the client app's fetch with the decision that matters:
@@ -82,7 +94,7 @@ func (s *Service) jsonSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 // encode writes one JSON object with the given status.
-func encode(w http.ResponseWriter, body map[string]string, status int) {
+func encode(w http.ResponseWriter, body any, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(body); err != nil {
@@ -114,3 +126,15 @@ func (s *Service) authenticate(ctx context.Context, id, email, password string) 
 
 // errAuthRequestGone marks an unknown, expired or already-used login link.
 var errAuthRequestGone = errors.New("login: auth request is gone")
+
+// browserConfig answers the client build's boot-time configuration. It is
+// unauthenticated and must stay free of anything a visitor cannot already
+// see: today that is only the browser Journal pair, which is the public,
+// origin-locked kind of key rather than a secret.
+func (s *Service) browserConfig(w http.ResponseWriter, _ *http.Request) {
+	body := map[string]any{}
+	if s.browser != nil {
+		body["journal"] = s.browser
+	}
+	encode(w, body, http.StatusOK)
+}

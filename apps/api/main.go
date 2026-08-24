@@ -235,7 +235,8 @@ func assemble(
 	})
 	health.Mount(router, health.DB(sqlDB))
 	oidc.Mount(router, provider)
-	login.Mount(router, login.New(users, svc.log))
+	login.Mount(router, login.New(users, svc.log).
+		WithBrowserConfig(cfg.JournalBrowserURL, cfg.JournalBrowserKey))
 	admin.Mount(router, admin.New(admin.Services{
 		Register: register, Users: users, Keys: keyring, Invites: invitationService,
 		Logout: logout.New(keyring, register, cfg.Issuer, svc.log),
