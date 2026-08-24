@@ -17,7 +17,13 @@ the hash up in the app's own `sessions` table, so a signed JWT matches nothing. 
 provider with no consumer until that changes, and the change is in `porte`, not here. SPEC §10
 question 6 has the two ways to close it.
 
-**registre is deployed.** 2026-08-23: Dokploy compose on la ruche, `sso.facile.studio` behind
+**registre is deployed and healthy.** Redeployed 2026-08-24 with phase 3 on a reinitialised
+database: the panel had lost `POSTGRES_PASSWORD`, which only applies at `initdb`, so the volume
+held a password nothing could look up. `docker-compose.yml` now names `registre_db_data_v2` and
+the old volume is left on the host. The instance carries one seeded service account, zero
+applications and zero human users, which is what it carried before.
+
+**Originally deployed** 2026-08-23: Dokploy compose on la ruche, `sso.facile.studio` behind
 Traefik with a Let's Encrypt cert, `/ready` green, discovery and JWKS answering from the real
 hostname. Secrets (`ENCRYPTION_KEY`, `POSTGRES_PASSWORD`) went into Dokploy's compose environment,
 **not Casier**, because no machine this session had a working `casier` CLI. If Casier becomes the
@@ -35,7 +41,18 @@ suite's secret source of truth, migrate those two values there before anyone tru
       environment (copy in `~/registre-secrets/registre.env` on lucy). Applications get added at
       cutover.
 - [ ] Back up `ENCRYPTION_KEY` somewhere that is not the Dokploy panel. It cannot be regenerated;
-      see [docs/deployment.md](docs/deployment.md).
+      see [docs/deployment.md](docs/deployment.md). **Done, and it earned itself back on
+      2026-08-24**: the panel's environment block was replaced rather than merged by an earlier
+      deploy, and the copy in `~/registre-secrets/registre.env` is the only reason the key
+      survived. `POSTGRES_PASSWORD` was not in that file and did not survive, which is why the
+      database was reinitialised. Back up every secret in a panel field, not only the one that is
+      obviously irreplaceable.
+- [ ] Set `SMTP_HOST`, `SMTP_FROM` and the rest of the `SMTP_*` pair in Dokploy to turn password
+      recovery on. The wiring shipped 2026-08-24 and the boot log says which state the instance
+      is in; today it warns and sends nothing. The endpoints answer identically either way, so
+      nothing is broken until then, it is simply off.
+- [ ] Register the eleven apps as `application` clients before cutover. The dashboard can do it
+      now that it accepts `redirect_uris`, `visible_roles` and `backchannel_logout_uri`.
 
 ## Next, in order
 
