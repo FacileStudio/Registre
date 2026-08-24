@@ -26,3 +26,27 @@ service_accounts:
       - courrier
       - opus
     access_token_ttl: 1h
+
+# The suite apps that log humans in. Each needs its redirect URIs — they are
+# byte-compared at /authorize, never matched loosely — and each names the
+# environment variable holding its client secret, like a service account.
+#
+# scopes defaults to openid profile email. Add offline_access for refresh
+# tokens and roles to receive the roles claim; visible_roles then filters
+# which roles this app actually sees, and empty means none.
+applications:
+  - client_id: courrier
+    name: Courrier
+    secret_env: REGISTRE_SEED_COURRIER_SECRET
+    redirect_uris:
+      - https://courrier.facile.studio/auth/oidc/callback
+      - http://127.0.0.1:4020/auth/oidc/callback
+    scopes:
+      - openid
+      - profile
+      - email
+      - offline_access
+      - roles
+    backchannel_logout_uri: https://courrier.facile.studio/auth/backchannel-logout
+    visible_roles:
+      - admin

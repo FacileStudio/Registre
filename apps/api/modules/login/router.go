@@ -11,7 +11,8 @@ import (
 )
 
 // Mount registers the login routes on router. The client build owns every
-// page, including "/"; this package only answers its credential check.
+// page, including "/"; this package only answers its credential check,
+// under the default per-address budget.
 func Mount(router chi.Router, service *Service) {
-	router.Post("/api/login", service.jsonSubmit)
+	MountWithLimits(router, service, DefaultLoginLimit, DefaultLoginBurst)
 }

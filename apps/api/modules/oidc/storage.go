@@ -11,6 +11,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
+	"github.com/FacileStudio/Registre/apps/api/internal/logout"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
 	jose "github.com/go-jose/go-jose/v4"
@@ -30,22 +31,25 @@ type Config struct {
 	// leaked one is useful for.
 	AccessTokenTTL time.Duration
 
+	// RefreshTokenTTL is how long a refresh grant may be redeemed. Zero
+	// means the storage's thirty-day fallback; env.Load refuses values
+	// shorter than the access token lifetime, which would be a grant that
+	// dies before the thing it renews.
+	RefreshTokenTTL time.Duration
+
 	// Now is the clock the storage reads. Nil means time.Now in UTC.
 	Now func() time.Time
 }
 
-// Storage is registre's implementation of the contract zitadel/oidc issues
-// tokens through. It is the load-bearing file of the whole repository: every
-// decision about who gets a token, for how long, and naming whom, is made here
-// and nowhere else.
-// Services bundles what the storage reads besides its database, so the
-// constructor stays under filet's parameter ceiling and callers can pass nil
-// for a machine-only test. It is a bag of dependencies, not a decision: none
-// of the three changes what a token means.
+// Services bundles what the storage reads besides its database. It exists so
+// the constructor stays under filet's parameter ceiling and callers can pass
+// nil for a machine-only test. It is a bag of dependencies, not a decision:
+// none of them changes what a token means.
 type Services struct {
 	Keys     *keys.Service
 	Register *clients.Service
 	Users    *identity.Service
+	Logout   *logout.Service
 }
 
 // Storage is registre's implementation of the contract zitadel/oidc issues
@@ -175,19 +179,18 @@ func audience(row schemas.Client) []string {
 // row is not the credential. It is what makes revocation possible at all: a
 // self-contained JWT cannot be taken back, and an agent's credential that
 // cannot be taken back is one that has to be waited out.
+// CreateAccessToken issues an access token for whichever grant asked. A
+// browser flow names the human as the subject and the app that sent them here
+// as the audience; client_credentials names the machine principal.
 func (s *Storage) CreateAccessToken(ctx context.Context, request op.TokenRequest) (string, time.Time, error) {
 	var clientID, subject string
-	var scopes, auds []string
 	var lifetime time.Duration
 	switch granted := request.(type) {
 	case tokenRequest:
-		clientID, subject, scopes, auds = granted.clientID, granted.subject, granted.scopes, granted.audience
+		clientID, subject = granted.clientID, granted.subject
 		lifetime = granted.lifetime
 	case op.AuthRequest:
-		// A browser flow names the human as the subject and the app
-		// that sent them here as the audience.
 		clientID, subject = granted.GetClientID(), granted.GetSubject()
-		scopes, auds = granted.GetScopes(), granted.GetAudience()
 		row, err := s.svc.Register.ByClientID(ctx, clientID)
 		if err != nil {
 			return "", time.Time{}, fmt.Errorf("oidc: read the client: %w", err)
@@ -196,6 +199,13 @@ func (s *Storage) CreateAccessToken(ctx context.Context, request op.TokenRequest
 	default:
 		return "", time.Time{}, fmt.Errorf("oidc: %T is not a grant registre issues yet", request)
 	}
+	return s.mintAccessToken(ctx, lifetime, request, clientID, subject)
+}
+
+// mintAccessToken records one issued access token for whichever grant asked.
+func (s *Storage) mintAccessToken(
+	ctx context.Context, lifetime time.Duration, request op.TokenRequest, clientID, subject string,
+) (string, time.Time, error) {
 	id, err := ids.New()
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("oidc: mint a token id: %w", err)
@@ -204,7 +214,7 @@ func (s *Storage) CreateAccessToken(ctx context.Context, request op.TokenRequest
 	expires := issued.Add(lifetime)
 	row := schemas.AccessToken{
 		ID: id, ClientID: clientID, Subject: subject,
-		Scopes: scopes, Audiences: auds,
+		Scopes: request.GetScopes(), Audiences: request.GetAudience(),
 		IssuedAt: issued, ExpiresAt: expires,
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
@@ -218,7 +228,11 @@ func (s *Storage) CreateAccessToken(ctx context.Context, request op.TokenRequest
 // The client id is part of the match on purpose: RFC 7009 §2.1 requires the
 // server to check that the token was issued to the caller, and without it any
 // client holding valid credentials could revoke any other client's token.
-func (s *Storage) RevokeToken(ctx context.Context, tokenOrTokenID, _, clientID string) *zoidc.Error {
+//
+// A refresh grant revokes with it everything minted from it — RFC 7009's
+// SHOULD — because leaving live access tokens behind would make the
+// revocation advisory rather than actual.
+func (s *Storage) RevokeToken(ctx context.Context, tokenOrTokenID, userID, clientID string) *zoidc.Error {
 	revoked := s.now()
 	err := s.db.WithContext(ctx).Model(&schemas.AccessToken{}).
 		Where("id = ? AND client_id = ? AND revoked_at IS NULL", tokenOrTokenID, clientID).
@@ -226,14 +240,22 @@ func (s *Storage) RevokeToken(ctx context.Context, tokenOrTokenID, _, clientID s
 	if err != nil {
 		return zoidc.ErrServerError().WithParent(err)
 	}
+	if userID == "" {
+		return nil
+	}
+	err = s.db.WithContext(ctx).Model(&schemas.RefreshToken{}).
+		Where("id = ? AND client_id = ? AND user_id = ? AND revoked_at IS NULL", tokenOrTokenID, clientID, userID).
+		Update("revoked_at", revoked).Error
+	if err != nil {
+		return zoidc.ErrServerError().WithParent(err)
+	}
+	err = s.db.WithContext(ctx).Model(&schemas.AccessToken{}).
+		Where("client_id = ? AND subject = ? AND revoked_at IS NULL", clientID, userID).
+		Update("revoked_at", revoked).Error
+	if err != nil {
+		return zoidc.ErrServerError().WithParent(err)
+	}
 	return nil
-}
-
-// GetPrivateClaimsFromScopes returns the claims a scope adds to a token.
-// There are none yet: the roles claim is SPEC §4's phase 2, and emitting an
-// empty one early would make every role check in every app deny silently.
-func (s *Storage) GetPrivateClaimsFromScopes(context.Context, string, string, []string) (map[string]any, error) {
-	return nil, nil
 }
 
 // liveToken reads an issued token that has been neither revoked nor expired.
@@ -250,16 +272,4 @@ func (s *Storage) liveToken(ctx context.Context, tokenID string) (schemas.Access
 		return schemas.AccessToken{}, errors.New("oidc: the token is revoked or expired")
 	}
 	return row, nil
-}
-
-// PurgeTokens drops token records that expired more than retention ago. The
-// row outlives the token deliberately: revoking something already expired is a
-// no-op, but an audit question asked the next morning is not.
-func (s *Storage) PurgeTokens(ctx context.Context, retention time.Duration) error {
-	cutoff := s.now().Add(-retention)
-	err := s.db.WithContext(ctx).Where("expires_at < ?", cutoff).Delete(&schemas.AccessToken{}).Error
-	if err != nil {
-		return fmt.Errorf("oidc: purge tokens: %w", err)
-	}
-	return nil
 }

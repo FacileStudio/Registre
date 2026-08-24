@@ -154,7 +154,7 @@ func (f *fixture) submitLogin(jar *singleCookie, email, password string) callbac
 	return parseCallback(codeResponse.Header.Get("Location"))
 }
 
-func (f *fixture) application(clientID string, redirect string) string {
+func (f *fixture) application(clientID string, redirect string, extraScopes ...string) string {
 	f.t.Helper()
 	secret, err := ids.Secret()
 	if err != nil {
@@ -168,11 +168,17 @@ func (f *fixture) application(clientID string, redirect string) string {
 	if err != nil {
 		f.t.Fatalf("minting a subject: %v", err)
 	}
+	scopes := schemas.StringList{"openid", "profile", "email"}
+	for _, scope := range extraScopes {
+		if !scopes.Contains(scope) {
+			scopes = append(scopes, scope)
+		}
+	}
 	row := schemas.Client{
 		ClientID: clientID, Subject: subject, Name: clientID, Kind: schemas.KindApplication,
 		SecretHash:   hash,
-		GrantTypes:   schemas.StringList{"authorization_code"},
-		Scopes:       schemas.StringList{"openid", "profile", "email"},
+		GrantTypes:   schemas.StringList{"authorization_code", "refresh_token"},
+		Scopes:       scopes,
 		RedirectURIs: schemas.StringList{redirect},
 	}
 	if _, err := f.register.Upsert(context.Background(), row); err != nil {

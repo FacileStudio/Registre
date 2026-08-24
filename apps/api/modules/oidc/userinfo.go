@@ -39,6 +39,10 @@ func (s *Storage) SetIntrospectionFromToken(
 // it gets, rather than a fabricated profile. A human's profile claims come
 // from their user row; an unknown subject means a machine and answers with the
 // subject alone.
+//
+// email_verified is emitted truthfully, which is the capability Authentik
+// never had: an operator-minted account is attested by its creator and says
+// so, and porte's address fallback finally gets to fire.
 func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *zoidc.UserInfo, tokenID, _, _ string) error {
 	row, err := s.liveToken(ctx, tokenID)
 	if err != nil {
@@ -59,6 +63,28 @@ func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *zoidc.User
 		return errors.New("oidc: the token's owner is disabled")
 	}
 	userinfo.Email = user.Email
+	userinfo.EmailVerified = zoidc.Bool(user.EmailVerified)
 	userinfo.Name = user.Name
+	return nil
+}
+
+// SetUserinfoFromScopes feeds the ID token's non-userinfo claims. The scope
+// machinery strips profile, email and address before calling this, which is
+// exactly why roles survives to here: the claim rides in the ID token where
+// porte reads it, filtered per client by rolesForClient.
+func (s *Storage) SetUserinfoFromScopes(
+	ctx context.Context, userinfo *zoidc.UserInfo, userID, clientID string, scopes []string,
+) error {
+	if !contains(scopes, scopeRoles) || s.svc.Users == nil {
+		return nil
+	}
+	roles, err := s.rolesForClient(ctx, userID, clientID)
+	if err != nil {
+		return err
+	}
+	if len(roles) == 0 {
+		return nil
+	}
+	userinfo.AppendClaims(scopeRoles, roles)
 	return nil
 }

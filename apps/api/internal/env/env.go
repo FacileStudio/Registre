@@ -15,9 +15,10 @@ import (
 // a short token limits what a leaked one buys, and a long publish delay costs
 // nothing but the wait before a new key starts signing.
 const (
-	DefaultAccessTokenTTL = time.Hour
-	DefaultRotation       = 30 * 24 * time.Hour
-	DefaultPublishDelay   = 15 * time.Minute
+	DefaultAccessTokenTTL  = time.Hour
+	DefaultRefreshTokenTTL = 30 * 24 * time.Hour
+	DefaultRotation        = 30 * 24 * time.Hour
+	DefaultPublishDelay    = 15 * time.Minute
 )
 
 // Config is the process configuration: the tronc core plus what an identity
@@ -35,7 +36,11 @@ type Config struct {
 	EncryptionKey string
 
 	AccessTokenTTL time.Duration
-	RotationEvery  time.Duration
+
+	// RefreshTokenTTL is how long a refresh grant may be redeemed.
+	RefreshTokenTTL time.Duration
+
+	RotationEvery time.Duration
 
 	// PublishDelay is how long a new key sits in the JWKS before it signs
 	// anything. It has to outlast the key set cache of the slowest relying
@@ -111,12 +116,21 @@ func Load() (Config, error) {
 				"a retired key would leave the JWKS while tokens it signed are still valid",
 			cfg.KeyRetention, cfg.AccessTokenTTL)
 	}
+	if cfg.RefreshTokenTTL <= cfg.AccessTokenTTL {
+		return Config{}, fmt.Errorf(
+			"REGISTRE_REFRESH_TOKEN_TTL (%s) is not longer than REGISTRE_ACCESS_TOKEN_TTL (%s): "+
+				"a grant that dies before the thing it renews is a login that breaks for no reason",
+			cfg.RefreshTokenTTL, cfg.AccessTokenTTL)
+	}
 	return cfg, nil
 }
 
 func (c *Config) loadDurations() error {
 	var err error
 	if c.AccessTokenTTL, err = troncenv.Duration("REGISTRE_ACCESS_TOKEN_TTL", DefaultAccessTokenTTL); err != nil {
+		return err
+	}
+	if c.RefreshTokenTTL, err = troncenv.Duration("REGISTRE_REFRESH_TOKEN_TTL", DefaultRefreshTokenTTL); err != nil {
 		return err
 	}
 	if c.RotationEvery, err = troncenv.Duration("REGISTRE_KEY_ROTATION_INTERVAL", DefaultRotation); err != nil {

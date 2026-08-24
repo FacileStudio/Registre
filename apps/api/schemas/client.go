@@ -42,6 +42,18 @@ type Client struct {
 	// browser flow.
 	RedirectURIs StringList `gorm:"type:jsonb"`
 
+	// BackchannelLogoutURI is where registre POSTs a logout token when the
+	// client's session at the provider ends. Empty means the app does not
+	// consume back-channel logout yet and hears nothing — which is why the
+	// field exists per client rather than as one global switch.
+	BackchannelLogoutURI string
+
+	// VisibleRoles is the whitelist of roles this app may see in its
+	// tokens' roles claim. The default is deliberately none: a new client
+	// must ask for role visibility, rather than every app silently
+	// learning every role anyone holds.
+	VisibleRoles StringList `gorm:"type:jsonb"`
+
 	AccessTokenTTL int64
 
 	// Managed marks a row the YAML seed owns. The seed rewrites it at every

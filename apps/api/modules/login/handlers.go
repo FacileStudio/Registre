@@ -9,7 +9,22 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
+
+	troncmiddleware "github.com/FacileStudio/tronc/middleware"
+)
+
+// DefaultLoginLimit and DefaultLoginBurst are the budget one source address
+// gets on the credential endpoint. Tight enough that a password guesser runs
+// out of attempts in minutes, loose enough that a family or small studio
+// behind one NAT never notices it exists. Lockout-by-account is deliberately
+// absent: an attacker who can lock an account can lock a person out, which is
+// the denial of service they wanted.
+const (
+	DefaultLoginLimit = 5
+	DefaultLoginBurst = 10
 )
 
 // Service is registre's login backend: it checks credentials for the client
@@ -24,6 +39,15 @@ type Service struct {
 // New builds the login service over identity.
 func New(identityService *identity.Service, logger *slog.Logger) *Service {
 	return &Service{identity: identityService, logger: logger, now: func() time.Time { return time.Now().UTC() }}
+}
+
+// MountWithLimits registers the login routes with an explicit per-address
+// budget. Tests use it to make the limiter reachable without hammering the
+// real default; production goes through Mount.
+func MountWithLimits(router chi.Router, service *Service, limit float64, burst int) {
+	router.With(troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
+		Limit: limit, Burst: burst,
+	})).Post("/api/login", service.jsonSubmit)
 }
 
 // jsonSubmit answers the client app's fetch with the decision that matters:
@@ -78,7 +102,11 @@ func (s *Service) authenticate(ctx context.Context, id, email, password string) 
 	if err != nil {
 		return "", err
 	}
-	if err := s.identity.Complete(ctx, id, user.ID, s.now()); err != nil {
+	sessionID, err := s.identity.StartSession(ctx, user.ID, authReq.ClientID, s.now())
+	if err != nil {
+		return "", fmt.Errorf("identity: start the session: %w", err)
+	}
+	if err := s.identity.Complete(ctx, id, user.ID, sessionID, s.now()); err != nil {
 		return "", fmt.Errorf("identity: complete the login: %w", err)
 	}
 	return "/authorize/callback?id=" + id, nil

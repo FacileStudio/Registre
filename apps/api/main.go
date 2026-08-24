@@ -24,6 +24,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
+	"github.com/FacileStudio/Registre/apps/api/internal/logout"
 	"github.com/FacileStudio/Registre/apps/api/internal/seed"
 	"github.com/FacileStudio/Registre/apps/api/internal/web"
 	"github.com/FacileStudio/Registre/apps/api/migrations"
@@ -125,6 +126,9 @@ func run() int {
 	if len(os.Args) > 1 && os.Args[1] == "user-create" {
 		return runUserCreate(context.Background(), db, verifier, log)
 	}
+	if len(os.Args) > 1 && os.Args[1] == "user-disable" {
+		return runUserDisable(context.Background(), db, verifier, log)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -195,9 +199,11 @@ func assemble(
 
 	storage := oidc.NewStorage(db, oidc.Services{
 		Keys: keyring, Register: register, Users: users,
+		Logout: logout.New(keyring, register, cfg.Issuer, svc.log),
 	}, oidc.Config{
-		Issuer:         cfg.Issuer,
-		AccessTokenTTL: cfg.AccessTokenTTL,
+		Issuer:          cfg.Issuer,
+		AccessTokenTTL:  cfg.AccessTokenTTL,
+		RefreshTokenTTL: cfg.RefreshTokenTTL,
 	}, svc.log)
 	storage.StartPurge(ctx, tokenRecordRetention)
 

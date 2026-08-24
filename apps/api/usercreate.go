@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
@@ -23,18 +24,20 @@ func runUserCreate(ctx context.Context, db *gorm.DB, verifier *credentials.Verif
 	email := fs.String("email", "", "the user's email address (required)")
 	name := fs.String("name", "", "the user's display name")
 	admin := fs.Bool("admin", false, "grant the admin role")
+	roles := fs.String("roles", "", "comma-separated roles the account holds")
 	if err := fs.Parse(os.Args[2:]); err != nil {
 		return 2
 	}
 	password := os.Getenv("REGISTRE_USER_PASSWORD")
 	if *email == "" || password == "" {
-		fmt.Fprintln(os.Stderr, "usage: REGISTRE_USER_PASSWORD=<secret> registre user-create --email <address> [--admin]")
+		fmt.Fprintln(os.Stderr, "usage: REGISTRE_USER_PASSWORD=<secret> registre user-create --email <address>")
+		fmt.Fprintln(os.Stderr, "                     [--admin] [--roles a,b]")
 		fmt.Fprintln(os.Stderr, "the password comes from REGISTRE_USER_PASSWORD, never the command line:")
 		fmt.Fprintln(os.Stderr, "a flag lands in shell history and ps output")
 		return 2
 	}
 	users := identity.New(db, verifier)
-	user, err := users.Create(ctx, *email, password, *name, *admin)
+	user, err := users.Create(ctx, *email, password, *name, *admin, splitRoles(*roles)...)
 	if errors.Is(err, identity.ErrInvalid) {
 		log.Error("registre: refused to create the user", slog.Any("error", err))
 		return 1
@@ -45,4 +48,15 @@ func runUserCreate(ctx context.Context, db *gorm.DB, verifier *credentials.Verif
 	}
 	fmt.Printf("created user %s (%s)\n", user.ID, user.Email)
 	return 0
+}
+
+// splitRoles splits a comma-separated role list, dropping empties.
+func splitRoles(raw string) []string {
+	var roles []string
+	for _, role := range strings.Split(raw, ",") {
+		if trimmed := strings.TrimSpace(role); trimmed != "" {
+			roles = append(roles, trimmed)
+		}
+	}
+	return roles
 }

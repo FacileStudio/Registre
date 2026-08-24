@@ -98,14 +98,17 @@ func (s *Service) List(ctx context.Context) ([]schemas.Client, error) {
 // add it to what a re-apply overwrites.
 func declared(row schemas.Client) map[string]any {
 	fields := map[string]any{
-		"name":             row.Name,
-		"kind":             row.Kind,
-		"grant_types":      row.GrantTypes,
-		"scopes":           row.Scopes,
-		"audiences":        row.Audiences,
-		"access_token_ttl": row.AccessTokenTTL,
-		"managed":          row.Managed,
-		"updated_at":       time.Now().UTC(),
+		"name":                   row.Name,
+		"kind":                   row.Kind,
+		"grant_types":            row.GrantTypes,
+		"scopes":                 row.Scopes,
+		"audiences":              row.Audiences,
+		"access_token_ttl":       row.AccessTokenTTL,
+		"managed":                row.Managed,
+		"redirect_uris":          row.RedirectURIs,
+		"backchannel_logout_uri": row.BackchannelLogoutURI,
+		"visible_roles":          row.VisibleRoles,
+		"updated_at":             time.Now().UTC(),
 	}
 	if row.SecretHash != "" {
 		fields["secret_hash"] = row.SecretHash

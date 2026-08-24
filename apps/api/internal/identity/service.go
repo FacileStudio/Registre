@@ -39,7 +39,12 @@ func New(db *gorm.DB, verifier *credentials.Verifier) *Service {
 
 // Create mints a user from an email and a plaintext password. The password is
 // hashed here, under the ceiling; nothing stores a plaintext past this call.
-func (s *Service) Create(ctx context.Context, email, password, name string, admin bool) (schemas.User, error) {
+//
+// The account is marked email-verified on creation: today every account is
+// minted by an operator, who attests the address by creating it, and truthful
+// emission of the claim is worth nothing if the only truth it can tell is no.
+// Self-service signup, when it arrives, creates unverified accounts instead.
+func (s *Service) Create(ctx context.Context, email, password, name string, admin bool, roles ...string) (schemas.User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if email == "" || !strings.Contains(email, "@") {
 		return schemas.User{}, fmt.Errorf("identity: %q is not an email address", email)
@@ -55,6 +60,10 @@ func (s *Service) Create(ctx context.Context, email, password, name string, admi
 	row := schemas.User{
 		ID: subject, Email: email, Name: name,
 		PasswordHash: hash, Admin: admin,
+		EmailVerified: true,
+	}
+	if len(roles) > 0 {
+		row.Roles = schemas.StringList(roles)
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return schemas.User{}, fmt.Errorf("identity: create the user: %w", err)
@@ -101,6 +110,18 @@ func (s *Service) ByID(ctx context.Context, id string) (schemas.User, error) {
 	return row, nil
 }
 
+// ByEmail reads one user by address, case-insensitively.
+func (s *Service) ByEmail(ctx context.Context, email string) (schemas.User, error) {
+	var row schemas.User
+	err := s.db.WithContext(ctx).
+		Where("lower(email) = ?", strings.ToLower(strings.TrimSpace(email))).
+		Take(&row).Error
+	if err != nil {
+		return schemas.User{}, fmt.Errorf("identity: read the user: %w", err)
+	}
+	return row, nil
+}
+
 // PurgeAuthRequests drops browser flows that expired before cutoff.
 func (s *Service) PurgeAuthRequests(ctx context.Context, cutoff time.Time) error {
 	err := s.db.WithContext(ctx).
@@ -122,18 +143,18 @@ func (s *Service) AuthRequestByID(ctx context.Context, id string) (schemas.AuthR
 	return row, nil
 }
 
-// Complete marks a browser flow as authenticated by user. It updates only a
-// row that is still pending and unexpired: two tabs sharing one login page,
-// or a slow submit after the flow expired, must not authenticate the wrong
-// request.
+// Complete marks a browser flow as authenticated by user, under session.
+// It updates only a row that is still pending and unexpired: two tabs sharing
+// one login page, or a slow submit after the flow expired, must not
+// authenticate the wrong request.
 //
 // The affected-rows check is deliberate — GORM returns no error when nothing
 // matched, and an expired flow answering as if it had succeeded would then
 // redirect into a callback that refuses it, which looks like registre broke.
-func (s *Service) Complete(ctx context.Context, id, userID string, at time.Time) error {
+func (s *Service) Complete(ctx context.Context, id, userID, sessionID string, at time.Time) error {
 	result := s.db.WithContext(ctx).Model(&schemas.AuthRequest{}).
 		Where("id = ? AND user_id IS NULL AND expires_at > ?", id, at).
-		Updates(map[string]any{"user_id": userID, "authenticated_at": at})
+		Updates(map[string]any{"user_id": userID, "authenticated_at": at, "session_id": sessionID})
 	if result.Error != nil {
 		return fmt.Errorf("identity: complete the login: %w", result.Error)
 	}
@@ -141,4 +162,83 @@ func (s *Service) Complete(ctx context.Context, id, userID string, at time.Time)
 		return ErrInvalid
 	}
 	return nil
+}
+
+// StartSession opens a provider session for a freshly authenticated human,
+// naming the app that initiated the login. Later apps the session reaches are
+// appended at their token exchange, so back-channel logout notifies exactly
+// the apps that saw this user.
+func (s *Service) StartSession(ctx context.Context, userID, clientID string, at time.Time) (string, error) {
+	sessionID, err := ids.New()
+	if err != nil {
+		return "", fmt.Errorf("identity: mint a session id: %w", err)
+	}
+	row := schemas.Session{ID: sessionID, UserID: userID, CreatedAt: at}
+	if clientID != "" {
+		row.ClientIDs = schemas.StringList{clientID}
+	}
+	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
+		return "", fmt.Errorf("identity: open the session: %w", err)
+	}
+	return sessionID, nil
+}
+
+// EndSessions terminates every live session of user and returns the distinct
+// set of apps those sessions had reached, so the caller can fire back-channel
+// logout at each. Ending all of a user's sessions rather than one is coarse
+// and deliberate: porte made the same choice for the same reason — a sid-only
+// revocation needs session bookkeeping per relying party that buys precision
+// nobody has asked for yet.
+func (s *Service) EndSessions(ctx context.Context, userID string, at time.Time) ([]string, error) {
+	result := s.db.WithContext(ctx).Model(&schemas.Session{}).
+		Where("user_id = ? AND ended_at IS NULL", userID).
+		Update("ended_at", at)
+	if result.Error != nil {
+		return nil, fmt.Errorf("identity: end the sessions: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	var rows []schemas.Session
+	err := s.db.WithContext(ctx).
+		Where("user_id = ? AND ended_at = ?", userID, at).
+		Find(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("identity: read the ended sessions: %w", err)
+	}
+	clients := make([]string, 0, len(rows))
+	seen := map[string]bool{}
+	for _, row := range rows {
+		for _, clientID := range row.ClientIDs {
+			if !seen[clientID] {
+				seen[clientID] = true
+				clients = append(clients, clientID)
+			}
+		}
+	}
+	return clients, nil
+}
+
+// Disable revokes an account's ability to sign in and ends its sessions in
+// the same transaction-shaped breath. The returned app list is for the
+// caller's back-channel logout; disabling without notifying would leave the
+// human logged in everywhere until their cookies expired.
+func (s *Service) Disable(ctx context.Context, userID string, at time.Time) ([]string, error) {
+	result := s.db.WithContext(ctx).Model(&schemas.User{}).
+		Where("id = ? AND disabled_at IS NULL", userID).
+		Update("disabled_at", at)
+	if result.Error != nil {
+		return nil, fmt.Errorf("identity: disable the user: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		var count int64
+		if err := s.db.WithContext(ctx).Model(&schemas.User{}).
+			Where("id = ?", userID).Count(&count).Error; err != nil {
+			return nil, fmt.Errorf("identity: read the user: %w", err)
+		}
+		if count == 0 {
+			return nil, fmt.Errorf("identity: no such user %q", userID)
+		}
+	}
+	return s.EndSessions(ctx, userID, at)
 }

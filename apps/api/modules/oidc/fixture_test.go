@@ -17,6 +17,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
+	"github.com/FacileStudio/Registre/apps/api/internal/logout"
 	"github.com/FacileStudio/Registre/apps/api/internal/testdb"
 	"github.com/FacileStudio/Registre/apps/api/modules/login"
 
@@ -110,8 +111,10 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	users := identity.New(db, credentials.New(4))
 	storage := NewStorage(db, Services{
 		Keys: keyring, Register: register, Users: users,
+		Logout: logout.New(keyring, register, issuer, logs),
 	}, Config{
-		Issuer: issuer, AccessTokenTTL: time.Hour, Now: ticking.now,
+		Issuer: issuer, AccessTokenTTL: time.Hour,
+		RefreshTokenTTL: 24 * time.Hour, Now: ticking.now,
 	}, logs)
 
 	provider, err := NewProvider(storage, ProviderConfig{Issuer: issuer, RootKey: rootKey, Insecure: true})
@@ -121,6 +124,16 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	router := chi.NewRouter()
 	Mount(router, provider)
 	login.Mount(router, login.New(users, logs))
+	router.Get("/login", func(w http.ResponseWriter, r *http.Request) {
+		// The real page lives in apps/client; production mounts it through
+		// web.Handler. What the flow needs from it is exactly this: render
+		// the pending request id so the credentials come back tagged with
+		// it. Without it every browser-flow test dies on the redirect to
+		// the login page, which is also how those skips hid so long.
+		_, _ = w.Write([]byte(
+			`<form method="post"><input type="hidden" name="auth_request" value="` +
+				r.URL.Query().Get("auth_request") + `"></form>`))
+	})
 	server.Config.Handler = router
 	server.Start()
 	t.Cleanup(server.Close)

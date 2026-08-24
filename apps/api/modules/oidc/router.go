@@ -21,13 +21,19 @@ import (
 // compromise of the shorter-lived one must not hand over the other.
 const codeKeyContext = "registre/auth-code"
 
-// scopes is what discovery advertises. It is the list phase 0 can honour, not
-// the list registre will end up with: offline_access waits for refresh tokens
-// in phase 1, and the roles scope waits for the claim behind it in phase 2.
-// Advertising a scope with nothing behind it is how porte's own startup guard
-// describes the worst failure mode available — every role check denying,
-// silently, with no error anywhere.
-var scopes = []string{oidc.ScopeOpenID, oidc.ScopeProfile, oidc.ScopeEmail}
+// scopes is what discovery advertises. It is the list phase 1 and 2 can
+// honour: offline_access since refresh tokens shipped, roles since the claim
+// behind it exists and is filtered per client. Advertising a scope with
+// nothing behind it is how porte's own startup guard describes the worst
+// failure mode available — every role check denying, silently, with no error
+// anywhere.
+var scopes = []string{
+	oidc.ScopeOpenID, oidc.ScopeProfile, oidc.ScopeEmail,
+	oidc.ScopeOfflineAccess, scopeRoles,
+}
+
+// scopeRoles is the scope that asks for the roles claim in a token.
+const scopeRoles = "roles"
 
 // ProviderConfig is what building the provider needs beyond its storage.
 type ProviderConfig struct {
@@ -60,11 +66,12 @@ func NewProvider(storage *Storage, cfg ProviderConfig) (*op.Provider, error) {
 		options = append(options, op.WithAllowInsecure())
 	}
 	return op.NewProvider(&op.Config{
-		CryptoKey:       sha256.Sum256(append([]byte(codeKeyContext), cfg.RootKey...)),
-		CodeMethodS256:  true,
-		AuthMethodPost:  true,
-		SupportedScopes: scopes,
-		SupportedClaims: op.DefaultSupportedClaims,
+		CryptoKey:             sha256.Sum256(append([]byte(codeKeyContext), cfg.RootKey...)),
+		CodeMethodS256:        true,
+		AuthMethodPost:        true,
+		GrantTypeRefreshToken: true,
+		SupportedScopes:       scopes,
+		SupportedClaims:       append(op.DefaultSupportedClaims, scopeRoles),
 	}, storage, op.StaticIssuer(cfg.Issuer), options...)
 }
 

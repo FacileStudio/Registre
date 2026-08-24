@@ -12,6 +12,18 @@ type User struct {
 	PasswordHash string
 	Admin        bool
 
+	// EmailVerified records whether registre has reason to believe the
+	// address is the user's. Every account today is minted by an operator,
+	// who attests the address by creating it; self-service signup, when it
+	// arrives, sets this false until an address challenge answers.
+	EmailVerified bool
+
+	// Roles is the flat list this human holds. What reaches a token is
+	// the intersection with the client's VisibleRoles, never the raw row:
+	// SPEC §6 requires the claim filtered per client, and porte's role
+	// checks deny silently on anything else.
+	Roles StringList `gorm:"type:jsonb"`
+
 	DisabledAt *time.Time
 	CreatedAt  time.Time
 	UpdatedAt  time.Time

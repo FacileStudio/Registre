@@ -29,6 +29,37 @@ import (
 // File is the whole seed document.
 type File struct {
 	ServiceAccounts []ServiceAccount `yaml:"service_accounts"`
+
+	// Applications declares the suite apps that log humans in. A machine
+	// principal never starts a browser flow; an application cannot work
+	// without its redirect URIs, so they are required here.
+	Applications []Application `yaml:"applications"`
+}
+
+// Application declares one relying party.
+type Application struct {
+	ClientID  string `yaml:"client_id"`
+	Name      string `yaml:"name"`
+	SecretEnv string `yaml:"secret_env"`
+
+	// RedirectURIs is the exact-match list. There is no wildcard and no
+	// prefix match anywhere downstream: what lands here is byte-compared
+	// against what arrives at /authorize.
+	RedirectURIs []string `yaml:"redirect_uris"`
+
+	// Scopes defaults to openid profile email. offline_access must be
+	// listed explicitly for the app to receive refresh tokens, and roles
+	// for it to receive any roles at all — VisibleRoles still filters the
+	// claim per app.
+	Scopes []string `yaml:"scopes"`
+
+	// BackchannelLogoutURI is where logout tokens are POSTed when a session
+	// ends. Unset means the app hears nothing about deactivations.
+	BackchannelLogoutURI string `yaml:"backchannel_logout_uri"`
+
+	// VisibleRoles is the whitelist of roles this app may see. Empty means
+	// none, even with the roles scope granted: visibility is opt-in.
+	VisibleRoles []string `yaml:"visible_roles"`
 }
 
 // ServiceAccount declares one machine principal.
@@ -97,6 +128,27 @@ func (f File) validate() error {
 				where, account.ClientID, account.SecretEnv)
 		}
 	}
+	for index, application := range f.Applications {
+		where := fmt.Sprintf("applications[%d]", index)
+		switch {
+		case application.ClientID == "":
+			return fmt.Errorf("%s: client_id is required", where)
+		case seen[application.ClientID]:
+			return fmt.Errorf("%s: client_id %q is declared twice", where, application.ClientID)
+		case application.SecretEnv == "":
+			return fmt.Errorf("%s (%s): secret_env is required", where, application.ClientID)
+		case len(application.RedirectURIs) == 0:
+			return fmt.Errorf("%s (%s): at least one redirect URI is required — "+
+				"an application that cannot state where its login returns to cannot be sent anywhere safely",
+				where, application.ClientID)
+		}
+		seen[application.ClientID] = true
+		if os.Getenv(application.SecretEnv) == "" {
+			return fmt.Errorf(
+				"%s (%s): secret_env %s is unset — a declared app with no credential cannot authenticate",
+				where, application.ClientID, application.SecretEnv)
+		}
+	}
 	return nil
 }
 
@@ -135,7 +187,51 @@ func Apply(ctx context.Context, register *clients.Service, file File, logger *sl
 		declared[account.ClientID] = true
 		logger.Info("registre: seeded a service account", slog.String("client_id", account.ClientID))
 	}
+	for _, application := range file.Applications {
+		row, err := application.row(ctx, register)
+		if err != nil {
+			return err
+		}
+		if _, err := register.Upsert(ctx, row); err != nil {
+			return err
+		}
+		declared[application.ClientID] = true
+		logger.Info("registre: seeded an application", slog.String("client_id", application.ClientID))
+	}
 	return reportUndeclared(ctx, register, declared, logger)
+}
+
+// row turns an application declaration into the register row it becomes,
+// under the same hashing ceiling as every other credential path.
+func (a Application) row(ctx context.Context, register *clients.Service) (schemas.Client, error) {
+	secret := os.Getenv(a.SecretEnv)
+	if secret == "" {
+		return schemas.Client{}, fmt.Errorf("seed: %s has no secret in %s", a.ClientID, a.SecretEnv)
+	}
+	hash, err := register.HashSecret(ctx, secret)
+	if err != nil {
+		return schemas.Client{}, fmt.Errorf("seed: hash the secret for %s: %w", a.ClientID, err)
+	}
+	subject, err := ids.New()
+	if err != nil {
+		return schemas.Client{}, fmt.Errorf("seed: mint a subject for %s: %w", a.ClientID, err)
+	}
+	scopes := a.Scopes
+	if len(scopes) == 0 {
+		scopes = []string{"openid", "profile", "email"}
+	}
+	return schemas.Client{
+		ClientID: a.ClientID, Subject: subject, Name: a.Name,
+		Kind: schemas.KindApplication, SecretHash: hash,
+		GrantTypes: schemas.StringList{
+			string(zoidc.GrantTypeCode), string(zoidc.GrantTypeRefreshToken),
+		},
+		Scopes:               schemas.StringList(scopes),
+		RedirectURIs:         schemas.StringList(a.RedirectURIs),
+		BackchannelLogoutURI: a.BackchannelLogoutURI,
+		VisibleRoles:         schemas.StringList(a.VisibleRoles),
+		Managed:              true,
+	}, nil
 }
 
 // row turns a declaration into the register row it becomes.
