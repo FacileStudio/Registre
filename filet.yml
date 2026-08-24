@@ -9,6 +9,8 @@
 # published defaults of the tools they come from, so they are numbers to point
 # at rather than numbers picked to make a count go away.
 
+kind: app
+
 ignore:
   - node_modules
   - vendor
