@@ -24,6 +24,7 @@ invalidates everything already issued, in every app, at once.
 | Variable | Default | What it decides |
 |---|---|---|
 | `REGISTRE_ACCESS_TOKEN_TTL` | `1h` | How long a machine token lives. A client row may set its own |
+| `REGISTRE_REFRESH_TOKEN_TTL` | `720h` | How long a refresh grant may be redeemed. It rotates on every redemption |
 | `REGISTRE_KEY_ROTATION_INTERVAL` | `720h` | How long a key signs before it is replaced |
 | `REGISTRE_KEY_PUBLISH_DELAY` | `15m` | How long a new key sits in the JWKS before it signs |
 | `REGISTRE_KEY_RETENTION` | `2 ×` the token lifetime | How long a retired public key stays in the JWKS |
@@ -35,6 +36,8 @@ Two relationships are enforced at boot rather than discovered in production:
 - **`REGISTRE_KEY_PUBLISH_DELAY` must be shorter than `REGISTRE_KEY_ROTATION_INTERVAL`.** Above
   it, the next key is published before the current one has begun signing and the state machine
   never settles.
+- **`REGISTRE_REFRESH_TOKEN_TTL` must be longer than `REGISTRE_ACCESS_TOKEN_TTL`.** A grant that
+  dies before the thing it renews is a login that breaks for no reason.
 
 The publish delay has to outlast the key set cache of the slowest relying party in the suite.
 `go-oidc`, which every app uses through porte, refetches on an unknown `kid` and so recovers on

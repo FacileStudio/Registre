@@ -5,7 +5,8 @@
 > [SPEC.md](SPEC.md) owns the decisions, the frozen contract and the phase definitions. This file
 > tracks only what is done and what is left. Where they disagree, SPEC wins.
 >
-> Last updated 2026-08-23, the day phase 0 shipped.
+> Last updated 2026-08-24: phases 1 and 2 built; the phase 1 exit (porte's suite against
+> registre) and the phase 2 exit (conformance + a live deactivation drill) remain.
 
 ## Read this first
 
@@ -68,27 +69,43 @@ end to end in `apps/api/modules/oidc`.
 
 ## Phase 1 — human login
 
-- [ ] `authorization_code` + PKCE, exact-match `redirect_uri`, `state` and `nonce`
-- [ ] Password identities, argon2id at porte's parameters, through `internal/credentials` so they
+- [x] `authorization_code` + PKCE, exact-match `redirect_uri`, `state` and `nonce` — shipped
+      2026-08-23, slice one
+- [x] Password identities, argon2id at porte's parameters, through `internal/credentials` so they
       sit under the same ceiling
-- [ ] Rate limiting and lockout. **The limiter belongs in `tronc/middleware`** — the suite already
-      has eight hand-written copies and the ninth should not be written here
-- [ ] `apps/client`: SvelteKit 5 + muse login page. `filet.yml` `requiredDirs` gains `apps/client`
-      when it exists
-- [ ] Refresh tokens, and only then advertise `offline_access` in discovery
-- [ ] Answer SPEC §10 question 1: if the seed covers human users it must seed invite tokens, never
-      password hashes
-- [ ] **Exit:** porte's own test suite passes against registre
+- [x] Rate limiting. The limiter lives in **`tronc/middleware`** as decided — `tronc v0.15.0`
+      ships `middleware.Ratelimit`, and registre's login endpoint mounts it at 5 req/s, burst
+      10, per source address. Lockout-by-account was deliberately not built: an attacker who
+      can lock an account can lock a person out, which is the denial of service they wanted
+- [x] `apps/client`: SvelteKit 5 + muse login page — shipped with slice one; the Go form stays
+      behind it in production as the no-JS fallback
+- [x] Refresh tokens, and only then advertise `offline_access` in discovery — shipped 2026-08-24.
+      The grant rotates on every redemption (a replayed token kills the copy a thief holds), is
+      stored only as a SHA-256 digest, and `REGISTRE_REFRESH_TOKEN_TTL` defaults to 30 days and
+      must exceed the access token TTL or boot fails
+- [x] Answer SPEC §10 question 1: yes, invite tokens never hashes; implementation lands with
+      phase 3's admin slice (SPEC §10 amended in the same commit)
+- [ ] **Exit:** porte's own test suite passes against registre — still open, and still the gate.
+      Everything above is asserted by registre's own end-to-end tests over real HTTP and real
+      Postgres (`modules/oidc`), but §8's cheapest conformance check has not run
 
 ## Phase 2 — integration parity
 
-- [ ] The `roles` claim, flat and filtered per client. Advertise the `roles` scope in discovery
-      only once the claim behind it exists: a granted scope with no claim makes every role check
-      in every app deny silently
-- [ ] Back-channel logout. The only way a deactivation reaches an app holding its own session
-- [ ] `email_verified` emitted truthfully, which is a capability the suite gains rather than keeps
+- [x] The `roles` claim, flat and filtered per client — shipped 2026-08-24. The `roles` scope is
+      advertised now that the claim exists; visibility is opt-in per client (`visible_roles` on
+      the register row, empty means none), because a role learned by an app that never needed it
+      is a permission leak nobody notices. The claim rides in the ID token, where porte reads it
+- [x] Back-channel logout — shipped 2026-08-24. Provider sessions are recorded per login, each
+      app reached is appended to the session row, and ending them (end_session, or
+      `registre user-disable`) POSTs an RFC-shaped logout token — signed RS256, `events` claim,
+      no nonce — to every registered `backchannel_logout_uri`. Delivery is best-effort and
+      logged; the session ends before notification, not after
+- [x] `email_verified` emitted truthfully — shipped 2026-08-24. Operator-minted accounts are
+      verified by construction (the operator attests the address by creating it); porte's email
+      fallback can finally fire. Self-service signup will create unverified accounts
 - [ ] **Exit:** OpenID Foundation conformance suite green; deactivating a user drops them from
-      every app within seconds
+      every app within seconds — the mechanism is built and tested (`user-disable`, back-channel
+      delivery, session termination); the conformance run and a live deactivation drill remain
 
 ## Phase 3 — the hard half
 
@@ -151,8 +168,10 @@ end to end in `apps/api/modules/oidc`.
       edit, and the fail-safe direction, but it would mask the bug it guards against
 - [ ] `filet test .` reports "no test suite detected" while `go test ./...` runs 34. That looks
       like filet's detector rather than this repo
-- [ ] Five filet findings remain and all five are forced: `//go:embed`'s package-level var, the
-      four-return `op.Storage` method, three deliberate `_ = x.Close()` in cleanup paths
+- [ ] Filet findings that remain are forced: `//go:embed`'s package-level var, the four-return
+      `CreateAccessAndRefreshTokens` (the `op.Storage` interface dictates the arity), three
+      deliberate `_ = x.Close()` in cleanup paths, and `schemas.Client`'s 17 columns — one per
+      register concern; splitting the model would scatter GORM tags for no reader benefit
 
 ## Open questions
 

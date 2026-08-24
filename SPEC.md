@@ -264,9 +264,14 @@ Cut over one app by changing `OIDC_ISSUER`, soak it, then the rest. Authentik go
 
 ## 10. Open questions — settle before coding the affected part
 
-1. **Does the YAML seed cover human users?** Bootstrapping a fresh suite instance implies yes.
-   If so it must seed *invite tokens*, never password hashes — a committed hash is a committed
-   credential, and the seed file is in git.
+1. **Does the YAML seed cover human users?** **Answered 2026-08-24: yes it must, and it
+   seeds invite tokens, never password hashes.** A fresh suite instance bootstrapped from files
+   cannot require an operator to shell into the container to mint the first human. The invite
+   token is a single-use, short-lived secret the seed writes only to the environment — the same
+   discipline service-account secrets already follow (`secret_env`) — and its redemption sets
+   the password through the normal login path under the argon2 ceiling. Implementation lands
+   with self-service signup in phase 3's admin slice; until then every account is operator-
+   minted via `registre user-create`, which marks the address verified by construction.
 2. **What happens to Authentik's two expression policies?** The avatar policy and the settings
    authorization policy in `authentik-config` are not part of the OIDC contract. Reimplement,
    or drop and accept the behaviour change. Decide before phase 3's admin UI.
