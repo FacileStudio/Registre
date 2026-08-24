@@ -69,5 +69,4 @@ which is the erosion filet exists to prevent. Do not add one back.
 - Rename or replace `porte`. It keeps its name and becomes registre's client, unchanged.
 - Hand-roll the OIDC protocol. `zitadel/oidc` owns PKCE, code binding, client auth and token
   issuance for a reason.
-- Call this a registry anywhere in prose. It is an identity provider; `Spore` is the package
-  manager.
+- Call this a registry anywhere in prose. It is an identity provider.

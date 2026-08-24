@@ -30,9 +30,8 @@ do not move. `porte` speaks standard OIDC and does not learn that its issuer cha
   client and becomes registre's, with zero lines changed in eight apps.
 - **Not a directory service.** No LDAP, no SCIM, no SAML. Nothing in the suite speaks them.
 - **Not multi-tenant.** One organisation. If that changes it is a rewrite, and that is fine.
-- **Not a package registry.** The name is a hazard: "registry" is loaded in tech, and `Spore`
-  already ships as the suite's package manager. Every description of this repo says *identity
-  provider* and never the word registry.
+- **Not a package registry.** The name is a hazard: "registry" is loaded in tech. Every
+  description of this repo says *identity provider* and never the word registry.
 
 ---
 

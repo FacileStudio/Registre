@@ -7,7 +7,7 @@ The identity provider for the [Facile Suite](https://facile.studio). Self-hosted
 app consuming a registre token yet. Read [SPEC.md](SPEC.md) before writing any code — it carries
 the decisions, the contract registre has to satisfy, and the reasoning behind both.
 
-Registre is an identity provider, not a package registry. `Spore` is the suite's package manager.
+Registre is an identity provider, not a package registry.
 
 ## What it does
 
