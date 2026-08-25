@@ -104,3 +104,26 @@ applications:
     redirect_uris:
       - https://vision.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+
+  # facile-cli, the suite's own command line, and the first client that logs a
+  # human in without a browser on the same machine.
+  #
+  # It is public: no secret_env, and none possible. The binary is installed on
+  # laptops and on servers, so anything compiled into it is readable by whoever
+  # has a copy, and a secret every holder can read is not one. What defends it
+  # instead is the device grant itself — every login is a code a named human
+  # reads and approves at sso.facile.studio/device — plus PKCE if it ever gains
+  # a browser flow.
+  #
+  # No redirect_uris, deliberately. The device grant has no redirect; that is
+  # the whole reason it exists here. `facile login` on a server used to open a
+  # loopback listener and send the browser to 127.0.0.1, which on a different
+  # computer is that computer, so the login silently never completed.
+  #
+  # offline_access is listed because a CLI that has to be re-approved by hand
+  # every hour is a CLI nobody uses.
+  - client_id: facile-cli
+    name: Facile CLI
+    public: true
+    grant_types: [device_code, refresh_token]
+    scopes: [openid, profile, email, offline_access]
