@@ -55,6 +55,7 @@ applications:
   # the grant there is no refresh token, so claim refresh degrades in silence.
   - client_id: 5TVdL3zCbhhh7XCs3MvaIr5nqoV2ZIMLeEdjnVYu
     name: Sablier
+    backchannel_logout_uri: https://sablier.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_SABLIER_SECRET
     redirect_uris:
       - https://sablier.facile.studio/api/auth/oidc/callback
@@ -63,6 +64,7 @@ applications:
 
   - client_id: b0f6NMJbVkZ89jgWOjfWYICAwCDb4jTCTMMDAonW
     name: Casier
+    backchannel_logout_uri: https://casier.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_CASIER_SECRET
     redirect_uris:
       - https://casier.facile.studio/api/auth/oidc/callback
@@ -70,6 +72,7 @@ applications:
 
   - client_id: JnT6bwkiBXL9pqZKRdUHgYpK0hG7apupsUtCpl8A
     name: Antenne
+    backchannel_logout_uri: https://antenne.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_ANTENNE_SECRET
     redirect_uris:
       - https://antenne.facile.studio/api/auth/oidc/callback
@@ -79,6 +82,7 @@ applications:
   # why its callback returned HTML. The env is corrected to match this entry.
   - client_id: vvVAmcun8BFuAxMdNrp6lhqs2anzvz3vnzkeZh3U
     name: Agenda
+    backchannel_logout_uri: https://agenda.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_AGENDA_SECRET
     redirect_uris:
       - https://agenda.facile.studio/api/auth/oidc/callback
@@ -86,6 +90,7 @@ applications:
 
   - client_id: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
     name: Courrier
+    backchannel_logout_uri: https://courrier.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_COURRIER_SECRET
     redirect_uris:
       - https://courrier.facile.studio/api/auth/oidc/callback
@@ -93,6 +98,7 @@ applications:
 
   - client_id: 6FkN7WYS9xtKNMJMdKRtBWPLfLoS35EWELHIjgkf
     name: Plume
+    backchannel_logout_uri: https://plume.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_PLUME_SECRET
     redirect_uris:
       - https://plume.facile.studio/api/auth/oidc/callback
@@ -100,6 +106,7 @@ applications:
 
   - client_id: RLy72hckdFTa9eIFwCmV5MtDOWny1fLeTLpM5LUD
     name: Vision
+    backchannel_logout_uri: https://vision.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_VISION_SECRET
     redirect_uris:
       - https://vision.facile.studio/api/auth/oidc/callback
@@ -142,6 +149,7 @@ applications:
   # already sends, and what it sends is this.
   - client_id: 8bf0bcb5-e1c4-4e1e-830d-a39eb4b7c9a3
     name: Journal
+    backchannel_logout_uri: https://journal.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_JOURNAL_SECRET
     redirect_uris:
       - https://journal.facile.studio/api/auth/oidc/callback
@@ -149,6 +157,7 @@ applications:
 
   - client_id: 9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH
     name: Nuage
+    backchannel_logout_uri: https://nuage.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_NUAGE_SECRET
     redirect_uris:
       - https://nuage.facile.studio/api/auth/oidc/callback
