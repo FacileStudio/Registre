@@ -72,18 +72,34 @@ func (s *Storage) CreateAccessAndRefreshTokens(
 	return accessID, value, expires, nil
 }
 
+// principal is the half of op.TokenRequest that names an app and the human or
+// machine it speaks for. The interface exists because three unrelated concrete
+// types satisfy it — the browser flow's request, a redeemed refresh grant and
+// a device flow's state — and matching on the behaviour rather than on the
+// list means the next grant registre gains does not need three switches
+// amended in three files, one of which will be missed.
+type principal interface {
+	GetClientID() string
+	GetSubject() string
+}
+
+// attested is the other half: when the subject authenticated and how. The
+// same three types carry it, and a grant that cannot say loses nothing but
+// the defaults below.
+type attested interface {
+	GetAuthTime() time.Time
+	GetAMR() []string
+}
+
 // grantPrincipal is what every grant registre issues names: the app and the
 // human or machine it speaks for. op.TokenRequest carries the subject,
 // audience and scopes; the client id rides only on the concrete types.
 func grantPrincipal(request op.TokenRequest) struct{ clientID, subject string } {
-	switch granted := request.(type) {
-	case op.AuthRequest:
-		return struct{ clientID, subject string }{granted.GetClientID(), granted.GetSubject()}
-	case op.RefreshTokenRequest:
-		return struct{ clientID, subject string }{granted.GetClientID(), granted.GetSubject()}
-	default:
+	named, ok := request.(principal)
+	if !ok {
 		return struct{ clientID, subject string }{}
 	}
+	return struct{ clientID, subject string }{named.GetClientID(), named.GetSubject()}
 }
 
 // rotateRefreshToken retires the presented grant and records its successor.
@@ -107,13 +123,9 @@ func (s *Storage) rotateRefreshToken(
 	}
 	principal := grantPrincipal(request)
 	authTime, amr := time.Now().UTC(), []string{"pwd"}
-	if authReq, ok := request.(op.AuthRequest); ok {
-		authTime = authReq.GetAuthTime()
-		amr = authReq.GetAMR()
-	}
-	if refreshReq, ok := request.(op.RefreshTokenRequest); ok {
-		authTime = refreshReq.GetAuthTime()
-		amr = refreshReq.GetAMR()
+	if proven, ok := request.(attested); ok {
+		authTime = proven.GetAuthTime()
+		amr = proven.GetAMR()
 	}
 	value, err := ids.Secret()
 	if err != nil {

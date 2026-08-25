@@ -15,6 +15,7 @@ import (
 
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
+	"github.com/FacileStudio/Registre/apps/api/internal/devices"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
@@ -46,6 +47,7 @@ type fixture struct {
 	keys     *keys.Service
 	register *clients.Service
 	users    *identity.Service
+	devices  *devices.Service
 	storage  *Storage
 	provider *op.Provider
 	server   *httptest.Server
@@ -109,9 +111,11 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	}
 	register := clients.New(db, credentials.New(4))
 	users := identity.New(db, credentials.New(4))
+	deviceFlows := devices.New(db).WithClock(ticking.now)
 	storage := NewStorage(db, Services{
 		Keys: keyring, Register: register, Users: users,
-		Logout: logout.New(keyring, register, issuer, logs),
+		Logout:  logout.New(keyring, register, issuer, logs),
+		Devices: deviceFlows,
 	}, Config{
 		Issuer: issuer, AccessTokenTTL: time.Hour,
 		RefreshTokenTTL: 24 * time.Hour, Now: ticking.now,
@@ -139,8 +143,8 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	t.Cleanup(server.Close)
 
 	return &fixture{
-		t: t, db: db, keys: keyring, register: register, users: users, storage: storage,
-		provider: provider, server: server, issuer: issuer, clock: ticking,
+		t: t, db: db, keys: keyring, register: register, users: users, devices: deviceFlows,
+		storage: storage, provider: provider, server: server, issuer: issuer, clock: ticking,
 	}
 }
 
@@ -174,6 +178,18 @@ func (f *fixture) token(clientID, secret, scope string) (tokenResponse, int) {
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.SetBasicAuth(clientID, secret)
 	return decode[tokenResponse](f.t, request)
+}
+
+// postForm runs a form request with no client authentication at all, which is
+// how a public client talks to the token and device authorization endpoints.
+func (f *fixture) postForm(path string, form url.Values) (map[string]any, int) {
+	f.t.Helper()
+	request, err := http.NewRequest(http.MethodPost, f.issuer+path, strings.NewReader(form.Encode()))
+	if err != nil {
+		f.t.Fatalf("building the %s request: %v", path, err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return decode[map[string]any](f.t, request)
 }
 
 // jwks fetches the published key set.

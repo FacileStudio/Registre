@@ -29,11 +29,31 @@ func (c client) RedirectURIs() []string { return c.row.RedirectURIs }
 // PostLogoutRedirectURIs returns where a client may be sent after logout.
 func (c client) PostLogoutRedirectURIs() []string { return nil }
 
-// ApplicationType reports the client as confidential: it holds a secret.
-func (c client) ApplicationType() op.ApplicationType { return op.ApplicationTypeWeb }
+// ApplicationType reports whether the client holds a secret. zitadel/oidc
+// reads confidentiality off exactly this — IsConfidentialType is
+// ApplicationType() == Web — and the device grant's token endpoint refuses a
+// public client that authenticates and a confidential one that does not.
+func (c client) ApplicationType() op.ApplicationType {
+	if c.row.Public {
+		return op.ApplicationTypeNative
+	}
+	return op.ApplicationTypeWeb
+}
 
 // AuthMethod reports how the client proves who it is at the token endpoint.
-func (c client) AuthMethod() zoidc.AuthMethod { return zoidc.AuthMethodBasic }
+//
+// None for a public client, and that is not a hole: a CLI installed on a
+// laptop cannot hold a secret, because anything shipped inside the binary is
+// readable by whoever has the binary. Declaring none is what makes the
+// library ask for the defences that do work — it requires PKCE on the
+// authorization code grant for a client that authenticates with nothing, and
+// the device grant it needs has no redirect to intercept in the first place.
+func (c client) AuthMethod() zoidc.AuthMethod {
+	if c.row.Public {
+		return zoidc.AuthMethodNone
+	}
+	return zoidc.AuthMethodBasic
+}
 
 // ResponseTypes returns the response types this client may ask for. An
 // application client that may start a browser flow gets "code"; a service

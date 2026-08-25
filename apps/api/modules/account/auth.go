@@ -10,48 +10,11 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
 
-type ctxKey int
-
-const holderKey ctxKey = 0
-
-// requireCSRF refuses a mutating request that does not carry the header no
-// cross-origin page can set without a preflight this API never answers.
-//
-// It runs ahead of requireSession so a forged write costs a header comparison
-// rather than a database read and an argon2 hash. GET is exempt: it changes
-// nothing, and requiring the header there would break the page's first load.
-func (s *Service) requireCSRF(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Header.Get(accounts.CSRFHeader) == "" {
-			forbid(w)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-// requireSession resolves the account cookie and refuses every request that
-// does not carry a live one.
-//
-// Absent, unknown, expired and belonging-to-a-disabled-account all answer with
-// the same 401. Saying which would tell whoever holds a stolen cookie what
-// they are holding.
-func (s *Service) requireSession(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, _, err := s.sessions.Resolve(r.Context(), s.cookies.Read(r))
-		if err != nil {
-			refuse(w)
-			return
-		}
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), holderKey, user)))
-	})
-}
-
-// holder returns the human behind the request. Every route that calls it is
-// behind requireSession, so the absent case is a routing mistake rather than a
-// runtime one and answers with the zero user.
+// holder returns the human behind the request. The guard in
+// internal/accounts owns resolving the cookie; this is the reader for it,
+// narrowed to the half these pages use.
 func holder(ctx context.Context) schemas.User {
-	user, _ := ctx.Value(holderKey).(schemas.User)
+	user, _ := accounts.Holder(ctx)
 	return user
 }
 
@@ -96,11 +59,6 @@ func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
 // learns no, never which.
 func refuse(w http.ResponseWriter) {
 	encode(w, map[string]string{"error": "unauthorized"}, http.StatusUnauthorized)
-}
-
-// forbid answers a mutating request that arrived without the CSRF header.
-func forbid(w http.ResponseWriter) {
-	encode(w, map[string]string{"error": "forbidden"}, http.StatusForbidden)
 }
 
 // badRequest answers a body this API cannot read.

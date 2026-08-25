@@ -17,6 +17,11 @@ import (
 //
 // Matching is byte-exact downstream, so a trailing slash is the same class of
 // bug and is checked here too.
+//
+// A client that declares no authorization_code grant is skipped rather than
+// failed: facile-cli logs a human in over the device grant, which has no
+// redirect at all, and demanding one of it would be demanding a URL nobody
+// would ever visit.
 func TestEverySuiteRedirectKeepsTheAPIPrefix(t *testing.T) {
 	path := filepath.Join("..", "..", "..", "..", "seed.yaml")
 	body, err := os.ReadFile(path)
@@ -32,6 +37,14 @@ func TestEverySuiteRedirectKeepsTheAPIPrefix(t *testing.T) {
 	}
 
 	for _, app := range file.Applications {
+		grants, err := app.grants()
+		if err != nil {
+			t.Errorf("%s: %v", app.Name, err)
+			continue
+		}
+		if !contains(grants, grantAliases[redirectingGrant]) {
+			continue
+		}
 		if len(app.RedirectURIs) == 0 {
 			t.Errorf("%s declares no redirect_uris and cannot start a browser flow", app.Name)
 			continue

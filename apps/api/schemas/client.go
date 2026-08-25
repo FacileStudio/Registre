@@ -28,6 +28,13 @@ type Client struct {
 	// a half-seeded row both look like.
 	SecretHash string
 
+	// Public marks a client that holds no secret: a CLI on somebody's
+	// laptop, where anything shipped in the binary is readable by whoever
+	// has the binary. It is a column rather than "SecretHash is empty"
+	// precisely because a half-seeded row is also empty, and one of those
+	// two states must never be allowed to authenticate.
+	Public bool
+
 	GrantTypes StringList `gorm:"type:jsonb"`
 	Scopes     StringList `gorm:"type:jsonb"`
 

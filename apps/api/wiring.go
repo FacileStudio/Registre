@@ -4,12 +4,14 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/challenges"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
+	"github.com/FacileStudio/Registre/apps/api/internal/devices"
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
@@ -21,6 +23,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/web"
 	"github.com/FacileStudio/Registre/apps/api/modules/account"
 	"github.com/FacileStudio/Registre/apps/api/modules/admin"
+	"github.com/FacileStudio/Registre/apps/api/modules/device"
 	"github.com/FacileStudio/Registre/apps/api/modules/login"
 	"github.com/FacileStudio/Registre/apps/api/modules/oidc"
 	"github.com/FacileStudio/Registre/apps/api/modules/reset"
@@ -68,12 +71,18 @@ func assemble(
 	if err := applySeed(ctx, register, cfg.SeedFile, svc.log); err != nil {
 		return nil, err
 	}
+	verificationURL := strings.TrimSuffix(cfg.Issuer, "/") + devices.VerificationPath
+	if err := register.EnsureSelf(ctx, verificationURL); err != nil {
+		return nil, err
+	}
 	users := identity.New(db, svc.verifier)
 	invitationService := invites.New(db, svc.verifier)
+	deviceFlows := devices.New(db)
 
 	storage := oidc.NewStorage(db, oidc.Services{
 		Keys: keyring, Register: register, Users: users,
-		Logout: logout.New(keyring, register, cfg.Issuer, svc.log),
+		Logout:  logout.New(keyring, register, cfg.Issuer, svc.log),
+		Devices: deviceFlows,
 	}, oidc.Config{
 		Issuer:          cfg.Issuer,
 		AccessTokenTTL:  cfg.AccessTokenTTL,
@@ -109,6 +118,8 @@ func assemble(
 	mountPeople(router, cfg, people{
 		ctx: ctx, db: db, users: users, invites: invitationService, register: register,
 		keyring: keyring, verifier: svc.verifier, root: root, log: svc.log,
+		deviceFlows: deviceFlows, verificationURL: verificationURL,
+		authorizeURL: provider.AuthorizationEndpoint().Absolute(cfg.Issuer),
 	})
 	client, err := web.Handler()
 	if err != nil {
@@ -121,20 +132,28 @@ func assemble(
 // people bundles what the human-facing modules are built from, so mountPeople
 // stays inside the parameter ceiling as the pages grow.
 type people struct {
-	ctx      context.Context
-	db       *gorm.DB
-	users    *identity.Service
-	invites  *invites.Service
-	register *clients.Service
-	keyring  *keys.Service
-	verifier *credentials.Verifier
-	root     []byte
-	log      *slog.Logger
+	ctx         context.Context
+	db          *gorm.DB
+	users       *identity.Service
+	invites     *invites.Service
+	register    *clients.Service
+	keyring     *keys.Service
+	verifier    *credentials.Verifier
+	deviceFlows *devices.Service
+	root        []byte
+	log         *slog.Logger
+
+	// authorizeURL and verificationURL are the sign-in round trip the
+	// device page sends a session-less human on. They are built here, from
+	// the provider and the configured issuer, so that no handler is ever in
+	// a position to assemble a redirect target out of a request.
+	authorizeURL    string
+	verificationURL string
 }
 
 // mountPeople registers every route a human reaches: the login flow and its
-// second factor, the account pages behind it, password recovery, and the
-// operator dashboard.
+// second factor, the account pages behind it, password recovery, the operator
+// dashboard, and the page a device flow is approved from.
 //
 // The second factor, the account session and the cookie policy are built once
 // here and shared by login and account on purpose. Two instances would be two
@@ -164,6 +183,10 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 	admin.Mount(router, admin.New(admin.Services{
 		Register: p.register, Users: p.users, Keys: p.keyring, Invites: p.invites,
 		Logout: logout.New(p.keyring, p.register, cfg.Issuer, p.log),
+	}, p.log))
+	device.Mount(router, device.New(device.Services{
+		Devices: p.deviceFlows, Sessions: sessions, Register: p.register, Cookies: cookies,
+		AuthorizeURL: p.authorizeURL, RedirectURI: p.verificationURL,
 	}, p.log))
 }
 

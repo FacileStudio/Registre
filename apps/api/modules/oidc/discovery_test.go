@@ -6,6 +6,11 @@ import (
 	"testing"
 )
 
+// The device grant is in the required list rather than merely tolerated,
+// because zitadel/oidc decides whether to advertise it by type-asserting the
+// storage for op.DeviceAuthorizationStorage. Rename either method and the
+// advertisement disappears with no compile error anywhere: this assertion is
+// the only thing that would say so.
 func TestDiscoveryAdvertisesOnlyServedGrants(t *testing.T) {
 	fixture := newFixture(t, defaultKeyConfig())
 
@@ -30,7 +35,7 @@ func TestDiscoveryAdvertisesOnlyServedGrants(t *testing.T) {
 		}
 		served[grant] = true
 	}
-	for _, grant := range []string{"authorization_code", "refresh_token", "client_credentials"} {
+	for _, grant := range []string{"authorization_code", "refresh_token", "client_credentials", deviceGrant} {
 		if !served[grant] {
 			t.Errorf("discovery omits %q, which registre serves", grant)
 		}

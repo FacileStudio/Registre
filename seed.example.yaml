@@ -27,13 +27,18 @@ service_accounts:
       - opus
     access_token_ttl: 1h
 
-# The suite apps that log humans in. Each needs its redirect URIs — they are
-# byte-compared at /authorize, never matched loosely — and each names the
+# The clients that log humans in. A web app needs its redirect URIs — they are
+# byte-compared at /authorize, never matched loosely — and names the
 # environment variable holding its client secret, like a service account.
 #
 # scopes defaults to openid profile email. Add offline_access for refresh
 # tokens and roles to receive the roles claim; visible_roles then filters
 # which roles this app actually sees, and empty means none.
+#
+# grant_types defaults to [authorization_code, refresh_token]. The third
+# alias is device_code, for a CLI that cannot open a browser on the machine it
+# runs on. Redirect URIs are required of authorization_code and of nothing
+# else, because the device grant has no redirect to validate.
 applications:
   - client_id: courrier
     name: Courrier
@@ -50,3 +55,23 @@ applications:
     backchannel_logout_uri: https://courrier.facile.studio/auth/backchannel-logout
     visible_roles:
       - admin
+
+  # A public client: no secret, because there is nowhere to keep one. Every
+  # copy of a CLI binary carries whatever is compiled into it, so a secret
+  # there is a secret its users all hold. Declaring public rather than leaving
+  # secret_env unset is the point — an unset variable is how a confidential
+  # client fails to seed, and the two states must never look alike.
+  #
+  # Naming a secret_env here is refused at boot, so nobody can read this entry
+  # and think a secret is being checked.
+  - client_id: facile-cli
+    name: Facile CLI
+    public: true
+    grant_types:
+      - device_code
+      - refresh_token
+    scopes:
+      - openid
+      - profile
+      - email
+      - offline_access

@@ -87,13 +87,14 @@ func New(deps Services, logger *slog.Logger) *Service {
 // logging out failed. It still passes through requireCSRF, because a
 // cross-site page ending someone's session is a nuisance worth refusing.
 func Mount(router chi.Router, service *Service) {
+	guard := accounts.NewGuard(service.sessions, service.cookies)
 	router.Route("/api/account", func(account chi.Router) {
-		account.Use(service.requireCSRF)
+		account.Use(guard.CSRF)
 		account.Group(func(open chi.Router) {
 			open.Post("/logout", service.logout)
 		})
 		account.Group(func(private chi.Router) {
-			private.Use(service.requireSession)
+			private.Use(guard.Session)
 			private.Get("/", service.me)
 			private.Post("/password", service.changePassword)
 			private.Post("/totp/begin", service.beginTOTP)

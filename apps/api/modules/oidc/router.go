@@ -12,6 +12,9 @@ import (
 	"crypto/sha256"
 	"net/http"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/devices"
+
+	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
@@ -35,6 +38,42 @@ var scopes = []string{
 
 // scopeRoles is the scope that asks for the roles claim in a token.
 const scopeRoles = "roles"
+
+// DefaultDeviceStartLimit and DefaultDeviceStartBurst bound how fast one
+// source address may open device flows.
+//
+// The endpoint is unauthenticated by construction — a CLI has nothing to
+// authenticate with yet — and every call writes a row holding a low-entropy
+// user code. Flooding it is therefore a way to raise the collision odds the
+// user code's entropy budget assumes, which is a subtler attack than filling
+// a table. Starting a login is a once-a-day act for a human, so the budget is
+// generous by any honest measure and still five orders of magnitude below
+// what would matter.
+const (
+	DefaultDeviceStartLimit = 5
+	DefaultDeviceStartBurst = 10
+)
+
+// deviceAuthorization is the flow's shape as the library mints it: how long a
+// flow lives, how often the CLI is told to poll, where the human goes, and
+// what a user code looks like.
+//
+// The user code's alphabet, length and entropy are internal/devices'
+// decision and are documented there. They are read from that package rather
+// than from zitadel's own equivalent constants so the explanation and the
+// codes actually minted cannot drift apart.
+func deviceAuthorization() op.DeviceAuthorizationConfig {
+	return op.DeviceAuthorizationConfig{
+		Lifetime:     devices.Lifetime,
+		PollInterval: devices.PollInterval,
+		UserFormPath: devices.VerificationPath,
+		UserCode: op.UserCodeConfig{
+			CharSet:      devices.Alphabet,
+			CharAmount:   devices.CodeLength,
+			DashInterval: devices.GroupSize,
+		},
+	}
+}
 
 // ProviderConfig is what building the provider needs beyond its storage.
 type ProviderConfig struct {
@@ -73,6 +112,7 @@ func NewProvider(storage *Storage, cfg ProviderConfig) (*op.Provider, error) {
 		GrantTypeRefreshToken: true,
 		SupportedScopes:       scopes,
 		SupportedClaims:       append(op.DefaultSupportedClaims, scopeRoles),
+		DeviceAuthorization:   deviceAuthorization(),
 	}, storage, op.StaticIssuer(cfg.Issuer), options...)
 }
 
@@ -83,11 +123,25 @@ func NewProvider(storage *Storage, cfg ProviderConfig) (*op.Provider, error) {
 // would shadow tronc's — the readiness probe the container's health check
 // calls. Discovery is the one path whose location is fixed by the
 // specification; the rest are wherever discovery says they are.
+//
+// Device authorization is the one endpoint that gets a per-address budget.
+// Every other path here either authenticates its caller before it does any
+// work or reads something public; that one is unauthenticated and writes a row
+// carrying a low-entropy user code, so the rate at which it may be called is
+// part of RFC 8628 §5.2's arithmetic rather than a nicety.
 func Mount(router chi.Router, provider *op.Provider) {
+	budget := troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
+		Limit: DefaultDeviceStartLimit, Burst: DefaultDeviceStartBurst,
+	})
+	device := provider.DeviceAuthorizationEndpoint().Relative()
 	for _, path := range Paths(provider) {
 		handler := http.Handler(provider)
 		if path == oidc.DiscoveryEndpoint {
 			handler = filteredDiscovery(provider)
+		}
+		if path == device {
+			router.With(budget).Handle(path, handler)
+			continue
 		}
 		router.Handle(path, handler)
 	}
@@ -97,11 +151,11 @@ func Mount(router chi.Router, provider *op.Provider) {
 // them. Exported because the tests assert the mounted set against it rather
 // than against a second copy that would drift.
 //
-// The list includes endpoints phase 0 does not implement, device authorization
-// among them. zitadel/oidc writes them into the discovery document whether or
-// not their storage exists, so leaving them unmounted turns a clean OIDC
-// "unsupported grant" into a 404 from whatever else claims the path — an error
-// that says the provider is missing rather than the grant.
+// The list once included endpoints registre did not implement, and that is
+// still why it is exhaustive: zitadel/oidc writes them into the discovery
+// document whether or not their storage exists, so leaving one unmounted turns
+// a clean OIDC "unsupported grant" into a 404 from whatever else claims the
+// path — an error that says the provider is missing rather than the grant.
 func Paths(provider *op.Provider) []string {
 	return []string{
 		oidc.DiscoveryEndpoint,

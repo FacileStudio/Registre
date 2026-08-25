@@ -96,6 +96,12 @@ func (s *Service) List(ctx context.Context) ([]schemas.Client, error) {
 // its old secret. A revocation that undoes itself is worse than no revocation,
 // having been reported as done. Adding a column to the model must not silently
 // add it to what a re-apply overwrites.
+//
+// The secret is the one column with three cases rather than two. A declaration
+// that carries one writes it; one that carries none leaves the stored hash
+// alone, so a re-apply cannot lock a client out; and a declaration that says
+// the client is public erases it, because a public client that kept a usable
+// secret would be one every honest reading of the register says has none.
 func declared(row schemas.Client) map[string]any {
 	fields := map[string]any{
 		"name":                   row.Name,
@@ -105,12 +111,16 @@ func declared(row schemas.Client) map[string]any {
 		"audiences":              row.Audiences,
 		"access_token_ttl":       row.AccessTokenTTL,
 		"managed":                row.Managed,
+		"public":                 row.Public,
 		"redirect_uris":          row.RedirectURIs,
 		"backchannel_logout_uri": row.BackchannelLogoutURI,
 		"visible_roles":          row.VisibleRoles,
 		"updated_at":             time.Now().UTC(),
 	}
-	if row.SecretHash != "" {
+	switch {
+	case row.Public:
+		fields["secret_hash"] = ""
+	case row.SecretHash != "":
 		fields["secret_hash"] = row.SecretHash
 	}
 	return fields
@@ -134,7 +144,8 @@ func declared(row schemas.Client) map[string]any {
 // A row that already exists keeps its subject, because that is what every app
 // matched the account on and re-keying it orphans the client everywhere it has
 // ever authenticated. It keeps its disabled_at so a revocation cannot be
-// undone by a re-apply, and its secret when the caller supplies none.
+// undone by a re-apply, and its secret when the caller supplies none and does
+// not declare it public.
 func (s *Service) Upsert(ctx context.Context, row schemas.Client) (schemas.Client, error) {
 	existing, err := s.rawByClientID(ctx, row.ClientID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {

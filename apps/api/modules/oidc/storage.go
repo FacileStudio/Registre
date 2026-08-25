@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
+	"github.com/FacileStudio/Registre/apps/api/internal/devices"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
@@ -50,6 +51,7 @@ type Services struct {
 	Register *clients.Service
 	Users    *identity.Service
 	Logout   *logout.Service
+	Devices  *devices.Service
 }
 
 // Storage is registre's implementation of the contract zitadel/oidc issues
@@ -189,7 +191,7 @@ func (s *Storage) CreateAccessToken(ctx context.Context, request op.TokenRequest
 	case tokenRequest:
 		clientID, subject = granted.clientID, granted.subject
 		lifetime = granted.lifetime
-	case op.AuthRequest:
+	case principal:
 		clientID, subject = granted.GetClientID(), granted.GetSubject()
 		row, err := s.svc.Register.ByClientID(ctx, clientID)
 		if err != nil {

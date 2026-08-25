@@ -3,6 +3,8 @@ package oidc
 import (
 	"encoding/json"
 	"net/http"
+
+	zoidc "github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 // servedGrants is what registre actually implements. zitadel/oidc writes
@@ -11,9 +13,10 @@ import (
 // its document verbatim promises grants that answer only an error. Filtering
 // here keeps the document honest without forking the library's handler.
 var servedGrants = map[string]bool{
-	"authorization_code": true,
-	"refresh_token":      true,
-	"client_credentials": true,
+	"authorization_code":              true,
+	"refresh_token":                   true,
+	"client_credentials":              true,
+	string(zoidc.GrantTypeDeviceCode): true,
 }
 
 func filteredDiscovery(next http.Handler) http.Handler {
