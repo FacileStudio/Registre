@@ -88,11 +88,19 @@ func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *zoidc.User
 // empty list is the honest "this app may see none of your roles". Visibility
 // stays opt-in per client either way.
 //
+// The subject is set first and unconditionally. This object becomes the ID
+// token's claim set once assertion is on, so a field left unset here is a claim
+// left out of the token — and an ID token without sub is both invalid per the
+// spec and unusable to porte, which keys every account on (provider, subject).
+// Emitting the profile while dropping sub is a worse token than emitting
+// neither, so it is not gated on any scope.
+//
 // An unknown subject is a machine principal, which has no profile to emit and
 // is not an error.
 func (s *Storage) SetUserinfoFromScopes(
 	ctx context.Context, userinfo *zoidc.UserInfo, userID, clientID string, scopes []string,
 ) error {
+	userinfo.Subject = userID
 	if s.svc.Users == nil {
 		return nil
 	}

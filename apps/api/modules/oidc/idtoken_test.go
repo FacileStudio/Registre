@@ -29,11 +29,16 @@ func TestIDTokenCarriesTheEmailClaim(t *testing.T) {
 		t.Fatal("the token response carried no id_token")
 	}
 	var claims struct {
+		Subject       string `json:"sub"`
 		Email         string `json:"email"`
 		EmailVerified bool   `json:"email_verified"`
 		Name          string `json:"name"`
 	}
 	decodeIDTokenPayload(t, raw, &claims)
+	if claims.Subject == "" {
+		t.Error("the id_token carries no sub; it is invalid per the spec, and porte " +
+			"keys every account on (provider, subject) so nobody would ever match")
+	}
 	if claims.Email != "yann@facile.studio" {
 		t.Errorf("id_token email = %q, want yann@facile.studio", claims.Email)
 	}
