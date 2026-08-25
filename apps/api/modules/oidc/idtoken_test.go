@@ -83,3 +83,28 @@ func decodeIDTokenPayload(t *testing.T, token string, out any) {
 		t.Fatalf("unmarshalling the id_token payload %s: %v", payload, err)
 	}
 }
+
+// TestIDTokenEmitsEmptyRolesRatherThanOmitting pins the difference between an
+// absent claim and an empty one. porte reads an absent roles claim as a
+// misconfigured provider and fails the login outright; an empty list is the
+// honest answer for a user whose roles this client may not see. Sablier is the
+// app that asks, via OIDC_CLAIMS_SCOPE=roles.
+func TestIDTokenEmitsEmptyRolesRatherThanOmitting(t *testing.T) {
+	fixture := newFixture(t, defaultKeyConfig())
+	secret := fixture.application("sablier", "http://127.0.0.1:9999/callback", "roles")
+	fixture.human("yann@facile.studio", "correct horse battery staple")
+
+	client := testClient{id: "sablier", secret: secret, redirect: redirectOf("sablier")}
+	granted := signInAndExchange(t, fixture, client, "openid email roles")
+
+	var claims struct {
+		Roles []string `json:"roles"`
+	}
+	decodeIDTokenPayload(t, granted["id_token"].(string), &claims)
+	if claims.Roles == nil {
+		t.Fatal("the roles claim is absent; porte reads that as a missing scope mapping and refuses the login")
+	}
+	if len(claims.Roles) != 0 {
+		t.Errorf("roles = %v, want empty for a user holding none visible to this client", claims.Roles)
+	}
+}

@@ -82,6 +82,12 @@ func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *zoidc.User
 // Every claim is scope-gated: an app that asked for neither profile nor email
 // still receives neither. roles stays filtered per client by rolesForClient.
 //
+// A granted roles scope emits the claim even when the list is empty, because
+// absent and empty are not the same answer to porte: it reads an absent claim
+// as "the provider is missing its scope mapping" and fails the login, while an
+// empty list is the honest "this app may see none of your roles". Visibility
+// stays opt-in per client either way.
+//
 // An unknown subject is a machine principal, which has no profile to emit and
 // is not an error.
 func (s *Storage) SetUserinfoFromScopes(
@@ -115,8 +121,8 @@ func (s *Storage) SetUserinfoFromScopes(
 	if err != nil {
 		return err
 	}
-	if len(roles) == 0 {
-		return nil
+	if roles == nil {
+		roles = []string{}
 	}
 	userinfo.AppendClaims(scopeRoles, roles)
 	return nil

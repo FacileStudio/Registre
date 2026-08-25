@@ -159,7 +159,7 @@ func TestRolesArriveFilteredPerClient(t *testing.T) {
 		want   []any
 	}{
 		"sablier":  {sablierSecret, []any{"admin"}},
-		"courrier": {courrierSecret, nil},
+		"courrier": {courrierSecret, []any{}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			client := testClient{id: name, secret: tc.secret, redirect: redirectOf(name)}
@@ -169,9 +169,14 @@ func TestRolesArriveFilteredPerClient(t *testing.T) {
 				t.Fatalf("id_token does not verify: %v", err)
 			}
 			got := claims["roles"]
-			if tc.want == nil {
-				if got != nil {
-					t.Errorf("roles = %v, want none", got)
+			if len(tc.want) == 0 {
+				roles, ok := got.([]any)
+				if !ok {
+					t.Fatalf("roles = %v, want an empty list: porte reads an absent claim as a "+
+						"missing scope mapping and refuses the login", got)
+				}
+				if len(roles) != 0 {
+					t.Errorf("roles = %v, want empty — this client whitelisted none", roles)
 				}
 				return
 			}
