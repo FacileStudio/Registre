@@ -205,10 +205,24 @@ a thing that breaks silently if missed.
 | Standard discovery + JWKS | `porte/oidc/oidc.go:118` builds its verifier from provider discovery | porte will not start against the issuer |
 | `authorization_code` + PKCE, enforced server-side | `porte/SPEC.md` §12: Authentik's token endpoint **enforces** PKCE, redirect URI and client auth "rather than trusting the client to have sent them" | A downgrade nobody notices |
 | CLI loopback flow: `?flow=cli&port=N&cli_state=S` → one-time code → `POST /auth/oidc/exchange` | `porte/porte.go:91-94`, `oidc/handlers.go:105` | Every suite CLI's `login` stops working |
+| **Device grant (RFC 8628) for a CLI whose browser is elsewhere** | The loopback flow assumes the browser runs on the machine that started the login | A login started over SSH sends the human's browser to *its own* `127.0.0.1`; the code expires unused and nothing says why |
 | **`roles` claim: flat array, filtered per client** | `porte/SPEC.md:109` — "already filtered and stripped for that app" | Authorization breaks in every app, silently and differently |
 | **Back-channel logout** | `porte/SPEC.md:110` — "the *only* way a downstream app learns a session was terminated administratively"; porte consumes it at `/auth/backchannel-logout` | Deactivating a user stops propagating. A security capability regressing quietly |
 | `email_verified` emitted **truthfully** | Authentik hardcodes `false`; porte gates its email fallback on it | Today: adoption never fires. Under registre this becomes a capability we gain |
 | Issuer stays `sso.facile.studio` | `porte/SPEC.md:106` — the host was renamed off `porte.` precisely so it "survives replacing Authentik" | Every app needs an `OIDC_ISSUER` change instead of none |
+
+**The device grant is an addition to that contract, not a replacement.** The loopback row above
+stays exactly as it is: a CLI on the same machine as the browser keeps using it and porte's
+`?flow=cli&port=N&cli_state=S` is untouched. RFC 8628 covers the case loopback cannot — a login
+started on a server, in a container or over SSH, where `127.0.0.1` on the browser's machine is
+not the machine that is waiting. registre mints the pair of codes, the human approves the short
+one on any device that has a browser, and the CLI polls the token endpoint with the long one.
+
+`apps/client`'s `/device` is the human half, one route in the `(auth)` group. It takes the user
+code typed or prefilled from `verification_uri_complete`, names the client and the scopes it
+asked for, offers **approve and deny as equal-weight choices** because RFC 8628 makes
+`access_denied` an answer the waiting CLI is told about rather than a cancelled dialog, and it
+is the page a human opens on a phone — so the phone layout is the primary one, not the fallback.
 
 Reuse `porte/local/password.go`'s argon2id parameters **verbatim** — 64 MiB, three passes, two
 lanes — so password hashes stay portable in either direction.
@@ -267,6 +281,31 @@ refusal would reach the client as `invalid_client`, which is a lie about their c
 **Never a credential in a URL.** `porte/session.go:310` reads only the cookie and the
 `Authorization` header for exactly this reason: "a credential in a URL lands in access logs,
 referrers and browser history."
+
+**A user code is low entropy, and the verification link puts it in a URL. Both are RFC 8628's
+design, and neither contradicts the rule above.** Eight characters a human reads off one screen
+and types into another is about 34.6 bits — §6.1's own worked example — and §5.2 requires the
+endpoints that accept one to be rate limited. `verification_uri_complete` then embeds that code
+in a link so a QR code can carry it. That is tolerable only because a user code is **not a
+credential**: it names a pending request and authenticates nobody. Answering one still requires a
+signed-in human, and `modules/device` copies the subject and the authentication time out of that
+session rather than out of the link, so a page that could name the account it was approving for
+would be an authorization bypass with a JSON body.
+
+Three rules follow. The API enforces all three and the client is bound by all three.
+
+- **One refusal, never a taxonomy.** Never issued, already answered, already spent and expired
+  are one answer: `devices.ErrUnknownCode`, served as a single 404. Splitting them tells a
+  guesser which of their guesses hit a real flow, which is the only thing guessing is for.
+  `apps/client/src/lib/device.ts` renders that 404 as one outcome and may not widen it.
+- **No code-shaped validation in the browser.** The page must not check length, alphabet or
+  grouping before it sends. A form that refuses a shape locally is an oracle that costs an
+  attacker nothing to query and never touches the rate limit. `devices.Normalise` on the server
+  is what decides whether a code is a code.
+- **Never submit without a human.** No lookup on a keystroke, and no approval on page load. A
+  prefilled code is prefilled *into a field*; the human still presses the button. Otherwise a
+  link is the approval, and RFC 8628's whole premise is that the approval is a deliberate act by
+  somebody who knows what they started.
 
 ---
 
