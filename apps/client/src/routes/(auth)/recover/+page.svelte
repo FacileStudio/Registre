@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { Alert, Button, Card, Field, Input, Stack } from '@facile/muse';
+	const inputClass =
+		'flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
+		'text-foreground placeholder:text-muted-foreground focus-visible:outline-none ' +
+		'focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed ' +
+		'disabled:opacity-50';
+	const labelClass = 'text-sm font-medium leading-none text-foreground';
+	const primaryButtonClass =
+		'inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 ' +
+		'text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 ' +
+		'disabled:pointer-events-none disabled:opacity-50';
 
 	let email = $state('');
 	let sent = $state(false);
@@ -33,42 +42,45 @@
 	<title>Reset your password — Registre</title>
 </svelte:head>
 
-<Card class="p-8">
-	<Stack>
-		<div class="flex flex-col gap-1">
-			<h1 class="text-fc-lg font-semibold text-fc-fg">Reset your password</h1>
-			<p class="text-fc-sm text-fc-fg-muted">
-				Give us the address you sign in with and we will send a reset link.
-			</p>
+<div class="mb-8">
+	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
+		Reset your password
+	</h1>
+	<p class="mt-1.5 text-sm text-muted-foreground">
+		Give us the address you sign in with and we will send a reset link.
+	</p>
+</div>
+
+{#if sent}
+	<p role="status" class="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
+		If that address has an account, a reset link is on its way. The link expires, so use it
+		soon.
+	</p>
+{:else}
+	<form onsubmit={submit} class="space-y-4">
+		<div class="space-y-1.5">
+			<label for="email" class={labelClass}>Email</label>
+			<input
+				id="email"
+				name="email"
+				type="email"
+				bind:value={email}
+				placeholder="you@example.com"
+				required
+				autocomplete="username"
+				disabled={busy}
+				class={inputClass}
+			/>
 		</div>
 
-		<div aria-live="polite">
-			{#if sent}
-				<Alert tone="success" title="Check your inbox.">
-					If that address has an account, a reset link is on its way. The link expires, so use it
-					soon.
-				</Alert>
-			{/if}
-		</div>
+		<button type="submit" disabled={busy} aria-busy={busy} class={primaryButtonClass}>
+			{busy ? 'Sending…' : 'Send the reset link'}
+		</button>
+	</form>
+{/if}
 
-		{#if !sent}
-			<form onsubmit={submit} class="flex flex-col gap-4">
-				<Field label="Email">
-					<Input type="email" autocomplete="username" required bind:value={email} />
-				</Field>
-				<Button type="submit" disabled={busy}>
-					{busy ? 'Sending…' : 'Send the reset link'}
-				</Button>
-			</form>
-		{/if}
-
-		<a
-			href="/login"
-			class="self-center rounded-fc-xs text-fc-sm text-fc-fg-muted underline
-				underline-offset-2 transition-colors hover:text-fc-fg focus-visible:outline-2
-				focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
-		>
-			Back to sign-in
-		</a>
-	</Stack>
-</Card>
+<p class="mt-6 text-center text-sm text-muted-foreground">
+	<a href="/login" class="underline underline-offset-2 transition-colors hover:text-foreground">
+		Back to sign-in
+	</a>
+</p>

@@ -1,7 +1,16 @@
 <script lang="ts">
-	import { Alert, Button, Card, Field, Input, Stack } from '@facile/muse';
 	import { MIN_PASSWORD } from '$lib/policy';
 
+	const inputClass =
+		'flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
+		'text-foreground placeholder:text-muted-foreground focus-visible:outline-none ' +
+		'focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed ' +
+		'disabled:opacity-50';
+	const labelClass = 'text-sm font-medium leading-none text-foreground';
+	const primaryButtonClass =
+		'inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 ' +
+		'text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 ' +
+		'disabled:pointer-events-none disabled:opacity-50';
 
 	let token = $state('');
 	let password = $state('');
@@ -64,68 +73,90 @@
 	<title>Choose a new password — Registre</title>
 </svelte:head>
 
-<Card class="p-8">
-	<Stack>
-		<div class="flex flex-col gap-1">
-			<h1 class="text-fc-lg font-semibold text-fc-fg">Choose a new password</h1>
-			<p class="text-fc-sm text-fc-fg-muted">
-				This link works once. Setting a password here signs out every session on the account.
+<div class="mb-8">
+	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
+		Choose a new password
+	</h1>
+	<p class="mt-1.5 text-sm text-muted-foreground">
+		This link works once. Setting a password here signs out every session on the account.
+	</p>
+</div>
+
+{#if done}
+	<p role="status" class="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
+		Your password is set. Go back to the app you came from and sign in there.
+	</p>
+{:else if !token}
+	<p role="alert" class="rounded-md bg-destructive/10 px-3 py-3 text-sm text-destructive">
+		This reset link is not valid. Start again from the reset form.
+	</p>
+{:else}
+	<form onsubmit={submit} class="space-y-4">
+		{#if error}
+			<p role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+				{error}
+			</p>
+		{/if}
+
+		<div class="space-y-1.5">
+			<label for="password" class={labelClass}>New password</label>
+			<input
+				id="password"
+				name="password"
+				type="password"
+				bind:value={password}
+				placeholder="••••••••"
+				required
+				minlength={MIN_PASSWORD}
+				autocomplete="new-password"
+				aria-invalid={tooShort}
+				aria-describedby="password-hint"
+				disabled={busy}
+				class={inputClass}
+			/>
+			<p
+				id="password-hint"
+				class="text-xs {tooShort ? 'text-destructive' : 'text-muted-foreground'}"
+			>
+				At least {MIN_PASSWORD} characters.
 			</p>
 		</div>
 
-		<div aria-live="polite">
-			{#if done}
-				<Alert tone="success" title="Your password is set.">
-					Go back to the app you came from and sign in there.
-				</Alert>
+		<div class="space-y-1.5">
+			<label for="confirm-password" class={labelClass}>Confirm password</label>
+			<input
+				id="confirm-password"
+				name="confirm-password"
+				type="password"
+				bind:value={confirm}
+				placeholder="••••••••"
+				required
+				autocomplete="new-password"
+				aria-invalid={mismatch}
+				aria-describedby={mismatch ? 'confirm-password-error' : undefined}
+				disabled={busy}
+				class={inputClass}
+			/>
+			{#if mismatch}
+				<p id="confirm-password-error" class="text-sm text-destructive">
+					The passwords do not match.
+				</p>
 			{/if}
 		</div>
 
-		{#if !done}
-			{#if !token}
-				<Alert tone="danger" title="This reset link is not valid.">
-					Start again from the reset form.
-				</Alert>
-			{:else}
-				<form onsubmit={submit} class="flex flex-col gap-4">
-					<div aria-live="polite">
-						{#if error}
-							<Alert tone="danger" title={error} />
-						{/if}
-					</div>
-					<Field
-						label="New password"
-						helper="At least {MIN_PASSWORD} characters."
-						error={tooShort ? `At least ${MIN_PASSWORD} characters.` : undefined}
-					>
-						<Input
-							type="password"
-							autocomplete="new-password"
-							minlength={MIN_PASSWORD}
-							required
-							bind:value={password}
-						/>
-					</Field>
-					<Field
-						label="Confirm password"
-						error={mismatch ? 'The passwords do not match.' : undefined}
-					>
-						<Input type="password" autocomplete="new-password" required bind:value={confirm} />
-					</Field>
-					<Button type="submit" disabled={busy || tooShort || mismatch}>
-						{busy ? 'Setting…' : 'Set password'}
-					</Button>
-				</form>
-			{/if}
-		{/if}
-
-		<a
-			href="/recover"
-			class="self-center rounded-fc-xs text-fc-sm text-fc-fg-muted underline
-				underline-offset-2 transition-colors hover:text-fc-fg focus-visible:outline-2
-				focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+		<button
+			type="submit"
+			disabled={busy || tooShort || mismatch}
+			aria-busy={busy}
+			class={primaryButtonClass}
 		>
-			Ask for a new link
-		</a>
-	</Stack>
-</Card>
+			{busy ? 'Setting…' : 'Set password'}
+		</button>
+	</form>
+{/if}
+
+<p class="mt-6 text-center text-sm text-muted-foreground">
+	<a href="/recover" class="underline underline-offset-2 transition-colors hover:text-foreground">
+		Ask for a new link
+	</a>
+</p>

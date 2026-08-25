@@ -8,3 +8,55 @@
  */
 @import '@facile/muse/styles';
 @source '../node_modules/@facile/muse/src';
+
+/*
+ * The suite's semantic names, aliased onto muse's fc-* tokens.
+ *
+ * The auth screens are raw elements rather than muse components, unified across
+ * the suite, and they speak the semantic vocabulary rather than the fc-* one.
+ * muse deletes Tailwind's stock palette with `--color-*: initial`, so without
+ * these aliases those class names generate no rule at all and the pages render
+ * structurally correct and completely unstyled, with no build error.
+ *
+ * The aliases point this way round on purpose. muse is the source of truth for
+ * the palette; an app that redeclares a colour here drifts from it silently on
+ * the next muse release. `inline` is what makes both vocabularies resolve to the
+ * same variable rather than to a copy of its value, which is what lets
+ * hand-written markup and muse primitives sit in one tree and flip to dark
+ * together.
+ *
+ * Treat the key set as the contract: deleting a key deletes the matching
+ * Tailwind utility across the whole app with no build error and no type error.
+ * No utility name is spelled out anywhere in this file on purpose — Tailwind
+ * v4's scanner is a plain text scan that does not know what a comment is, so
+ * naming one here would emit a rule for it.
+ */
+@theme inline {
+	--font-heading: var(--font-fc-title);
+	--font-mono: var(--font-fc-mono);
+
+	--color-background: var(--color-fc-page);
+	--color-foreground: var(--color-fc-fg);
+	--color-card: var(--color-fc-component);
+	--color-card-foreground: var(--color-fc-fg);
+	--color-popover: var(--color-fc-component);
+	--color-popover-foreground: var(--color-fc-fg);
+	--color-primary: var(--color-fc-accent);
+	--color-primary-foreground: var(--color-fc-accent-fg);
+	--color-secondary: var(--color-fc-surface);
+	--color-secondary-foreground: var(--color-fc-fg);
+	--color-muted: var(--color-fc-surface);
+	--color-muted-foreground: var(--color-fc-fg-muted);
+	--color-accent: var(--color-fc-surface);
+	--color-accent-foreground: var(--color-fc-fg);
+	--color-border: var(--color-fc-border);
+	--color-input: var(--color-fc-border);
+	--color-ring: var(--color-fc-ring);
+	--color-destructive: var(--color-fc-danger);
+	--color-destructive-foreground: var(--color-fc-danger-fg);
+
+	--radius-sm: var(--radius-fc-sm);
+	--radius-md: var(--radius-fc-md);
+	--radius-lg: var(--radius-fc-lg);
+	--radius-xl: var(--radius-fc-lg);
+}

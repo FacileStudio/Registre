@@ -1,23 +1,39 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import { PageTransition } from '@facile/muse';
+	import type { Snippet } from 'svelte';
 
-	let { children } = $props();
+	let { children }: { children?: Snippet } = $props();
 </script>
 
-<div class="flex min-h-dvh flex-col items-center justify-center gap-8 bg-fc-page px-4 py-12">
-	<a
-		href="/"
-		class="flex items-center gap-3 rounded-fc-md focus-visible:outline-2
-			focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
-	>
-		<img src="/logo.svg" alt="" width={24} height={24} class="block shrink-0" />
-		<span class="text-fc-xl font-semibold tracking-tight text-fc-fg">Registre</span>
-	</a>
+<div class="flex min-h-dvh">
+	<div class="hidden flex-col border-r border-border bg-black px-12 py-10 lg:flex lg:w-1/2">
+		<a href="/" class="mb-auto flex items-center gap-3">
+			<img src="/logo.svg" alt="" width={28} height={28} class="block shrink-0" />
+			<span class="font-heading text-xl font-semibold tracking-tight text-white">Registre</span>
+		</a>
 
-	<PageTransition key={page.url.pathname} class="w-full max-w-sm">
-		{@render children()}
-	</PageTransition>
+		<div class="mb-auto">
+			<h2 class="font-heading text-4xl leading-tight font-semibold tracking-tight text-white">
+				One account.<br />Every app.
+			</h2>
+			<p class="mt-4 max-w-xs text-sm leading-relaxed text-white/50">
+				The identity provider behind the Facile Suite. Sign in once, reach every app.
+			</p>
+		</div>
 
-	<p class="text-fc-xs text-fc-fg-muted">The Facile Suite's identity provider.</p>
+		<p class="text-xs text-white/30">
+			© {new Date().getFullYear()} Registre by Facile.
+		</p>
+	</div>
+
+	<div class="flex w-full flex-col items-center justify-center bg-background px-6 py-12 lg:w-1/2">
+		<div class="w-full max-w-sm">
+			<a href="/" class="mb-8 flex items-center gap-3 lg:hidden">
+				<img src="/logo.svg" alt="" width={28} height={28} class="block shrink-0" />
+				<span class="font-heading text-xl font-semibold tracking-tight text-foreground">
+					Registre
+				</span>
+			</a>
+			{@render children?.()}
+		</div>
+	</div>
 </div>

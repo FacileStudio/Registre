@@ -1,5 +1,23 @@
 <script lang="ts">
-	import { Alert, Button, Card, Field, Input, Stack, icons } from '@facile/muse';
+	const inputClass =
+		'flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
+		'text-foreground placeholder:text-muted-foreground focus-visible:outline-none ' +
+		'focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed ' +
+		'disabled:opacity-50';
+	const labelClass = 'text-sm font-medium leading-none text-foreground';
+	const primaryButtonClass =
+		'inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 ' +
+		'text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 ' +
+		'disabled:pointer-events-none disabled:opacity-50';
+	const outlineButtonClass =
+		'inline-flex h-11 w-full items-center justify-center rounded-md border border-border ' +
+		'bg-background px-4 text-sm font-medium text-foreground transition-colors ' +
+		'hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none ' +
+		'disabled:opacity-50';
+	const subtleButtonClass =
+		'inline-flex h-11 w-full items-center justify-center rounded-md px-4 text-sm ' +
+		'font-medium text-muted-foreground transition-colors hover:text-foreground ' +
+		'disabled:pointer-events-none disabled:opacity-50';
 
 	type Step = 'password' | 'second-factor';
 
@@ -94,109 +112,146 @@
 	<title>Sign in — Registre</title>
 </svelte:head>
 
-<Card class="p-8">
-	{#if step === 'password'}
-		<Stack>
-			<div class="flex flex-col gap-1">
-				<h1 class="text-fc-lg font-semibold text-fc-fg">Sign in to Registre</h1>
-				<p class="text-fc-sm text-fc-fg-muted">
-					Sign-in starts from the app you are trying to reach.
-				</p>
-			</div>
+{#if step === 'password'}
+	<div class="mb-8">
+		<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
+			Sign in to Registre
+		</h1>
+		<p class="mt-1.5 text-sm text-muted-foreground">
+			Sign-in starts from the app you are trying to reach.
+		</p>
+	</div>
 
-			{#if !authRequest}
-				<Alert tone="danger" title="This sign-in link is not valid.">
-					Start again from the app that sent you here.
-				</Alert>
-			{:else}
-				<form onsubmit={submitPassword} class="flex flex-col gap-4">
-					<div aria-live="polite">
-						{#if error}
-							<Alert tone="danger" title={error} />
-						{/if}
-					</div>
-					<Field label="Email">
-						<Input type="email" autocomplete="username" required bind:value={email} />
-					</Field>
-					<Field label="Password">
-						<Input type="password" autocomplete="current-password" required bind:value={password} />
-					</Field>
-					<Button type="submit" disabled={busy}>
-						{busy ? 'Signing in…' : 'Sign in'}
-					</Button>
-					<a
-						href="/recover"
-						class="self-center rounded-fc-xs text-fc-sm text-fc-fg-muted underline
-							underline-offset-2 transition-colors hover:text-fc-fg focus-visible:outline-2
-							focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
-					>
-						Forgotten your password?
-					</a>
-				</form>
-			{/if}
-		</Stack>
+	{#if !authRequest}
+		<p role="status" class="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
+			There is nothing to sign in to from here. Open the Facile app you want to use and it
+			will bring you back with everything this page needs.
+		</p>
+
+		<a href="/" class="mt-4 {outlineButtonClass}">Back to the home page</a>
 	{:else}
-		<Stack>
-			<div class="flex flex-col gap-1">
-				<h1 class="text-fc-lg font-semibold text-fc-fg">Two-step sign-in</h1>
-				<p class="text-fc-sm text-fc-fg-muted">
-					{recovery
-						? 'Enter one of the recovery codes you saved when you turned on two-step sign-in.'
-						: 'Enter the six-digit code from your authenticator app.'}
+		<form onsubmit={submitPassword} class="space-y-4">
+			{#if error}
+				<p role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+					{error}
 				</p>
+			{/if}
+
+			<div class="space-y-1.5">
+				<label for="email" class={labelClass}>Email</label>
+				<input
+					id="email"
+					name="email"
+					type="email"
+					bind:value={email}
+					placeholder="you@example.com"
+					required
+					autocomplete="username"
+					disabled={busy}
+					class={inputClass}
+				/>
 			</div>
 
-			<form onsubmit={submitCode} class="flex flex-col gap-4">
-				<div aria-live="polite">
-					{#if error}
-						<Alert tone="danger" title={error} />
-					{/if}
-				</div>
+			<div class="space-y-1.5">
+				<label for="password" class={labelClass}>Password</label>
+				<input
+					id="password"
+					name="password"
+					type="password"
+					bind:value={password}
+					placeholder="••••••••"
+					required
+					autocomplete="current-password"
+					disabled={busy}
+					class={inputClass}
+				/>
+			</div>
 
-				{#if recovery}
-					<Field label="Recovery code" helper="Each code works once.">
-						<Input
-							autocomplete="off"
-							autocapitalize="off"
-							spellcheck={false}
-							required
-							class="font-fc-mono"
-							bind:value={code}
-						/>
-					</Field>
-				{:else}
-					<Field label="Six-digit code">
-						<Input
-							inputmode="numeric"
-							autocomplete="one-time-code"
-							maxlength={6}
-							pattern={'[0-9]{6}'}
-							required
-							class="font-fc-mono tracking-widest"
-							bind:value={code}
-						/>
-					</Field>
-				{/if}
+			<button type="submit" disabled={busy} aria-busy={busy} class={primaryButtonClass}>
+				{busy ? 'Signing in…' : 'Sign in'}
+			</button>
+		</form>
 
-				<Button type="submit" disabled={busy || code.trim().length === 0}>
-					{busy ? 'Checking…' : 'Continue'}
-				</Button>
-
-				<div class="flex flex-col gap-2">
-					<Button type="button" variant="ghost" size="sm" onclick={useRecovery}>
-						{recovery ? 'Use my authenticator app' : 'Use a recovery code instead'}
-					</Button>
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						icon={icons.chevronLeft}
-						onclick={startOver}
-					>
-						Start again
-					</Button>
-				</div>
-			</form>
-		</Stack>
+		<p class="mt-6 text-center text-sm text-muted-foreground">
+			<a
+				href="/recover"
+				class="underline underline-offset-2 transition-colors hover:text-foreground"
+			>
+				Forgotten your password?
+			</a>
+		</p>
 	{/if}
-</Card>
+{:else}
+	<div class="mb-8">
+		<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
+			Two-step sign-in
+		</h1>
+		<p class="mt-1.5 text-sm text-muted-foreground">
+			{recovery
+				? 'Enter one of the recovery codes you saved when you turned on two-step sign-in.'
+				: 'Enter the six-digit code from your authenticator app.'}
+		</p>
+	</div>
+
+	<form onsubmit={submitCode} class="space-y-4">
+		{#if error}
+			<p role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+				{error}
+			</p>
+		{/if}
+
+		{#if recovery}
+			<div class="space-y-1.5">
+				<label for="recovery-code" class={labelClass}>Recovery code</label>
+				<input
+					id="recovery-code"
+					name="recovery-code"
+					type="text"
+					bind:value={code}
+					required
+					autocomplete="off"
+					autocapitalize="off"
+					spellcheck="false"
+					aria-describedby="recovery-code-hint"
+					disabled={busy}
+					class="{inputClass} font-mono"
+				/>
+				<p id="recovery-code-hint" class="text-xs text-muted-foreground">
+					Each code works once.
+				</p>
+			</div>
+		{:else}
+			<div class="space-y-1.5">
+				<label for="totp-code" class={labelClass}>Six-digit code</label>
+				<input
+					id="totp-code"
+					name="totp-code"
+					type="text"
+					bind:value={code}
+					required
+					inputmode="numeric"
+					autocomplete="one-time-code"
+					maxlength={6}
+					pattern={'[0-9]{6}'}
+					disabled={busy}
+					class="{inputClass} font-mono tracking-widest"
+				/>
+			</div>
+		{/if}
+
+		<button
+			type="submit"
+			disabled={busy || code.trim().length === 0}
+			aria-busy={busy}
+			class={primaryButtonClass}
+		>
+			{busy ? 'Checking…' : 'Continue'}
+		</button>
+
+		<button type="button" onclick={useRecovery} class={outlineButtonClass}>
+			{recovery ? 'Use my authenticator app' : 'Use a recovery code instead'}
+		</button>
+
+		<button type="button" onclick={startOver} class={subtleButtonClass}>Start again</button>
+	</form>
+{/if}
