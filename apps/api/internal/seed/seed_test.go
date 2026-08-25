@@ -210,3 +210,50 @@ func load(t *testing.T, body string) File {
 	}
 	return file
 }
+
+// TestTheProductionSeedParses reads the file the deployed instance actually
+// boots from, rather than a fixture that resembles it. The seed is mounted
+// read-only and applied before the server listens, so a typo in it is not a
+// bad row — it is an instance that does not come up, and the first person to
+// find out is whoever tries to log in.
+//
+// Every declared secret_env is filled with a placeholder because Load refuses
+// a document whose credentials are unset, and this test is asking whether the
+// document is well-formed, not whether this machine holds production secrets.
+// Discovering the names from the file rather than listing them here means a
+// new entry is covered the moment it is added.
+func TestTheProductionSeedParses(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "..", "seed.yaml")
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading the production seed: %v", err)
+	}
+	for _, name := range secretEnvNames(string(body)) {
+		t.Setenv(name, "placeholder")
+	}
+
+	file, err := Load(path)
+	if err != nil {
+		t.Fatalf("the production seed does not load: %v", err)
+	}
+	if len(file.ServiceAccounts)+len(file.Applications) == 0 {
+		t.Fatal("the production seed declares nothing, which cannot be what was meant")
+	}
+}
+
+// secretEnvNames pulls the environment variable names a seed document points
+// at. It reads the text rather than the parsed document on purpose: Load is
+// what is under test, so it cannot be the thing that supplies the input.
+func secretEnvNames(body string) []string {
+	var names []string
+	for _, line := range strings.Split(body, "\n") {
+		_, value, found := strings.Cut(strings.TrimSpace(line), "secret_env:")
+		if !found {
+			continue
+		}
+		if name := strings.TrimSpace(value); name != "" {
+			names = append(names, name)
+		}
+	}
+	return names
+}

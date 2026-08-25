@@ -19,7 +19,22 @@ service_accounts:
       - courrier
     access_token_ttl: 1h
 
-# No applications yet: an application entry names a secret_env that must be set
-# at boot, and no app has been cut over to registre for login. Add them here,
-# with their redirect URIs and their secrets in the compose environment, when
-# phase 4's cutover starts.
+applications:
+  # Mycelium, the shared agent brain at mycelium.facile.studio, and registre's
+  # first consumer. It was pointed at Authentik under the name the tool carried
+  # before the rename; both that issuer and the redirect it named answer 404
+  # since the rename, so its login was already broken when it was cut over.
+  #
+  # The redirect is exact-match, byte for byte, and mycelium mounts its API
+  # under /api — dropping that prefix is the one typo that turns every login
+  # into an invalid_redirect_uri with nothing in the logs to say why.
+  #
+  # Scopes are left at the default (openid, profile, email), which is what
+  # mycelium's own client asks for. It reads no roles, so visible_roles stays
+  # empty, and it serves no back-channel logout endpoint, so that stays unset:
+  # declaring one would POST logout tokens into a 404.
+  - client_id: mycelium
+    name: Mycelium
+    secret_env: REGISTRE_SEED_MYCELIUM_SECRET
+    redirect_uris:
+      - https://mycelium.facile.studio/api/auth/oidc/callback
