@@ -68,14 +68,47 @@ func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *zoidc.User
 	return nil
 }
 
-// SetUserinfoFromScopes feeds the ID token's non-userinfo claims. The scope
-// machinery strips profile, email and address before calling this, which is
-// exactly why roles survives to here: the claim rides in the ID token where
-// porte reads it, filtered per client by rolesForClient.
+// SetUserinfoFromScopes feeds the ID token's claims.
+//
+// Profile and email ride in the ID token, reversing the narrower choice this
+// file started with. That choice was defensible on its own terms — an ID token
+// is logged, cached and forwarded far more often than a userinfo response — but
+// it is not compatible with the suite. porte builds its login claims from the
+// ID token alone and refuses an empty address, and its one userinfo call sits
+// behind RequireAuth where a login cannot reach it. Authentik carried these
+// claims in the ID token too, so emitting them is a restoration rather than a
+// widening, and the alternative was teaching seven apps to fetch userinfo.
+//
+// Every claim is scope-gated: an app that asked for neither profile nor email
+// still receives neither. roles stays filtered per client by rolesForClient.
+//
+// An unknown subject is a machine principal, which has no profile to emit and
+// is not an error.
 func (s *Storage) SetUserinfoFromScopes(
 	ctx context.Context, userinfo *zoidc.UserInfo, userID, clientID string, scopes []string,
 ) error {
-	if !contains(scopes, scopeRoles) || s.svc.Users == nil {
+	if s.svc.Users == nil {
+		return nil
+	}
+	wantsProfile := contains(scopes, zoidc.ScopeProfile)
+	wantsEmail := contains(scopes, zoidc.ScopeEmail)
+	if wantsProfile || wantsEmail {
+		user, err := s.svc.Users.ByID(ctx, userID)
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			return nil
+		case err != nil:
+			return fmt.Errorf("oidc: read the user for the id token: %w", err)
+		}
+		if wantsEmail {
+			userinfo.Email = user.Email
+			userinfo.EmailVerified = zoidc.Bool(user.EmailVerified)
+		}
+		if wantsProfile {
+			userinfo.Name = user.Name
+		}
+	}
+	if !contains(scopes, scopeRoles) {
 		return nil
 	}
 	roles, err := s.rolesForClient(ctx, userID, clientID)

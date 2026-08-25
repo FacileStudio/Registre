@@ -85,9 +85,20 @@ func (c client) RestrictAdditionalAccessTokenScopes() func([]string) []string {
 func (c client) IsScopeAllowed(scope string) bool { return c.row.Scopes.Contains(scope) }
 
 // IDTokenUserinfoClaimsAssertion reports whether profile claims ride in the ID
-// token as well as at the userinfo endpoint. They do not: an ID token is
-// logged, cached and forwarded far more often than a userinfo response.
-func (c client) IDTokenUserinfoClaimsAssertion() bool { return false }
+// token as well as at the userinfo endpoint. They do.
+//
+// This was false, on the reasoning that an ID token is logged, cached and
+// forwarded far more often than a userinfo response. That reasoning still
+// holds; it just loses to a hard requirement. porte reads its login claims
+// from the ID token and nowhere else, and rejects a login whose address is
+// empty, so a false here fails every browser login in the suite with "the
+// identity provider returned no email". Authentik carried the same claims in
+// its ID tokens, so this restores the contract the apps were written against
+// rather than widening it.
+//
+// SetUserinfoFromScopes still gates each claim on its scope, so an app that
+// asks for neither profile nor email receives neither.
+func (c client) IDTokenUserinfoClaimsAssertion() bool { return true }
 
 // ClockSkew is the tolerance granted to a client's clock. Zero: a skew here
 // extends every token's life for everyone, and a machine whose clock is wrong
