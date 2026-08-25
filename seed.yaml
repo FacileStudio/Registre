@@ -127,3 +127,29 @@ applications:
     public: true
     grant_types: [device_code, refresh_token]
     scopes: [openid, profile, email, offline_access]
+
+  # Journal, the suite's centralized logging, and Nuage, its file storage. Both
+  # were already pointed at registre and both already hold a secret that matches
+  # what the seed names — they were simply never declared here, so /authorize
+  # answered `unable to retrieve client by id` for each of them.
+  #
+  # Nuage is the urgent half of that pair: it runs SSO_ONLY=true, so an
+  # unregistered client is not a degraded login, it is no login at all. Journal
+  # runs SSO_ONLY=false and kept its password path throughout.
+  #
+  # journal's client id is a UUID rather than the 40-character shape Authentik
+  # issued the others. It is kept as it is: the id has to match what the app
+  # already sends, and what it sends is this.
+  - client_id: 8bf0bcb5-e1c4-4e1e-830d-a39eb4b7c9a3
+    name: Journal
+    secret_env: REGISTRE_SEED_JOURNAL_SECRET
+    redirect_uris:
+      - https://journal.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+
+  - client_id: 9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH
+    name: Nuage
+    secret_env: REGISTRE_SEED_NUAGE_SECRET
+    redirect_uris:
+      - https://nuage.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
