@@ -204,5 +204,16 @@ export const device = {
 			method: 'GET'
 		}),
 	approve: (userCode: string) => answer('/api/device/approve', userCode),
-	deny: (userCode: string) => answer('/api/device/deny', userCode)
+	deny: (userCode: string) => answer('/api/device/deny', userCode),
+
+	/**
+	 * signInPath is a destination, not a call — the browser navigates to it and
+	 * registre answers with a redirect into its own /authorize.
+	 *
+	 * It carries no parameters and must not grow any. The route reads nothing
+	 * from the request precisely so that it cannot be turned into an open
+	 * redirector, and the user code stays in this tab's storage rather than
+	 * riding through registre's access log twice on its way round.
+	 */
+	signInPath: '/api/device/authenticate'
 };

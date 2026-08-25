@@ -21,6 +21,11 @@
 		'inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 ' +
 		'text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 ' +
 		'disabled:pointer-events-none disabled:opacity-50';
+	const outlineButtonClass =
+		'inline-flex h-11 w-full items-center justify-center rounded-md border border-border ' +
+		'bg-background px-4 text-sm font-medium text-foreground transition-colors ' +
+		'hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none ' +
+		'disabled:opacity-50';
 
 	let stage = $state<Stage>('entry');
 	let code = $state('');
@@ -134,20 +139,20 @@
 					Sign in first
 				</h1>
 				<p class="mt-1.5 text-sm text-muted-foreground">
-					Registre has to know who you are before it can approve a sign-in for you, and it
-					only knows you through the apps you use it with. Open any Facile app in another
-					tab, sign in there, then come back and continue. Your code is saved on this
-					device and is waiting.
+					Registre has to know who you are before it can approve a sign-in for you. Signing
+					in brings you straight back here — your code is saved on this device and is
+					waiting.
 				</p>
 			</div>
+			<a href={device.signInPath} class={primaryButtonClass}>Sign in</a>
 			<button
 				type="button"
 				onclick={retry}
 				disabled={busy}
 				aria-busy={busy}
-				class={primaryButtonClass}
+				class="{outlineButtonClass} mt-3"
 			>
-				{busy ? 'Checking…' : 'I have signed in, continue'}
+				{busy ? 'Checking…' : 'I already signed in elsewhere'}
 			</button>
 		{/if}
 	</div>
