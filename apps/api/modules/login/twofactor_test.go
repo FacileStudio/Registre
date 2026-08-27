@@ -166,3 +166,46 @@ func TestAChallengeCannotCompleteAnotherFlow(t *testing.T) {
 		t.Fatal("a challenge minted for one flow authenticated another")
 	}
 }
+
+func TestDirectLoginWithoutAuthRequest(t *testing.T) {
+	f := newFixture(t)
+	user := f.user("direct@example.test", "correct horse battery staple")
+
+	answer, response := f.login("", user.Email, "correct horse battery staple")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("POST /api/login = %d, want 200", response.StatusCode)
+	}
+	if answer["redirect"] != "/" {
+		t.Fatalf("redirect = %q, want /", answer["redirect"])
+	}
+	if answer["challenge"] != "" {
+		t.Error("an account with no second factor was handed a challenge")
+	}
+	if cookie(response) == nil {
+		t.Error("no account cookie set on direct login")
+	}
+}
+
+func TestDirectLoginWithTwoFactor(t *testing.T) {
+	f := newFixture(t)
+	user := f.user("direct2fa@example.test", "correct horse battery staple")
+	secret, _ := f.enrol(user)
+
+	first, response := f.login("", user.Email, "correct horse battery staple")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("POST /api/login = %d, want 200", response.StatusCode)
+	}
+	if first["challenge"] == "" {
+		t.Fatal("no challenge returned for 2fa direct login")
+	}
+	answer, secondResponse := f.second(first["challenge"], f.code(secret))
+	if secondResponse.StatusCode != http.StatusOK {
+		t.Fatalf("POST /api/login/totp = %d, want 200", secondResponse.StatusCode)
+	}
+	if answer["redirect"] != "/" {
+		t.Fatalf("redirect = %q, want /", answer["redirect"])
+	}
+	if cookie(secondResponse) == nil {
+		t.Error("no account cookie set after completing direct 2fa login")
+	}
+}

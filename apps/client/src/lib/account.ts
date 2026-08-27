@@ -15,6 +15,7 @@
 export interface AccountView {
 	email: string;
 	name: string;
+	admin: boolean;
 	totp_enrolled: boolean;
 	recovery_codes_remaining: number;
 }

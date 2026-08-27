@@ -156,9 +156,13 @@ func encode(w http.ResponseWriter, body any, status int) {
 func (s *Service) authenticate(
 	ctx context.Context, w http.ResponseWriter, id, email, password string,
 ) (decision, error) {
-	authReq, err := s.identity.AuthRequestByID(ctx, id)
-	if err != nil || !authReq.ExpiresAt.After(s.now()) || authReq.Done() {
-		return decision{}, errAuthRequestGone
+	var authReq *schemas.AuthRequest
+	if id != "" {
+		req, err := s.identity.AuthRequestByID(ctx, id)
+		if err != nil || !req.ExpiresAt.After(s.now()) || req.Done() {
+			return decision{}, errAuthRequestGone
+		}
+		authReq = &req
 	}
 	user, err := s.identity.Verify(ctx, email, password)
 	if err != nil {
@@ -168,23 +172,39 @@ func (s *Service) authenticate(
 		if s.factor.Challenges == nil || s.factor.Codes == nil {
 			return decision{}, errNoSecondFactor
 		}
-		token, err := s.factor.Challenges.Issue(ctx, user.ID, authReq.ID)
+		token, err := s.factor.Challenges.Issue(ctx, user.ID, id)
 		if err != nil {
 			return decision{}, err
 		}
 		return decision{Challenge: token}, nil
 	}
-	redirect, err := s.complete(ctx, w, user.ID, authReq)
+	if authReq != nil {
+		redirect, err := s.complete(ctx, w, user.ID, *authReq)
+		if err != nil {
+			return decision{}, err
+		}
+		return decision{Redirect: redirect}, nil
+	}
+	redirect, err := s.completeDirect(ctx, w, user.ID)
 	if err != nil {
 		return decision{}, err
 	}
 	return decision{Redirect: redirect}, nil
 }
 
-// complete opens the provider session, marks the browser flow authenticated,
-// hands the human registre's own account cookie and returns the callback to
-// navigate to, which is where zitadel issues the code and redirects into the
-// app.
+func (s *Service) completeDirect(
+	ctx context.Context, w http.ResponseWriter, userID string,
+) (string, error) {
+	sessionID, err := s.identity.StartSession(ctx, userID, "", s.now())
+	if err != nil {
+		return "", fmt.Errorf("identity: start the session: %w", err)
+	}
+	if err := s.writeAccountCookie(ctx, w, sessionID); err != nil {
+		return "", err
+	}
+	return "/", nil
+}
+
 func (s *Service) complete(
 	ctx context.Context, w http.ResponseWriter, userID string, authReq schemas.AuthRequest,
 ) (string, error) {

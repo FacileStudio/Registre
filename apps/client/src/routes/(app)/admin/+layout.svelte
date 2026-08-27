@@ -22,20 +22,33 @@
 		operatorEmail,
 		setOperator
 	} from '$lib/admin';
+	import { account } from '$lib/account';
 
 	let { children } = $props();
 
 	let email = $state('');
 	let password = $state('');
 	let signedIn = $state(hasOperator());
+	let sessionEmail = $state('');
 	let busy = $state(false);
 	let error = $state('');
 
-	/*
-	 * The credential is proved by using it: /api/admin has no session endpoint,
-	 * so the cheapest read doubles as the check, and a refusal clears what was
-	 * just held rather than leaving a bad Basic header armed for the next call.
-	 */
+	$effect(() => {
+		if (!signedIn) {
+			account
+				.me()
+				.then((view) => {
+					if (view.admin) {
+						sessionEmail = view.email;
+						return admin.listUsers().then(() => {
+							signedIn = true;
+						});
+					}
+				})
+				.catch(() => {});
+		}
+	});
+
 	async function signIn(event: SubmitEvent) {
 		event.preventDefault();
 		if (busy) return;
@@ -54,11 +67,13 @@
 		}
 	}
 
-	function signOut() {
+	async function signOut() {
 		clearOperator();
 		signedIn = false;
+		sessionEmail = '';
 		email = '';
 		password = '';
+		await account.logout().catch(() => {});
 	}
 
 	const sections = [
@@ -116,7 +131,8 @@
 	<Page width="xl">
 		<PageHeader
 			title="Administration"
-			description="Signed in as {operatorEmail()}. Secrets and tokens are shown once, so copy them when they appear."
+			description={`Signed in as ${operatorEmail() || sessionEmail}. ` +
+				'Secrets and tokens are shown once, so copy them when they appear.'}
 		>
 			{#snippet actions()}
 				<Button variant="ghost" icon={icons.logout} onclick={signOut}>Sign out</Button>

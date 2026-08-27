@@ -26,10 +26,16 @@
 		if (page.url.pathname) scroller?.scrollTo({ top: 0 });
 	});
 
-	const links = [{ label: 'Administration', href: '/admin', icon: icons.shield }];
+	const links = $derived([
+		{ label: 'Portail', href: '/', icon: icons.home },
+		...(me?.admin ? [{ label: 'Administration', href: '/admin', icon: icons.shield }] : [])
+	]);
 
 	const navPages = $derived(
-		links.map((link) => ({ ...link, active: page.url.pathname.startsWith(link.href) }))
+		links.map((link) => ({
+			...link,
+			active: link.href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(link.href)
+		}))
 	);
 	const onAccount = $derived(page.url.pathname.startsWith('/account'));
 	const user = $derived.by(() => ({ name: me?.name || me?.email || 'Account' }));

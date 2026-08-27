@@ -148,12 +148,16 @@ export class AdminError extends Error {
 }
 
 async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+	const method = init.method ?? (init.body === undefined ? 'GET' : 'POST');
 	const headers = new Headers(init.headers);
-	headers.set('Authorization', credential);
-	if (init.body) headers.set('Content-Type', 'application/json');
+	if (credential) headers.set('Authorization', credential);
+	if (method !== 'GET') {
+		headers.set('X-Facile-CSRF', '1');
+		headers.set('Content-Type', 'application/json');
+	}
 	let response: Response;
 	try {
-		response = await fetch(path, { ...init, headers });
+		response = await fetch(path, { ...init, method, headers, credentials: 'include' });
 	} catch {
 		throw new AdminError(0, 'Registre did not answer. Check the connection and try again.');
 	}

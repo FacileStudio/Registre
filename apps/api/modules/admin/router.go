@@ -16,6 +16,7 @@ package admin
 import (
 	"log/slog"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
@@ -43,6 +44,8 @@ type Services struct {
 	Keys     *keys.Service
 	Invites  *invites.Service
 	Logout   *logout.Service
+	Sessions *accounts.Service
+	Cookies  accounts.Cookies
 }
 
 // Service serves the dashboard's API over the register, the accounts, the
@@ -53,6 +56,8 @@ type Service struct {
 	keyring  *keys.Service
 	invites  *invites.Service
 	logout   *logout.Service
+	sessions *accounts.Service
+	cookies  accounts.Cookies
 	logger   *slog.Logger
 }
 
@@ -60,7 +65,8 @@ type Service struct {
 func New(deps Services, logger *slog.Logger) *Service {
 	return &Service{
 		register: deps.Register, users: deps.Users, keyring: deps.Keys,
-		invites: deps.Invites, logout: deps.Logout, logger: logger,
+		invites: deps.Invites, logout: deps.Logout, sessions: deps.Sessions,
+		cookies: deps.Cookies, logger: logger,
 	}
 }
 

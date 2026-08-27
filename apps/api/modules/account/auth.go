@@ -23,6 +23,7 @@ func holder(ctx context.Context) schemas.User {
 type meView struct {
 	Email                  string `json:"email"`
 	Name                   string `json:"name"`
+	Admin                  bool   `json:"admin"`
 	TOTPEnrolled           bool   `json:"totp_enrolled"`
 	RecoveryCodesRemaining int    `json:"recovery_codes_remaining"`
 }
@@ -38,7 +39,7 @@ func (s *Service) me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	encode(w, meView{
-		Email: user.Email, Name: user.Name,
+		Email: user.Email, Name: user.Name, Admin: user.Admin,
 		TOTPEnrolled: user.TOTPEnrolled(), RecoveryCodesRemaining: remaining,
 	}, http.StatusOK)
 }

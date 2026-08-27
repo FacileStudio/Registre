@@ -182,7 +182,8 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 	reset.Mount(router, reset.New(recoveryService(cfg, p), p.log))
 	admin.Mount(router, admin.New(admin.Services{
 		Register: p.register, Users: p.users, Keys: p.keyring, Invites: p.invites,
-		Logout: logout.New(p.keyring, p.register, cfg.Issuer, p.log),
+		Logout:   logout.New(p.keyring, p.register, cfg.Issuer, p.log),
+		Sessions: sessions, Cookies: cookies,
 	}, p.log))
 	device.Mount(router, device.New(device.Services{
 		Devices: p.deviceFlows, Sessions: sessions, Register: p.register, Cookies: cookies,

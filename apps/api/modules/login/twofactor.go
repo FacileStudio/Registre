@@ -80,12 +80,19 @@ func (s *Service) answer(
 	if err := s.checkCode(ctx, user, code); err != nil {
 		return decision{}, err
 	}
+	if err := s.factor.Challenges.Consume(ctx, row.ID); err != nil {
+		return decision{}, err
+	}
+	if row.AuthRequestID == "" {
+		redirect, err := s.completeDirect(ctx, w, user.ID)
+		if err != nil {
+			return decision{}, err
+		}
+		return decision{Redirect: redirect}, nil
+	}
 	authReq, err := s.identity.AuthRequestByID(ctx, row.AuthRequestID)
 	if err != nil || !authReq.ExpiresAt.After(s.now()) || authReq.Done() {
 		return decision{}, errAuthRequestGone
-	}
-	if err := s.factor.Challenges.Consume(ctx, row.ID); err != nil {
-		return decision{}, err
 	}
 	redirect, err := s.complete(ctx, w, user.ID, authReq)
 	if err != nil {
