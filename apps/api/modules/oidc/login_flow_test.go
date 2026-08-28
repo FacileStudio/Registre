@@ -99,3 +99,77 @@ func TestAnUnknownClientIsRefusedBeforeAnyRedirect(t *testing.T) {
 		t.Fatalf("an unknown client answered %d, want a refusal", got.StatusCode)
 	}
 }
+
+func driveSSOToCode(t *testing.T, f *fixture, jar *singleCookie, clientID, redirect string) (string, string) {
+	t.Helper()
+	verifier, challenge := pkcePair(t)
+	authorizeURL := f.issuer + "/authorize?" + url.Values{
+		"client_id":             {clientID},
+		"redirect_uri":          {redirect},
+		"response_type":         {"code"},
+		"code_challenge":        {challenge},
+		"code_challenge_method": {"S256"},
+		"scope":                 {"openid profile email"},
+		"state":                 {"st4te2"},
+		"nonce":                 {"n0nce2"},
+	}.Encode()
+	if got := jar.get(t, authorizeURL); got.StatusCode != http.StatusOK {
+		t.Fatalf("GET /authorize for %s = %d", clientID, got.StatusCode)
+	}
+	authReq := extractAuthRequest(jar.lastBody.String())
+	if authReq == "" {
+		t.Fatalf("no auth_request for %s", clientID)
+	}
+	sessionRes := jar.getNoFollow(t, f.issuer+"/api/login/session?auth_request="+authReq)
+	if sessionRes.StatusCode != http.StatusOK {
+		t.Fatalf("GET /api/login/session = %d: %s", sessionRes.StatusCode, jar.lastBody.String())
+	}
+	var sessionAnswer struct {
+		Redirect string `json:"redirect"`
+	}
+	if err := json.Unmarshal([]byte(jar.lastBody.String()), &sessionAnswer); err != nil || sessionAnswer.Redirect == "" {
+		t.Fatalf("session check answered %q", jar.lastBody.String())
+	}
+	jar.lastBody.Reset()
+	codeResponse := jar.getNoFollow(t, f.issuer+sessionAnswer.Redirect)
+	if codeResponse.StatusCode != http.StatusFound {
+		t.Fatalf("app callback = %d: %s", codeResponse.StatusCode, jar.lastBody.String())
+	}
+	return verifier, parseCallback(codeResponse.Header.Get("Location")).code
+}
+
+func TestSSOReusesSessionAcrossMultipleAppsWithoutAskingForPassword(t *testing.T) {
+	fixture := newFixture(t, defaultKeyConfig())
+	sablierSecret := fixture.application("sablier", "http://127.0.0.1:9999/callback")
+	courrierSecret := fixture.application("courrier", "http://127.0.0.1:8888/callback")
+	fixture.human("yann@facile.studio", "correct horse battery staple")
+
+	verifier1, challenge1 := pkcePair(t)
+	jar := &singleCookie{}
+
+	back1 := driveToTheCode(t, fixture, jar, verifier1, challenge1)
+	granted1, _ := fixture.post("/oauth/token", "sablier", sablierSecret, url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {back1.code},
+		"redirect_uri":  {"http://127.0.0.1:9999/callback"},
+		"code_verifier": {verifier1},
+	})
+
+	verifier2, code2 := driveSSOToCode(t, fixture, jar, "courrier", "http://127.0.0.1:8888/callback")
+	granted2, status2 := fixture.post("/oauth/token", "courrier", courrierSecret, url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {code2},
+		"redirect_uri":  {"http://127.0.0.1:8888/callback"},
+		"code_verifier": {verifier2},
+	})
+	if status2 != http.StatusOK {
+		t.Fatalf("courrier token endpoint = %d: %v", status2, granted2)
+	}
+	token1, _ := granted1["access_token"].(string)
+	claims1, _ := fixture.verify(token1)
+	token2, _ := granted2["access_token"].(string)
+	claims2, _ := fixture.verify(token2)
+	if claims1["sub"] != claims2["sub"] {
+		t.Errorf("subject mismatch: app1=%v, app2=%v", claims1["sub"], claims2["sub"])
+	}
+}

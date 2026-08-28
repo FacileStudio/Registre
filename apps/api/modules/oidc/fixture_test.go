@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
@@ -127,7 +128,10 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	}
 	router := chi.NewRouter()
 	Mount(router, provider)
-	login.Mount(router, login.New(users, logs))
+	login.Mount(router, login.New(users, logs).WithSecondFactor(login.SecondFactor{
+		Accounts: accounts.New(db),
+		Cookies:  accounts.NewCookies(false),
+	}))
 	router.Get("/login", func(w http.ResponseWriter, r *http.Request) {
 		// The real page lives in apps/client; production mounts it through
 		// web.Handler. What the flow needs from it is exactly this: render

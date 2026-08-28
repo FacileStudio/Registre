@@ -12,13 +12,38 @@
 	let recovery = $state(false);
 	let error = $state('');
 	let busy = $state(false);
+	let checkingSession = $state(true);
 
 	const REFUSED = 'Wrong email or password.';
 	const CODE_REFUSED = 'That code is not valid.';
 
 	$effect(() => {
-		authRequest = new URLSearchParams(window.location.search).get('auth_request') ?? '';
+		const req = new URLSearchParams(window.location.search).get('auth_request') ?? '';
+		authRequest = req;
+		checkSession(req);
 	});
+
+	async function checkSession(req: string) {
+		try {
+			const url = req
+				? `/api/login/session?auth_request=${encodeURIComponent(req)}`
+				: '/api/login/session';
+			const response = await fetch(url, {
+				method: 'GET',
+				credentials: 'include'
+			});
+			if (response.ok) {
+				const body = await response.json().catch(() => null);
+				if (body?.redirect) {
+					window.location.assign(body.redirect);
+					return;
+				}
+			}
+		} catch {
+		} finally {
+			checkingSession = false;
+		}
+	}
 
 	async function submitPassword(event: SubmitEvent) {
 		event.preventDefault();
@@ -95,7 +120,12 @@
 </svelte:head>
 
 <Card class="p-8">
-	{#if step === 'password'}
+	{#if checkingSession}
+		<Stack gap="content" class="items-center py-6 text-center">
+			<div class="size-7 animate-spin rounded-full border-2 border-fc-ring border-t-transparent"></div>
+			<p class="text-fc-sm text-fc-fg-muted">Signing you in…</p>
+		</Stack>
+	{:else if step === 'password'}
 		<Stack>
 			<div class="flex flex-col gap-1">
 				<h1 class="text-fc-lg font-semibold text-fc-fg">Sign in to Registre</h1>
