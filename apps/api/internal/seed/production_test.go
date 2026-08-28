@@ -22,6 +22,15 @@ import (
 // failed: facile-cli logs a human in over the device grant, which has no
 // redirect at all, and demanding one of it would be demanding a URL nobody
 // would ever visit.
+//
+// Glouton is excepted because the premise does not hold for it. The /api rule
+// comes from the Go family mounting porte inside router.Route("/api", ...);
+// Glouton is a TypeScript monorepo whose Hono backend serves the flow itself
+// and defaults its redirect to DOMAIN + /auth/oidc/callback, in
+// apps/backend/src/services/oidc.ts. Its seed entry matches the router that
+// actually answers, so the seed is right and the blanket suffix check was
+// wrong. Docs, Opus and Coffre are excepted above for the same reason: the
+// mount is the authority, not the family.
 func TestEverySuiteRedirectKeepsTheAPIPrefix(t *testing.T) {
 	path := filepath.Join("..", "..", "..", "..", "seed.yaml")
 	body, err := os.ReadFile(path)
@@ -68,6 +77,12 @@ func TestEverySuiteRedirectKeepsTheAPIPrefix(t *testing.T) {
 			if app.ClientID == "OpvjVWFZZ32QOrC91ebmpF8I22sumOPEdzcYLh07" {
 				if !strings.HasPrefix(uri, "https://coffre.facile.studio/") {
 					t.Errorf("%s: redirect %q is invalid", app.Name, uri)
+				}
+				continue
+			}
+			if app.ClientID == "1IdqK3bA2LWI-zuWVLqFpnIlCTVu117F" {
+				if !strings.HasSuffix(uri, "/auth/oidc/callback") {
+					t.Errorf("%s: redirect %q does not end in /auth/oidc/callback", app.Name, uri)
 				}
 				continue
 			}
