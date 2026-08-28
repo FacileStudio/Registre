@@ -178,3 +178,19 @@ applications:
       - https://opus.facile.studio/api/auth/callback/custom
       - https://opus.facile.studio/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+
+  - client_id: u2byAQpWBGWFMWJDpmgZSuakPwtsT4nhw41KhRgK
+    name: Perception
+    secret_env: REGISTRE_SEED_PERCEPTION_SECRET
+    redirect_uris:
+      - https://perception.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+
+  - client_id: OpvjVWFZZ32QOrC91ebmpF8I22sumOPEdzcYLh07
+    name: Coffre
+    secret_env: REGISTRE_SEED_COFFRE_SECRET
+    redirect_uris:
+      - https://coffre.facile.studio/identity/connect/oidc-callback
+      - https://coffre.facile.studio/auth/oidc/callback
+      - https://coffre.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]

@@ -65,6 +65,12 @@ func TestEverySuiteRedirectKeepsTheAPIPrefix(t *testing.T) {
 				}
 				continue
 			}
+			if app.ClientID == "OpvjVWFZZ32QOrC91ebmpF8I22sumOPEdzcYLh07" {
+				if !strings.HasPrefix(uri, "https://coffre.facile.studio/") {
+					t.Errorf("%s: redirect %q is invalid", app.Name, uri)
+				}
+				continue
+			}
 			if !strings.HasSuffix(uri, "/api/auth/oidc/callback") {
 				t.Errorf("%s: redirect %q does not end in /api/auth/oidc/callback", app.Name, uri)
 			}
