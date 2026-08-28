@@ -194,3 +194,19 @@ applications:
       - https://coffre.facile.studio/auth/oidc/callback
       - https://coffre.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+
+  - client_id: ptbYJqkekeusBo_t0fDC9KhVmfUtM9K0
+    name: Atelier
+    backchannel_logout_uri: https://atelier.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_ATELIER_SECRET
+    redirect_uris:
+      - https://atelier.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+
+  - client_id: 1IdqK3bA2LWI-zuWVLqFpnIlCTVu117F
+    name: Glouton
+    secret_env: REGISTRE_SEED_GLOUTON_SECRET
+    redirect_uris:
+      - https://glouton.facile.studio/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+
