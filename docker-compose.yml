@@ -100,6 +100,7 @@ services:
       REGISTRE_SEED_COFFRE_SECRET: ${REGISTRE_SEED_COFFRE_SECRET:-}
       REGISTRE_SEED_ATELIER_SECRET: ${REGISTRE_SEED_ATELIER_SECRET:-}
       REGISTRE_SEED_GLOUTON_SECRET: ${REGISTRE_SEED_GLOUTON_SECRET:-}
+      REGISTRE_SEED_SONDE_SECRET: ${REGISTRE_SEED_SONDE_SECRET:-}
       # Log shipping. Both are needed or nothing ships; the token is a per-app
       # key from Journal's Keys page, and the URL must end in /api. registre's
       # protocol errors — a refused client, a scope it would not grant — are

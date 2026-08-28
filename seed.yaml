@@ -210,3 +210,32 @@ applications:
       - https://glouton.facile.studio/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
 
+  # Sonde, the suite's self-hosted uptime monitor at sonde.facile.studio.
+  #
+  # This one is a fresh registration, not an Authentik carry-over: Sonde never
+  # federated to the old IdP, so there is no legacy 40-character client id to
+  # preserve and the id is simply its own name.
+  #
+  # The redirect is exact-match, byte for byte, and Sonde mounts porte's kit
+  # inside router.Route("/api", ...), so the /api prefix is part of the path
+  # rather than decoration. No loopback redirect: no application in this file
+  # declares one, and Sonde has no browser flow that starts on localhost.
+  #
+  # The back-channel URI is served: porte's Kit.Mount registers
+  # POST /auth/backchannel-logout for every kit with a provider configured, so
+  # the route appears the moment OIDC_ISSUER is set. It answers 404 until then,
+  # which is what Sonde does today, before its cutover.
+  #
+  # Scopes match the other recently cut-over apps. offline_access is listed
+  # explicitly because porte always requests it, and without the grant refresh
+  # degrades in silence. roles and visible_roles are left out: Sonde reads no
+  # roles and sets no OIDC_CLAIMS_SCOPE, so granting the scope would carry a
+  # claim nobody looks at.
+  - client_id: sonde
+    name: Sonde
+    backchannel_logout_uri: https://sonde.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_SONDE_SECRET
+    redirect_uris:
+      - https://sonde.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+
