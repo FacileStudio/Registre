@@ -1,9 +1,30 @@
 package oidc
 
 import (
+	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 )
+
+func (f *fixture) revoke(clientID, secret, token string) int {
+	f.t.Helper()
+	form := url.Values{"token": {token}, "token_type_hint": {"access_token"}}
+	request, err := http.NewRequest(http.MethodPost, f.issuer+"/revoke", strings.NewReader(form.Encode()))
+	if err != nil {
+		f.t.Fatalf("building the revocation request: %v", err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.SetBasicAuth(clientID, secret)
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		f.t.Fatalf("POST /revoke: %v", err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	_, _ = io.Copy(io.Discard, response.Body)
+	return response.StatusCode
+}
 
 // TestOnlyTheClientAToken WasIssuedToCanRevokeIt is RFC 7009 §2.1 stated as the
 // failure it prevents: without the check, any principal holding valid

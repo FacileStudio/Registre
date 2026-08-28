@@ -3,10 +3,8 @@
 		Alert,
 		Badge,
 		Button,
-		ConfirmModal,
 		EmptyState,
 		Icon,
-		Modal,
 		Section,
 		Skeleton,
 		Table,
@@ -15,7 +13,7 @@
 	} from '@facile/muse';
 	import ClientCreateDrawer from '$lib/components/ClientCreateDrawer.svelte';
 	import ClientEditDrawer from '$lib/components/ClientEditDrawer.svelte';
-	import ClientSecretPanel from '$lib/components/ClientSecretPanel.svelte';
+	import ClientActionModals from '$lib/components/ClientActionModals.svelte';
 	import { admin, errorMessage, formatDate, type ClientView } from '$lib/admin';
 
 	let clients = $state<ClientView[]>([]);
@@ -369,64 +367,22 @@
 	onCancel={() => (editOpen = false)}
 />
 
-<ConfirmModal
-	bind:open={rotateOpen}
-	tone="danger"
-	title="Rotate the secret for {rotateTarget?.client_id ?? ''}?"
-	description="The current secret stops working the moment the new one is minted, so anything still using it starts failing authentication."
-	confirmLabel="Rotate the secret"
-	cancelLabel="Leave it alone"
-	onConfirm={rotate}
-	onCancel={() => (rotateTarget = null)}
-/>
-
-<Modal
-	bind:open={rotatedOpen}
-	title="New secret for {rotatedID}"
-	dismissible={false}
-	size="sm"
-	onClose={forgetRotated}
->
-	<ClientSecretPanel
-		secret={rotatedSecret}
-		actionLabel="I have copied it"
-		onAction={() => (rotatedOpen = false)}
-	>
-		The old secret is already dead and this one is shown once. Deploy it before you close this.
-	</ClientSecretPanel>
-</Modal>
-
-<ConfirmModal
-	bind:open={disableOpen}
-	tone="danger"
-	title="Disable {disableTarget?.name ?? ''}?"
-	description="This service account will immediately stop being able to authenticate or mint tokens."
-	confirmLabel="Disable account"
-	cancelLabel="Keep active"
-	onConfirm={disable}
-	onCancel={() => (disableTarget = null)}
-/>
-
-<ConfirmModal
-	bind:open={enableOpen}
-	title="Enable {enableTarget?.name ?? ''}?"
-	description="This service account will be re-activated and allowed to mint tokens again."
-	confirmLabel="Enable account"
-	cancelLabel="Leave disabled"
-	onConfirm={enable}
-	onCancel={() => (enableTarget = null)}
-/>
-
-<ConfirmModal
-	bind:open={deleteOpen}
-	tone="danger"
-	title="Delete {deleteTarget?.name ?? ''}?"
-	description="This service account will be permanently deleted."
-	confirmLabel="Delete account"
-	cancelLabel="Cancel"
-	onConfirm={removeClient}
-	onCancel={() => {
-		deleteTarget = null;
-		deleteOpen = false;
-	}}
+<ClientActionModals
+	bind:rotateTarget
+	bind:rotateOpen
+	bind:rotatedOpen
+	bind:rotatedSecret
+	bind:rotatedID
+	onRotate={rotate}
+	onForgetRotated={forgetRotated}
+	bind:disableTarget
+	bind:disableOpen
+	onDisable={disable}
+	bind:enableTarget
+	bind:enableOpen
+	onEnable={enable}
+	bind:deleteTarget
+	bind:deleteOpen
+	onDelete={removeClient}
+	kindLabel="service account"
 />

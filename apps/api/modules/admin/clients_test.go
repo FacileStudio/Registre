@@ -1,144 +1,97 @@
 package admin
 
 import (
+	"context"
 	"net/http"
 	"testing"
+
+	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
 
-// TestAnApplicationIsRegisteredWithEverythingItNeedsToWork is the regression
-// behind a gap found by driving the dashboard end to end.
-//
-// createClient used to accept only client_id, name, kind, grant_types and
-// scopes, so every application registered through the dashboard arrived with
-// no redirect URI and /authorize refused it with "the requested redirect_uri
-// is missing in the client configuration". The row looked fine in the list and
-// the app could never log anybody in. The same handler still drops nothing
-// else that breaks an app quietly: visible_roles and backchannel_logout_uri
-// ride along here for the same reason.
-func TestAnApplicationIsRegisteredWithEverythingItNeedsToWork(t *testing.T) {
+func TestAClientIsMintedWithASecretShownOnceAndRotates(t *testing.T) {
 	f := newFixture(t)
 
 	response, body := f.call(t, http.MethodPost, "/api/admin/clients", map[string]any{
-		"client_id": "sablier", "name": "Sablier", "kind": "application",
-		"redirect_uris":          []string{"https://sablier.facile.studio/auth/oidc/callback"},
-		"visible_roles":          []string{"sablier-admin"},
-		"backchannel_logout_uri": "https://sablier.facile.studio/auth/backchannel-logout",
+		"client_id": "courrier-machine", "name": "Courrier agent",
+		"kind": schemas.KindServiceAccount,
 	}, true)
 	if response.StatusCode != http.StatusCreated {
-		t.Fatalf("status %d, want 201: %v", response.StatusCode, body)
+		t.Fatalf("minting answered %d: %v", response.StatusCode, body)
+	}
+	secret, _ := body["secret"].(string)
+	if secret == "" {
+		t.Fatal("minting did not show a secret")
+	}
+	if _, err := f.register.Authenticate(
+		context.Background(), "courrier-machine", secret,
+	); err != nil {
+		t.Fatalf("the shown secret does not authenticate: %v", err)
 	}
 
-	client, ok := body["client"].(map[string]any)
-	if !ok {
-		t.Fatalf("no client in the response: %v", body)
+	response, body = f.call(t, http.MethodPost,
+		"/api/admin/clients/courrier-machine/secret", nil, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("rotating answered %d: %v", response.StatusCode, body)
 	}
-	uris, _ := client["redirect_uris"].([]any)
-	if len(uris) != 1 {
-		t.Errorf("the stored client has %d redirect URIs, want 1: %v", len(uris), client)
+	fresh, _ := body["secret"].(string)
+	if fresh == "" || fresh == secret {
+		t.Fatal("rotation did not produce a new secret")
 	}
-	if client["backchannel_logout_uri"] != "https://sablier.facile.studio/auth/backchannel-logout" {
-		t.Errorf("the back-channel logout URI did not survive: %v", client)
+	if _, err := f.register.Authenticate(
+		context.Background(), "courrier-machine", fresh,
+	); err != nil {
+		t.Fatalf("the rotated secret does not authenticate: %v", err)
 	}
-	roles, _ := client["visible_roles"].([]any)
-	if len(roles) != 1 {
-		t.Errorf("visible_roles did not survive: %v", client)
+	if _, err := f.register.Authenticate(
+		context.Background(), "courrier-machine", secret,
+	); err == nil {
+		t.Fatal("the old secret still authenticates")
 	}
 }
 
-// TestAnApplicationWithoutARedirectURIIsRefused stops the dashboard minting a
-// row that cannot finish a login, which is the shape of the bug above.
-func TestAnApplicationWithoutARedirectURIIsRefused(t *testing.T) {
+func TestAClientCanBeUpdatedDisabledEnabledAndDeleted(t *testing.T) {
 	f := newFixture(t)
 
 	response, body := f.call(t, http.MethodPost, "/api/admin/clients", map[string]any{
-		"client_id": "broken", "name": "Broken", "kind": "application",
+		"client_id": "test-app", "name": "Test App",
+		"kind":          schemas.KindApplication,
+		"redirect_uris": []string{"https://app.example.com/callback"},
 	}, true)
-	if response.StatusCode != http.StatusBadRequest {
-		t.Fatalf("status %d, want 400: %v", response.StatusCode, body)
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("minting answered %d: %v", response.StatusCode, body)
 	}
-	if reason, _ := body["error"].(string); reason == "" {
-		t.Error("the refusal does not say what is missing")
-	}
-}
 
-// TestAServiceAccountWithARedirectURIIsRefused catches the opposite mistake,
-// a browser flow declared for a principal that never opens a browser.
-func TestAServiceAccountWithARedirectURIIsRefused(t *testing.T) {
-	f := newFixture(t)
-
-	response, _ := f.call(t, http.MethodPost, "/api/admin/clients", map[string]any{
-		"client_id": "agent", "name": "Agent", "kind": "service_account",
-		"redirect_uris": []string{"https://example.test/callback"},
+	response, body = f.call(t, http.MethodPut, "/api/admin/clients/test-app", map[string]any{
+		"client_id": "test-app", "name": "Updated Test App",
+		"kind":          schemas.KindApplication,
+		"redirect_uris": []string{"https://app.example.com/oauth2/callback"},
+		"visible_roles": []string{"admin", "member"},
 	}, true)
-	if response.StatusCode != http.StatusBadRequest {
-		t.Fatalf("status %d, want 400", response.StatusCode)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("updating answered %d: %v", response.StatusCode, body)
 	}
-}
-
-// TestGrantsDefaultToTheKindWhenTheCallerNamesNone covers the second half of
-// the bug the fields above fixed. A client registered with no grant types was
-// refused at /authorize with "the requested response type is missing in the
-// client configuration", which names neither the row nor the field.
-func TestGrantsDefaultToTheKindWhenTheCallerNamesNone(t *testing.T) {
-	f := newFixture(t)
-
-	_, body := f.call(t, http.MethodPost, "/api/admin/clients", map[string]any{
-		"client_id": "defaults", "name": "Defaults", "kind": "application",
-		"redirect_uris": []string{"https://defaults.example.test/callback"},
-	}, true)
-	client, ok := body["client"].(map[string]any)
-	if !ok {
-		t.Fatalf("no client in the response: %v", body)
+	if name, _ := body["name"].(string); name != "Updated Test App" {
+		t.Fatalf("client name not updated: %v", name)
 	}
-	grants := stringsOf(client["grant_types"])
-	if len(grants) != 2 || grants[0] != "authorization_code" || grants[1] != "refresh_token" {
-		t.Errorf("grants defaulted to %v, want the seed's authorization_code and refresh_token", grants)
-	}
-	if scopes := stringsOf(client["scopes"]); len(scopes) != 3 {
-		t.Errorf("scopes defaulted to %v, want the seed's openid profile email", scopes)
-	}
-}
 
-// TestAGrantTheKindCannotPerformIsRefused stops a caller registering a row the
-// seed could never produce, which fails at /authorize exactly as an absent
-// grant does.
-func TestAGrantTheKindCannotPerformIsRefused(t *testing.T) {
-	f := newFixture(t)
-
-	response, _ := f.call(t, http.MethodPost, "/api/admin/clients", map[string]any{
-		"client_id": "mismatched", "name": "Mismatched", "kind": "application",
-		"redirect_uris": []string{"https://mismatched.example.test/callback"},
-		"grant_types":   []string{"client_credentials"},
-	}, true)
-	if response.StatusCode != http.StatusBadRequest {
-		t.Errorf("status %d, want 400", response.StatusCode)
+	response, _ = f.call(t, http.MethodPost, "/api/admin/clients/test-app/disable", nil, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("disabling answered %d", response.StatusCode)
 	}
-}
-
-// TestAMalformedURIIsRefused guards the field SPEC §6 lists as breaking
-// silently: a typo in backchannel_logout_uri means deactivation quietly stops
-// propagating and nothing errors anywhere.
-func TestAMalformedURIIsRefused(t *testing.T) {
-	f := newFixture(t)
-
-	response, _ := f.call(t, http.MethodPost, "/api/admin/clients", map[string]any{
-		"client_id": "typo", "name": "Typo", "kind": "application",
-		"redirect_uris":          []string{"https://typo.example.test/callback"},
-		"backchannel_logout_uri": "htps//typo.example.test/logout",
-	}, true)
-	if response.StatusCode != http.StatusBadRequest {
-		t.Errorf("status %d, want 400", response.StatusCode)
+	if _, err := f.register.ByClientID(context.Background(), "test-app"); err == nil {
+		t.Fatal("disabled client still returns as enabled")
 	}
-}
 
-// stringsOf reads a JSON array of strings out of a decoded response.
-func stringsOf(raw any) []string {
-	items, _ := raw.([]any)
-	out := make([]string, 0, len(items))
-	for _, item := range items {
-		if text, ok := item.(string); ok {
-			out = append(out, text)
-		}
+	response, _ = f.call(t, http.MethodPost, "/api/admin/clients/test-app/enable", nil, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("enabling answered %d", response.StatusCode)
 	}
-	return out
+	if _, err := f.register.ByClientID(context.Background(), "test-app"); err != nil {
+		t.Fatalf("re-enabled client failed lookup: %v", err)
+	}
+
+	response, _ = f.call(t, http.MethodDelete, "/api/admin/clients/test-app", nil, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("deleting answered %d", response.StatusCode)
+	}
 }

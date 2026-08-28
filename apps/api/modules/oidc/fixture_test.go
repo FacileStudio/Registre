@@ -133,11 +133,6 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 		Cookies:  accounts.NewCookies(false),
 	}))
 	router.Get("/login", func(w http.ResponseWriter, r *http.Request) {
-		// The real page lives in apps/client; production mounts it through
-		// web.Handler. What the flow needs from it is exactly this: render
-		// the pending request id so the credentials come back tagged with
-		// it. Without it every browser-flow test dies on the redirect to
-		// the login page, which is also how those skips hid so long.
 		_, _ = w.Write([]byte(
 			`<form method="post"><input type="hidden" name="auth_request" value="` +
 				r.URL.Query().Get("auth_request") + `"></form>`))
@@ -284,25 +279,4 @@ func (f *fixture) post(path, clientID, secret string, form url.Values) (map[stri
 func (f *fixture) introspect(clientID, secret, token string) (map[string]any, int) {
 	f.t.Helper()
 	return f.post("/oauth/introspect", clientID, secret, url.Values{"token": {token}})
-}
-
-// revoke tries to take a token back, as clientID. It reads the status and not
-// the body: RFC 7009 §2.2 says a successful revocation answers 200 with no
-// content, so there is nothing to parse.
-func (f *fixture) revoke(clientID, secret, token string) int {
-	f.t.Helper()
-	form := url.Values{"token": {token}, "token_type_hint": {"access_token"}}
-	request, err := http.NewRequest(http.MethodPost, f.issuer+"/revoke", strings.NewReader(form.Encode()))
-	if err != nil {
-		f.t.Fatalf("building the revocation request: %v", err)
-	}
-	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	request.SetBasicAuth(clientID, secret)
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		f.t.Fatalf("POST /revoke: %v", err)
-	}
-	defer func() { _ = response.Body.Close() }()
-	_, _ = io.Copy(io.Discard, response.Body)
-	return response.StatusCode
 }

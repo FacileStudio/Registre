@@ -64,10 +64,8 @@ func (s *Service) TouchSession(ctx context.Context, sessionID, clientID string) 
 	if err := s.db.WithContext(ctx).Where("id = ? AND ended_at IS NULL", sessionID).Take(&session).Error; err != nil {
 		return fmt.Errorf("identity: read the session: %w", err)
 	}
-	for _, id := range session.ClientIDs {
-		if id == clientID {
-			return nil
-		}
+	if session.ClientIDs.Contains(clientID) {
+		return nil
 	}
 	session.ClientIDs = append(session.ClientIDs, clientID)
 	if err := s.db.WithContext(ctx).Model(&schemas.Session{}).
