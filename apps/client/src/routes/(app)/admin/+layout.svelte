@@ -78,8 +78,9 @@
 
 	const sections = [
 		{ id: 'users', label: 'Users', icon: icons.usersGroup, href: '/admin' },
+		{ id: 'apps', label: 'Apps', icon: icons.widget, href: '/admin/apps' },
+		{ id: 'clients', label: 'Service accounts', icon: icons.server, href: '/admin/clients' },
 		{ id: 'invitations', label: 'Invitations', icon: icons.mail, href: '/admin/invitations' },
-		{ id: 'clients', label: 'Clients', icon: icons.plug, href: '/admin/clients' },
 		{ id: 'keys', label: 'Signing keys', icon: icons.key, href: '/admin/keys' }
 	];
 

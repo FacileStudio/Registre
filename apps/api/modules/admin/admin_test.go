@@ -274,3 +274,130 @@ func TestKeyStatusReportsTheActiveKey(t *testing.T) {
 		t.Fatal("key status shows no signing or published key")
 	}
 }
+
+func TestAUserPasswordIsUpdatedByAdmin(t *testing.T) {
+	f := newFixture(t)
+
+	response, body := f.call(t, http.MethodPost, "/api/admin/users", map[string]any{
+		"email": "pwuser@example.com", "password": "initial password",
+	}, true)
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("creating user answered %d: %v", response.StatusCode, body)
+	}
+	userID, _ := body["id"].(string)
+
+	response, body = f.call(t, http.MethodPost, "/api/admin/users/"+userID+"/password", map[string]any{
+		"password": "short",
+	}, true)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("short password answered %d, want 400", response.StatusCode)
+	}
+
+	response, body = f.call(t, http.MethodPost, "/api/admin/users/"+userID+"/password", map[string]any{
+		"password": "brand new secure password",
+	}, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("updating password answered %d: %v", response.StatusCode, body)
+	}
+
+	if _, err := f.users.Verify(context.Background(), "pwuser@example.com", "initial password"); err == nil {
+		t.Fatal("old password still verifies")
+	}
+	if _, err := f.users.Verify(context.Background(), "pwuser@example.com", "brand new secure password"); err != nil {
+		t.Fatalf("new password does not verify: %v", err)
+	}
+}
+
+func TestAUserCanBeUpdatedEnabledAndDeleted(t *testing.T) {
+	f := newFixture(t)
+
+	response, body := f.call(t, http.MethodPost, "/api/admin/users", map[string]any{
+		"email": "member@example.com", "password": "secure password", "name": "Initial Name",
+	}, true)
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("creating answered %d: %v", response.StatusCode, body)
+	}
+	userID, _ := body["id"].(string)
+
+	adminTrue := true
+	response, body = f.call(t, http.MethodPut, "/api/admin/users/"+userID, map[string]any{
+		"name": "Updated Name", "admin": &adminTrue,
+	}, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("updating user answered %d: %v", response.StatusCode, body)
+	}
+	if name, _ := body["name"].(string); name != "Updated Name" {
+		t.Fatalf("name was not updated: %v", name)
+	}
+	if isAdmin, _ := body["admin"].(bool); !isAdmin {
+		t.Fatal("admin flag was not updated")
+	}
+
+	response, _ = f.call(t, http.MethodPost, "/api/admin/users/"+userID+"/disable", nil, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("disabling answered %d", response.StatusCode)
+	}
+
+	response, _ = f.call(t, http.MethodPost, "/api/admin/users/"+userID+"/enable", nil, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("enabling answered %d", response.StatusCode)
+	}
+	if _, err := f.users.Verify(context.Background(), "member@example.com", "secure password"); err != nil {
+		t.Fatalf("re-enabled user does not verify: %v", err)
+	}
+
+	response, _ = f.call(t, http.MethodDelete, "/api/admin/users/"+userID, nil, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("deleting answered %d", response.StatusCode)
+	}
+	if _, err := f.users.ByID(context.Background(), userID); err == nil {
+		t.Fatal("deleted user still exists")
+	}
+}
+
+func TestAClientCanBeUpdatedDisabledEnabledAndDeleted(t *testing.T) {
+	f := newFixture(t)
+
+	response, body := f.call(t, http.MethodPost, "/api/admin/clients", map[string]any{
+		"client_id": "test-app", "name": "Test App",
+		"kind":          schemas.KindApplication,
+		"redirect_uris": []string{"https://app.example.com/callback"},
+	}, true)
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("minting answered %d: %v", response.StatusCode, body)
+	}
+
+	response, body = f.call(t, http.MethodPut, "/api/admin/clients/test-app", map[string]any{
+		"client_id": "test-app", "name": "Updated Test App",
+		"kind":          schemas.KindApplication,
+		"redirect_uris": []string{"https://app.example.com/oauth2/callback"},
+		"visible_roles": []string{"admin", "member"},
+	}, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("updating answered %d: %v", response.StatusCode, body)
+	}
+	if name, _ := body["name"].(string); name != "Updated Test App" {
+		t.Fatalf("client name not updated: %v", name)
+	}
+
+	response, _ = f.call(t, http.MethodPost, "/api/admin/clients/test-app/disable", nil, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("disabling answered %d", response.StatusCode)
+	}
+	if _, err := f.register.ByClientID(context.Background(), "test-app"); err == nil {
+		t.Fatal("disabled client still returns as enabled")
+	}
+
+	response, _ = f.call(t, http.MethodPost, "/api/admin/clients/test-app/enable", nil, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("enabling answered %d", response.StatusCode)
+	}
+	if _, err := f.register.ByClientID(context.Background(), "test-app"); err != nil {
+		t.Fatalf("re-enabled client failed lookup: %v", err)
+	}
+
+	response, _ = f.call(t, http.MethodDelete, "/api/admin/clients/test-app", nil, true)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("deleting answered %d", response.StatusCode)
+	}
+}

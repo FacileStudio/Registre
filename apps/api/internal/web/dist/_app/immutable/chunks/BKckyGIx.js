@@ -1,1 +1,0 @@
-import{ag as t,u,L as e,D as c}from"./mDkf9bm-.js";function f(n){e===null&&t(),u(()=>{const o=c(n);if(typeof o=="function")return o})}function s(n){e===null&&t(),f(()=>()=>c(n))}export{f as a,s as o};

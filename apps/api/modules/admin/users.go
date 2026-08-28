@@ -84,6 +84,57 @@ func (s *Service) createUser(w http.ResponseWriter, r *http.Request) {
 	encode(w, viewUser(row), http.StatusCreated)
 }
 
+func (s *Service) updateUser(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "userID")
+	var body struct {
+		Name  string   `json:"name"`
+		Admin *bool    `json:"admin"`
+		Roles []string `json:"roles"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		badRequest(w)
+		return
+	}
+	row, err := s.users.Update(r.Context(), id, body.Name, body.Admin, body.Roles)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	operator := r.Context().Value(operatorKey).(schemas.User)
+	s.logger.Info("registre: admin updated user",
+		slog.String("user_id", id), slog.String("operator", operator.Email))
+	encode(w, viewUser(row), http.StatusOK)
+}
+
+func (s *Service) setUserPassword(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "userID")
+	var body struct {
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		badRequest(w)
+		return
+	}
+	if len(body.Password) < 8 {
+		encode(w, map[string]string{"error": "the new password is too short"}, http.StatusBadRequest)
+		return
+	}
+	if err := s.users.SetPassword(r.Context(), id, body.Password); err != nil {
+		serverError(w, err)
+		return
+	}
+	reached, err := s.users.EndSessions(r.Context(), id, now())
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	s.fireLogout(r, id, reached)
+	operator := r.Context().Value(operatorKey).(schemas.User)
+	s.logger.Info("registre: admin updated password for user",
+		slog.String("user_id", id), slog.String("operator", operator.Email))
+	encode(w, map[string]any{"ok": true, "logout_targets": len(reached)}, http.StatusOK)
+}
+
 func (s *Service) disableUser(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "userID")
 	reached, err := s.users.Disable(r.Context(), id, now())
@@ -96,6 +147,36 @@ func (s *Service) disableUser(w http.ResponseWriter, r *http.Request) {
 	s.logger.Info("registre: admin disabled a user",
 		slog.String("user_id", id), slog.String("operator", operator.Email))
 	encode(w, map[string]any{"disabled": id, "logout_targets": len(reached)}, http.StatusOK)
+}
+
+func (s *Service) enableUser(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "userID")
+	if err := s.users.Enable(r.Context(), id); err != nil {
+		serverError(w, err)
+		return
+	}
+	operator := r.Context().Value(operatorKey).(schemas.User)
+	s.logger.Info("registre: admin enabled a user",
+		slog.String("user_id", id), slog.String("operator", operator.Email))
+	encode(w, map[string]any{"enabled": id}, http.StatusOK)
+}
+
+func (s *Service) deleteUser(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "userID")
+	operator := r.Context().Value(operatorKey).(schemas.User)
+	if operator.ID == id {
+		encode(w, map[string]string{"error": "cannot delete your own account"}, http.StatusBadRequest)
+		return
+	}
+	reached, _ := s.users.EndSessions(r.Context(), id, now())
+	s.fireLogout(r, id, reached)
+	if err := s.users.Delete(r.Context(), id); err != nil {
+		serverError(w, err)
+		return
+	}
+	s.logger.Info("registre: admin deleted user",
+		slog.String("user_id", id), slog.String("operator", operator.Email))
+	encode(w, map[string]any{"deleted": id}, http.StatusOK)
 }
 
 func (s *Service) fireLogout(r *http.Request, userID string, reached []string) {

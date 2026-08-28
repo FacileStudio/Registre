@@ -240,10 +240,6 @@ func (s *Service) EndSessions(ctx context.Context, userID string, at time.Time) 
 	return clients, nil
 }
 
-// Disable revokes an account's ability to sign in and ends its sessions in
-// the same transaction-shaped breath. The returned app list is for the
-// caller's back-channel logout; disabling without notifying would leave the
-// human logged in everywhere until their cookies expired.
 func (s *Service) Disable(ctx context.Context, userID string, at time.Time) ([]string, error) {
 	result := s.db.WithContext(ctx).Model(&schemas.User{}).
 		Where("id = ? AND disabled_at IS NULL", userID).
@@ -262,4 +258,73 @@ func (s *Service) Disable(ctx context.Context, userID string, at time.Time) ([]s
 		}
 	}
 	return s.EndSessions(ctx, userID, at)
+}
+
+func (s *Service) Enable(ctx context.Context, userID string) error {
+	result := s.db.WithContext(ctx).Model(&schemas.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]any{"disabled_at": nil, "updated_at": time.Now().UTC()})
+	if result.Error != nil {
+		return fmt.Errorf("identity: enable the user: %w", result.Error)
+	}
+	if result.RowsAffected != 1 {
+		return fmt.Errorf("identity: no such user %q", userID)
+	}
+	return nil
+}
+
+func (s *Service) SetPassword(ctx context.Context, userID, password string) error {
+	hash, err := s.verifier.Hash(ctx, password)
+	if err != nil {
+		return fmt.Errorf("identity: hash the password: %w", err)
+	}
+	result := s.db.WithContext(ctx).Model(&schemas.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]any{"password_hash": hash, "updated_at": time.Now().UTC()})
+	if result.Error != nil {
+		return fmt.Errorf("identity: store the password: %w", result.Error)
+	}
+	if result.RowsAffected != 1 {
+		return fmt.Errorf("identity: no such user %q", userID)
+	}
+	return nil
+}
+
+func (s *Service) Update(ctx context.Context, userID, name string, admin *bool, roles []string) (schemas.User, error) {
+	updates := map[string]any{
+		"name":       name,
+		"updated_at": time.Now().UTC(),
+	}
+	if admin != nil {
+		updates["admin"] = *admin
+	}
+	if roles != nil {
+		updates["roles"] = schemas.StringList(roles)
+	}
+	result := s.db.WithContext(ctx).Model(&schemas.User{}).
+		Where("id = ?", userID).
+		Updates(updates)
+	if result.Error != nil {
+		return schemas.User{}, fmt.Errorf("identity: update the user: %w", result.Error)
+	}
+	if result.RowsAffected != 1 {
+		return schemas.User{}, fmt.Errorf("identity: no such user %q", userID)
+	}
+	return s.ByID(ctx, userID)
+}
+
+func (s *Service) Delete(ctx context.Context, userID string) error {
+	now := time.Now().UTC()
+	if _, err := s.EndSessions(ctx, userID, now); err != nil {
+		return fmt.Errorf("identity: end sessions: %w", err)
+	}
+	_ = s.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&schemas.AuthRequest{}).Error
+	result := s.db.WithContext(ctx).Where("id = ?", userID).Delete(&schemas.User{})
+	if result.Error != nil {
+		return fmt.Errorf("identity: delete user: %w", result.Error)
+	}
+	if result.RowsAffected != 1 {
+		return fmt.Errorf("identity: no such user %q", userID)
+	}
+	return nil
 }

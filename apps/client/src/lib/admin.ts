@@ -58,7 +58,6 @@ export interface KeyState {
 	expires_at?: string;
 }
 
-/** NewUser is the body /api/admin/users accepts. */
 export interface NewUser {
 	email: string;
 	name?: string;
@@ -66,24 +65,27 @@ export interface NewUser {
 	admin?: boolean;
 }
 
-/**
- * NewClient is the body /api/admin/clients accepts.
- *
- * An application is refused without at least one redirect URI, and a service
- * account is refused with any: the server enforces both, because an
- * application registered without one is accepted here and then rejected at
- * /authorize, which reads as registre being broken rather than as the row
- * being half-filled.
- *
- * visible_roles and backchannel_logout_uri default to nothing on purpose. An
- * app that sees no roles denies its own authorization checks, and one with no
- * logout URI never learns a session was terminated, so both are choices an
- * operator makes per app rather than defaults that leak.
- */
+export interface UpdateUser {
+	name?: string;
+	admin?: boolean;
+	roles?: string[];
+}
+
 export interface NewClient {
 	client_id: string;
 	name: string;
 	kind: string;
+	redirect_uris?: string[];
+	visible_roles?: string[];
+	backchannel_logout_uri?: string;
+}
+
+export interface UpdateClient {
+	name?: string;
+	kind?: string;
+	grant_types?: string[];
+	scopes?: string[];
+	audiences?: string[];
 	redirect_uris?: string[];
 	visible_roles?: string[];
 	backchannel_logout_uri?: string;
@@ -170,26 +172,55 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 	return body as T;
 }
 
-/** admin is the dashboard's API surface, one method per route. */
 export const admin = {
 	listUsers: () => call<UserView[]>('/api/admin/users'),
 	createUser: (user: NewUser) =>
 		call<UserView>('/api/admin/users', { method: 'POST', body: JSON.stringify(user) }),
+	updateUser: (id: string, user: UpdateUser) =>
+		call<UserView>(`/api/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(user) }),
+	setUserPassword: (id: string, password: string) =>
+		call<{ ok: boolean; logout_targets: number }>(`/api/admin/users/${id}/password`, {
+			method: 'POST',
+			body: JSON.stringify({ password })
+		}),
 	disableUser: (id: string) =>
 		call<{ disabled: string; logout_targets: number }>(`/api/admin/users/${id}/disable`, {
 			method: 'POST'
 		}),
+	enableUser: (id: string) =>
+		call<{ enabled: string }>(`/api/admin/users/${id}/enable`, { method: 'POST' }),
+	deleteUser: (id: string) =>
+		call<{ deleted: string }>(`/api/admin/users/${id}`, { method: 'DELETE' }),
 	listInvites: () => call<InviteView[]>('/api/admin/invites'),
 	createInvite: (email: string) =>
 		call<CreatedInvite>('/api/admin/invites', { method: 'POST', body: JSON.stringify({ email }) }),
 	listClients: () => call<ClientView[]>('/api/admin/clients'),
+	getClient: (clientID: string) =>
+		call<ClientView>(`/api/admin/clients/${encodeURIComponent(clientID)}`),
 	createClient: (client: NewClient) =>
 		call<CreatedClient>('/api/admin/clients', { method: 'POST', body: JSON.stringify(client) }),
+	updateClient: (clientID: string, client: UpdateClient) =>
+		call<ClientView>(`/api/admin/clients/${encodeURIComponent(clientID)}`, {
+			method: 'PUT',
+			body: JSON.stringify(client)
+		}),
 	rotateSecret: (clientID: string) =>
 		call<{ client_id: string; secret: string }>(
 			`/api/admin/clients/${encodeURIComponent(clientID)}/secret`,
 			{ method: 'POST' }
 		),
+	disableClient: (clientID: string) =>
+		call<{ disabled: string }>(`/api/admin/clients/${encodeURIComponent(clientID)}/disable`, {
+			method: 'POST'
+		}),
+	enableClient: (clientID: string) =>
+		call<{ enabled: string }>(`/api/admin/clients/${encodeURIComponent(clientID)}/enable`, {
+			method: 'POST'
+		}),
+	deleteClient: (clientID: string) =>
+		call<{ deleted: string }>(`/api/admin/clients/${encodeURIComponent(clientID)}`, {
+			method: 'DELETE'
+		}),
 	listKeys: () => call<KeyState[]>('/api/admin/keys')
 };
 

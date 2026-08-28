@@ -168,8 +168,6 @@ func (s *Service) Upsert(ctx context.Context, row schemas.Client) (schemas.Clien
 	return s.rawByClientID(ctx, row.ClientID)
 }
 
-// rawByClientID reads a row without the enabled filter, which is what a write
-// path needs: a disabled client still exists and must not be created twice.
 func (s *Service) rawByClientID(ctx context.Context, clientID string) (schemas.Client, error) {
 	var row schemas.Client
 	err := s.db.WithContext(ctx).Where("client_id = ?", clientID).Take(&row).Error
@@ -177,4 +175,45 @@ func (s *Service) rawByClientID(ctx context.Context, clientID string) (schemas.C
 		return schemas.Client{}, fmt.Errorf("clients: read %s: %w", clientID, err)
 	}
 	return row, err
+}
+
+func (s *Service) Disable(ctx context.Context, clientID string, at time.Time) error {
+	result := s.db.WithContext(ctx).Model(&schemas.Client{}).
+		Where("client_id = ?", clientID).
+		Updates(map[string]any{"disabled_at": at, "updated_at": at})
+	if result.Error != nil {
+		return fmt.Errorf("clients: disable %s: %w", clientID, result.Error)
+	}
+	if result.RowsAffected != 1 {
+		return ErrUnknownClient
+	}
+	return nil
+}
+
+func (s *Service) Enable(ctx context.Context, clientID string) error {
+	result := s.db.WithContext(ctx).Model(&schemas.Client{}).
+		Where("client_id = ?", clientID).
+		Updates(map[string]any{"disabled_at": nil, "updated_at": time.Now().UTC()})
+	if result.Error != nil {
+		return fmt.Errorf("clients: enable %s: %w", clientID, result.Error)
+	}
+	if result.RowsAffected != 1 {
+		return ErrUnknownClient
+	}
+	return nil
+}
+
+func (s *Service) Delete(ctx context.Context, clientID string) error {
+	existing, err := s.rawByClientID(ctx, clientID)
+	if err != nil {
+		return err
+	}
+	if existing.Managed {
+		return fmt.Errorf("clients: cannot delete seed-managed client %s", clientID)
+	}
+	result := s.db.WithContext(ctx).Where("client_id = ?", clientID).Delete(&schemas.Client{})
+	if result.Error != nil {
+		return fmt.Errorf("clients: delete %s: %w", clientID, result.Error)
+	}
+	return nil
 }

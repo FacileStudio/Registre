@@ -148,7 +148,7 @@
 				<section class="flex flex-col gap-3">
 					<div class="flex items-center gap-2.5">
 						<h2 class="text-fc-md font-semibold tracking-tight text-fc-fg">{cat}</h2>
-						<Badge size="sm" variant="subtle">{apps.length}</Badge>
+						<Badge tone="neutral">{apps.length}</Badge>
 					</div>
 					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 						{#each apps as app (app.url)}

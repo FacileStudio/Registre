@@ -5,6 +5,7 @@
 		Button,
 		ConfirmModal,
 		EmptyState,
+		Icon,
 		Modal,
 		Section,
 		Skeleton,
@@ -13,12 +14,14 @@
 		toast
 	} from '@facile/muse';
 	import ClientCreateDrawer from '$lib/components/ClientCreateDrawer.svelte';
+	import ClientEditDrawer from '$lib/components/ClientEditDrawer.svelte';
 	import ClientSecretPanel from '$lib/components/ClientSecretPanel.svelte';
 	import { admin, errorMessage, formatDate, type ClientView } from '$lib/admin';
 
 	let clients = $state<ClientView[]>([]);
 	let loading = $state(true);
 	let error = $state('');
+	let search = $state('');
 
 	let createOpen = $state(false);
 	let creating = $state(false);
@@ -32,11 +35,36 @@
 	let createdSecret = $state('');
 	let createdID = $state('');
 
+	let editTarget = $state<ClientView | null>(null);
+	let editOpen = $state(false);
+
 	let rotateTarget = $state<ClientView | null>(null);
 	let rotateOpen = $state(false);
 	let rotatedSecret = $state('');
 	let rotatedID = $state('');
 	let rotatedOpen = $state(false);
+
+	let disableTarget = $state<ClientView | null>(null);
+	let disableOpen = $state(false);
+
+	let enableTarget = $state<ClientView | null>(null);
+	let enableOpen = $state(false);
+
+	let deleteTarget = $state<ClientView | null>(null);
+	let deleteOpen = $state(false);
+
+	const serviceAccounts = $derived(clients.filter((c) => c.kind === 'service_account'));
+
+	const filteredClients = $derived.by(() => {
+		const q = search.toLowerCase().trim();
+		if (!q) return serviceAccounts;
+		return serviceAccounts.filter(
+			(c) =>
+				c.name.toLowerCase().includes(q) ||
+				c.client_id.toLowerCase().includes(q) ||
+				(c.audiences && c.audiences.some((a) => a.toLowerCase().includes(q)))
+		);
+	});
 
 	$effect(() => {
 		load();
@@ -47,32 +75,23 @@
 			clients = await admin.listClients();
 			error = '';
 		} catch (cause) {
-			error = errorMessage(cause, 'Could not load the register.');
+			error = errorMessage(cause, 'Could not load service accounts.');
 		} finally {
 			loading = false;
 		}
 	}
 
-	/*
-	 * Reset before opening, never after closing: reopening the drawer must not
-	 * be able to re-show a secret minted on a previous run.
-	 */
 	function openCreate() {
 		createdSecret = '';
 		createdID = '';
 		newID = '';
 		newName = '';
 		newKind = 'service_account';
+		newRedirects = '';
+		newRoles = '';
+		newLogoutURI = '';
 		createError = '';
 		createOpen = true;
-	}
-
-	/** lines splits a textarea into a trimmed list, dropping the empties. */
-	function lines(raw: string): string[] {
-		return raw
-			.split('\n')
-			.map((line) => line.trim())
-			.filter(Boolean);
 	}
 
 	async function create(event: SubmitEvent) {
@@ -80,30 +99,36 @@
 		if (creating) return;
 		creating = true;
 		createError = '';
-		const isApplication = newKind === 'application';
 		try {
 			const result = await admin.createClient({
 				client_id: newID.trim(),
 				name: newName.trim(),
-				kind: newKind,
-				redirect_uris: isApplication ? lines(newRedirects) : undefined,
-				visible_roles: isApplication ? lines(newRoles) : undefined,
-				backchannel_logout_uri: isApplication ? newLogoutURI.trim() || undefined : undefined
+				kind: 'service_account'
 			});
 			createdSecret = result.secret;
 			createdID = result.client.client_id;
 			await load();
 		} catch (cause) {
-			createError = errorMessage(cause, 'Could not create the client.');
+			createError = errorMessage(cause, 'Could not create the service account.');
 		} finally {
 			creating = false;
 		}
 	}
 
-	/** finishCreate closes the drawer once the reader says they have the secret. */
 	function finishCreate() {
 		createOpen = false;
 		toast.success(`${createdID} is registered.`);
+	}
+
+	function openEdit(client: ClientView) {
+		editTarget = client;
+		editOpen = true;
+	}
+
+	function onSavedEdit(updated: ClientView) {
+		toast.success(`${updated.name} updated.`);
+		editTarget = null;
+		load();
 	}
 
 	async function rotate() {
@@ -126,83 +151,197 @@
 		rotatedSecret = '';
 		rotatedID = '';
 	}
+
+	async function disable() {
+		const target = disableTarget;
+		if (!target) return;
+		try {
+			await admin.disableClient(target.client_id);
+			toast.success(`${target.name} is disabled.`);
+			disableTarget = null;
+			await load();
+		} catch (cause) {
+			toast.danger(errorMessage(cause, 'Could not disable service account.'));
+			throw cause;
+		}
+	}
+
+	async function enable() {
+		const target = enableTarget;
+		if (!target) return;
+		try {
+			await admin.enableClient(target.client_id);
+			toast.success(`${target.name} is re-enabled.`);
+			enableTarget = null;
+			await load();
+		} catch (cause) {
+			toast.danger(errorMessage(cause, 'Could not enable service account.'));
+			throw cause;
+		}
+	}
+
+	async function removeClient() {
+		const target = deleteTarget;
+		if (!target) return;
+		try {
+			await admin.deleteClient(target.client_id);
+			toast.success(`${target.name} was deleted.`);
+			deleteTarget = null;
+			await load();
+		} catch (cause) {
+			toast.danger(errorMessage(cause, 'Could not delete service account.'));
+			throw cause;
+		}
+	}
 </script>
 
 <Section
-	title="Clients and service accounts"
-	description="Applications that send people here to sign in, and machine credentials that call the token endpoint directly."
+	title="Service accounts"
+	description="Machine credentials that authenticate via client_credentials and call APIs directly."
 	bodyClass="flex flex-col gap-4"
 >
 	{#snippet actions()}
-		<Button icon={icons.plus} onclick={openCreate}>New client</Button>
+		<Button icon={icons.plus} onclick={openCreate}>New service account</Button>
 	{/snippet}
 
 	{#if error}
-		<Alert tone="danger" title="Could not load the register">{error}</Alert>
+		<Alert tone="danger" title="Could not load service accounts">{error}</Alert>
 	{:else if loading}
 		<div class="flex flex-col gap-2">
 			<Skeleton class="h-10 w-full" />
 			<Skeleton class="h-10 w-full" />
 			<Skeleton class="h-10 w-full" />
 		</div>
-	{:else if clients.length === 0}
+	{:else if serviceAccounts.length === 0}
 		<EmptyState
-			icon={icons.plug}
-			title="Nothing registered yet"
-			description="An app cannot start an OIDC flow until it has a client here, and a service cannot mint a token without one."
+			icon={icons.server}
+			title="No service accounts yet"
+			description="Service accounts allow bots, tools, and background services to authenticate with Registre."
 		>
-			<Button variant="outline" icon={icons.plus} onclick={openCreate}>New client</Button>
+			<Button variant="outline" icon={icons.plus} onclick={openCreate}>New service account</Button>
 		</EmptyState>
 	{:else}
-		<Table>
-			<thead>
-				<tr>
-					<th scope="col">Client ID</th>
-					<th scope="col">Name</th>
-					<th scope="col">Kind</th>
-					<th scope="col">Scopes</th>
-					<th scope="col">Status</th>
-					<th scope="col">Created</th>
-					<th scope="col" class="text-right" aria-label="Actions"></th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each clients as client (client.client_id)}
-					<tr class={client.disabled_at ? 'opacity-55' : ''}>
-						<td class="font-fc-mono text-fc-xs">{client.client_id}</td>
-						<td>{client.name}</td>
-						<td>
-							<Badge tone={client.kind === 'application' ? 'info' : 'neutral'}>
-								{client.kind === 'application' ? 'application' : 'service account'}
-							</Badge>
-						</td>
-						<td class="font-fc-mono text-fc-xs text-fc-fg-muted">
-							{client.scopes?.join(' ') || '—'}
-						</td>
-						<td>
-							<Badge tone={client.disabled_at ? 'neutral' : 'success'}>
-								{client.disabled_at ? 'disabled' : 'active'}
-							</Badge>
-						</td>
-						<td class="whitespace-nowrap text-fc-fg-muted">{formatDate(client.created_at)}</td>
-						<td class="text-right">
-							<Button
-								variant="ghost-danger"
-								size="sm"
-								icon={icons.refresh}
-								aria-label="Rotate the secret for {client.client_id}"
-								onclick={() => {
-									rotateTarget = client;
-									rotateOpen = true;
-								}}
-							>
-								Rotate secret
-							</Button>
-						</td>
+		<div class="flex flex-col gap-3">
+			<div class="relative w-full max-w-xs">
+				<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-fc-fg-muted">
+					<Icon icon={icons.search} size={15} />
+				</div>
+				<input
+					type="text"
+					bind:value={search}
+					placeholder="Search service accounts..."
+					class="w-full rounded-fc-md border border-fc-border bg-fc-surface py-1.5 pl-9 pr-3 text-fc-xs
+						text-fc-fg placeholder-fc-fg-muted outline-none transition-colors focus:border-fc-ring"
+				/>
+			</div>
+
+			<Table>
+				<thead>
+					<tr>
+						<th scope="col">Client ID</th>
+						<th scope="col">Name</th>
+						<th scope="col">Scopes</th>
+						<th scope="col">Audiences</th>
+						<th scope="col">Status</th>
+						<th scope="col">Created</th>
+						<th scope="col" class="text-right" aria-label="Actions"></th>
 					</tr>
-				{/each}
-			</tbody>
-		</Table>
+				</thead>
+				<tbody>
+					{#each filteredClients as client (client.client_id)}
+						<tr class={client.disabled_at ? 'opacity-55' : ''}>
+							<td class="font-fc-mono text-fc-xs">
+								<div class="flex items-center gap-2">
+									<span>{client.client_id}</span>
+									{#if client.managed}
+										<Badge tone="neutral">managed</Badge>
+									{/if}
+								</div>
+							</td>
+							<td>{client.name}</td>
+							<td class="font-fc-mono text-fc-xs text-fc-fg-muted">
+								{client.scopes?.join(' ') || '—'}
+							</td>
+							<td class="font-fc-mono text-fc-xs text-fc-fg-muted">
+								{client.audiences?.join(' ') || '—'}
+							</td>
+							<td>
+								<Badge tone={client.disabled_at ? 'neutral' : 'success'}>
+									{client.disabled_at ? 'disabled' : 'active'}
+								</Badge>
+							</td>
+							<td class="whitespace-nowrap text-fc-fg-muted">{formatDate(client.created_at)}</td>
+							<td class="text-right">
+								<div class="flex items-center justify-end gap-1">
+									<Button
+										variant="ghost"
+										size="sm"
+										icon={icons.edit}
+										aria-label="Edit {client.name}"
+										onclick={() => openEdit(client)}
+									>
+										Edit
+									</Button>
+									<Button
+										variant="ghost"
+										size="sm"
+										icon={icons.refresh}
+										aria-label="Rotate secret for {client.client_id}"
+										onclick={() => {
+											rotateTarget = client;
+											rotateOpen = true;
+										}}
+									>
+										Secret
+									</Button>
+									{#if client.disabled_at}
+										<Button
+											variant="ghost"
+											size="sm"
+											icon={icons.check}
+											aria-label="Enable {client.client_id}"
+											onclick={() => {
+												enableTarget = client;
+												enableOpen = true;
+											}}
+										>
+											Enable
+										</Button>
+									{:else}
+										<Button
+											variant="ghost-danger"
+											size="sm"
+											icon={icons.revoke}
+											aria-label="Disable {client.client_id}"
+											onclick={() => {
+												disableTarget = client;
+												disableOpen = true;
+											}}
+										>
+											Disable
+										</Button>
+									{/if}
+									{#if !client.managed}
+										<Button
+											variant="ghost-danger"
+											size="sm"
+											icon={icons.remove}
+											aria-label="Delete {client.client_id}"
+											onclick={() => {
+												deleteTarget = client;
+												deleteOpen = true;
+											}}
+										>
+											Delete
+										</Button>
+									{/if}
+								</div>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</Table>
+		</div>
 	{/if}
 </Section>
 
@@ -223,11 +362,18 @@
 	onDone={finishCreate}
 />
 
+<ClientEditDrawer
+	bind:open={editOpen}
+	client={editTarget}
+	onSaved={onSavedEdit}
+	onCancel={() => (editOpen = false)}
+/>
+
 <ConfirmModal
 	bind:open={rotateOpen}
 	tone="danger"
 	title="Rotate the secret for {rotateTarget?.client_id ?? ''}?"
-	description="The current secret stops working the moment the new one is minted, so anything still using it starts failing authentication. Have the new secret ready to deploy before you do this."
+	description="The current secret stops working the moment the new one is minted, so anything still using it starts failing authentication."
 	confirmLabel="Rotate the secret"
 	cancelLabel="Leave it alone"
 	onConfirm={rotate}
@@ -249,3 +395,38 @@
 		The old secret is already dead and this one is shown once. Deploy it before you close this.
 	</ClientSecretPanel>
 </Modal>
+
+<ConfirmModal
+	bind:open={disableOpen}
+	tone="danger"
+	title="Disable {disableTarget?.name ?? ''}?"
+	description="This service account will immediately stop being able to authenticate or mint tokens."
+	confirmLabel="Disable account"
+	cancelLabel="Keep active"
+	onConfirm={disable}
+	onCancel={() => (disableTarget = null)}
+/>
+
+<ConfirmModal
+	bind:open={enableOpen}
+	title="Enable {enableTarget?.name ?? ''}?"
+	description="This service account will be re-activated and allowed to mint tokens again."
+	confirmLabel="Enable account"
+	cancelLabel="Leave disabled"
+	onConfirm={enable}
+	onCancel={() => (enableTarget = null)}
+/>
+
+<ConfirmModal
+	bind:open={deleteOpen}
+	tone="danger"
+	title="Delete {deleteTarget?.name ?? ''}?"
+	description="This service account will be permanently deleted."
+	confirmLabel="Delete account"
+	cancelLabel="Cancel"
+	onConfirm={removeClient}
+	onCancel={() => {
+		deleteTarget = null;
+		deleteOpen = false;
+	}}
+/>

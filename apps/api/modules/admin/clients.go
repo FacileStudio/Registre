@@ -96,6 +96,46 @@ func (s *Service) createClient(w http.ResponseWriter, r *http.Request) {
 	encode(w, map[string]any{"client": viewClient(row), "secret": secret}, http.StatusCreated)
 }
 
+func (s *Service) getClient(w http.ResponseWriter, r *http.Request) {
+	clientID := chi.URLParam(r, "clientID")
+	row, err := s.register.ByClientID(r.Context(), clientID)
+	if errors.Is(err, clients.ErrUnknownClient) {
+		encode(w, map[string]string{"error": "unknown client"}, http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	encode(w, viewClient(row), http.StatusOK)
+}
+
+func (s *Service) updateClient(w http.ResponseWriter, r *http.Request) {
+	clientID := chi.URLParam(r, "clientID")
+	var body newClient
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		badRequest(w)
+		return
+	}
+	body.ClientID = clientID
+	if body.Name == "" {
+		encode(w, map[string]string{"error": "name is required"}, http.StatusBadRequest)
+		return
+	}
+	if reason, ok := body.invalid(); !ok {
+		encode(w, map[string]string{"error": reason}, http.StatusBadRequest)
+		return
+	}
+	decl := body.declaration()
+	row, err := s.register.Upsert(r.Context(), decl)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	s.logger.Info("registre: admin updated client", slog.String("client_id", clientID))
+	encode(w, viewClient(row), http.StatusOK)
+}
+
 func (s *Service) rotateSecret(w http.ResponseWriter, r *http.Request) {
 	clientID := chi.URLParam(r, "clientID")
 	_, secret, err := s.register.RotateSecret(r.Context(), clientID)
@@ -109,6 +149,44 @@ func (s *Service) rotateSecret(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logger.Info("registre: admin rotated a client secret", slog.String("client_id", clientID))
 	encode(w, map[string]string{"client_id": clientID, "secret": secret}, http.StatusOK)
+}
+
+func (s *Service) disableClient(w http.ResponseWriter, r *http.Request) {
+	clientID := chi.URLParam(r, "clientID")
+	if err := s.register.Disable(r.Context(), clientID, now()); err != nil {
+		if errors.Is(err, clients.ErrUnknownClient) {
+			encode(w, map[string]string{"error": "unknown client"}, http.StatusNotFound)
+			return
+		}
+		serverError(w, err)
+		return
+	}
+	s.logger.Info("registre: admin disabled client", slog.String("client_id", clientID))
+	encode(w, map[string]any{"disabled": clientID}, http.StatusOK)
+}
+
+func (s *Service) enableClient(w http.ResponseWriter, r *http.Request) {
+	clientID := chi.URLParam(r, "clientID")
+	if err := s.register.Enable(r.Context(), clientID); err != nil {
+		if errors.Is(err, clients.ErrUnknownClient) {
+			encode(w, map[string]string{"error": "unknown client"}, http.StatusNotFound)
+			return
+		}
+		serverError(w, err)
+		return
+	}
+	s.logger.Info("registre: admin enabled client", slog.String("client_id", clientID))
+	encode(w, map[string]any{"enabled": clientID}, http.StatusOK)
+}
+
+func (s *Service) deleteClient(w http.ResponseWriter, r *http.Request) {
+	clientID := chi.URLParam(r, "clientID")
+	if err := s.register.Delete(r.Context(), clientID); err != nil {
+		encode(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
+		return
+	}
+	s.logger.Info("registre: admin deleted client", slog.String("client_id", clientID))
+	encode(w, map[string]any{"deleted": clientID}, http.StatusOK)
 }
 
 // newClient is the body createClient accepts.

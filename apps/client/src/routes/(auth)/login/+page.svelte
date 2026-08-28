@@ -149,7 +149,7 @@
 					{/if}
 				</div>
 				{#if recovery}
-					<Field label="Recovery code" hint="Each code works once.">
+					<Field label="Recovery code" helper="Each code works once.">
 						<Input type="text" autocomplete="off" required bind:value={code} />
 					</Field>
 				{:else}
