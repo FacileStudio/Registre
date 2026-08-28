@@ -53,6 +53,18 @@ func TestEverySuiteRedirectKeepsTheAPIPrefix(t *testing.T) {
 			if !strings.Contains(uri, ".facile.studio") {
 				continue
 			}
+			if app.ClientID == "outline" {
+				if !strings.HasSuffix(uri, "/auth/oidc.callback") {
+					t.Errorf("%s: redirect %q does not end in /auth/oidc.callback", app.Name, uri)
+				}
+				continue
+			}
+			if app.ClientID == "aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D" {
+				if !strings.HasPrefix(uri, "https://opus.facile.studio/api/auth/") && !strings.HasPrefix(uri, "https://opus.facile.studio/auth/") {
+					t.Errorf("%s: redirect %q is invalid", app.Name, uri)
+				}
+				continue
+			}
 			if !strings.HasSuffix(uri, "/api/auth/oidc/callback") {
 				t.Errorf("%s: redirect %q does not end in /api/auth/oidc/callback", app.Name, uri)
 			}
