@@ -30,7 +30,6 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/modules/reset"
 
 	mailer "github.com/FacileStudio/facteur"
-	"github.com/FacileStudio/tronc/apiref"
 	"github.com/FacileStudio/tronc/health"
 	"github.com/FacileStudio/tronc/httpx"
 	troncmiddleware "github.com/FacileStudio/tronc/middleware"
