@@ -24,11 +24,13 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/modules/account"
 	"github.com/FacileStudio/Registre/apps/api/modules/admin"
 	"github.com/FacileStudio/Registre/apps/api/modules/device"
+	"github.com/FacileStudio/Registre/apps/api/modules/docs"
 	"github.com/FacileStudio/Registre/apps/api/modules/login"
 	"github.com/FacileStudio/Registre/apps/api/modules/oidc"
 	"github.com/FacileStudio/Registre/apps/api/modules/reset"
 
 	mailer "github.com/FacileStudio/facteur"
+	"github.com/FacileStudio/tronc/apiref"
 	"github.com/FacileStudio/tronc/health"
 	"github.com/FacileStudio/tronc/httpx"
 	troncmiddleware "github.com/FacileStudio/tronc/middleware"
@@ -121,6 +123,7 @@ func assemble(
 		deviceFlows: deviceFlows, verificationURL: verificationURL,
 		authorizeURL: provider.AuthorizationEndpoint().Absolute(cfg.Issuer),
 	})
+	docs.Mount(router)
 	client, err := web.Handler()
 	if err != nil {
 		return nil, err

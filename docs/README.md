@@ -6,6 +6,7 @@
 | [Configuration](configuration.md) | Every environment variable, its default and what it costs to get wrong |
 | [Development](development.md) | Local setup, the database the tests need, the quality gate |
 | [Deployment](deployment.md) | Docker Compose, Traefik, the migration and the seed at boot |
+| [API](api.md) | Endpoints, OIDC protocol routes, and OpenAPI spec |
 
 [SPEC.md](../SPEC.md) is the source of truth for what registre must do and why. These pages
 describe what is built; SPEC describes what is decided. Where they disagree, SPEC wins and one of
