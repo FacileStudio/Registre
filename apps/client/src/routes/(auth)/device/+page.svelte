@@ -14,6 +14,7 @@
 		type DeviceOutcome,
 		type DeviceRequestView
 	} from '$lib/device';
+	import { normalise } from '$lib/usercode';
 
 	type Stage = 'entry' | 'confirm' | 'outcome' | 'signed-out';
 
@@ -35,11 +36,19 @@
 	let error = $state('');
 	let busy = $state(false);
 
+	/**
+	 * answered holds the codes this tab has already decided, in canonical form.
+	 *
+	 * Canonical is what makes it a set rather than a list of spellings: the same
+	 * code arriving from the link, from storage and from the keyboard would
+	 * otherwise be three different strings, and the second answer would be sent
+	 * to an API that has already spent the flow.
+	 */
 	const answered = new Set<string>();
 
 	onMount(() => {
 		const fromLink = page.url.searchParams.get('user_code') ?? '';
-		code = (fromLink || unstash()).trim();
+		code = normalise(fromLink || unstash());
 		prefilled = code.length > 0;
 		if (fromLink) {
 			const scrubbed = new URL(page.url);
@@ -80,8 +89,17 @@
 		}
 	}
 
+	/**
+	 * look canonicalises the code before it does anything else with it, so the
+	 * string this page shows, remembers, stashes and sends is one string.
+	 *
+	 * The form normalises as the human types, but this is also the entry point
+	 * for a code out of the URL and out of sessionStorage, neither of which the
+	 * form has touched. Canonicalising in one place here is what keeps the code
+	 * on the confirmation screen identical to the code in the request.
+	 */
 	function look() {
-		code = code.trim().toUpperCase();
+		code = normalise(code);
 		if (answered.has(code)) {
 			settle('used');
 			return;

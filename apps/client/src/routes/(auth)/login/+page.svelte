@@ -18,9 +18,47 @@
 	const REFUSED = 'Wrong email or password.';
 	const CODE_REFUSED = 'That code is not valid.';
 
+	/**
+	 * REDIRECTED is what this page says when a sign-in was refused elsewhere and
+	 * sent the browser here without a reason worth repeating.
+	 *
+	 * porte answers a failed browser login with a redirect to
+	 * `/login?error=<reason>` rather than a JSON body, because the caller is a
+	 * window and not a program. A login page that ignores that parameter throws
+	 * away the only explanation the human is ever given and shows them a blank
+	 * form instead, which reads as though nothing happened at all.
+	 */
+	const REDIRECTED = 'That sign-in did not finish. Start again from the app you were opening.';
+
+	/**
+	 * PLAIN_REASON is the shape of a reason this page is willing to print back,
+	 * and the guard is the point rather than tidiness.
+	 *
+	 * Anyone can put any text on the end of a link to this page, and this page
+	 * belongs to the identity provider, on its own domain and its own
+	 * certificate. Echoing whatever arrives would hand a stranger a message box
+	 * on the most trusted login screen in the suite, which is a phishing lure
+	 * with registre's name on it. porte's own reasons are short lowercase
+	 * sentences, so anything that is not one gets REDIRECTED and nothing real is
+	 * lost.
+	 */
+	const PLAIN_REASON = /^[a-z][a-z ,.'-]{2,79}$/i;
+
+	/**
+	 * refusal turns the `error` on the URL into a line this page will show,
+	 * capitalised so it sits beside the messages above it.
+	 */
+	function refusal(reason: string): string {
+		if (!reason) return '';
+		if (!PLAIN_REASON.test(reason)) return REDIRECTED;
+		return reason[0].toUpperCase() + reason.slice(1);
+	}
+
 	onMount(() => {
-		const req = new URLSearchParams(window.location.search).get('auth_request') ?? '';
+		const query = new URLSearchParams(window.location.search);
+		const req = query.get('auth_request') ?? '';
 		authRequest = req;
+		error = refusal(query.get('error') ?? '');
 		checkSession(req);
 	});
 

@@ -27,6 +27,9 @@
  * are the ones a guesser would use to tell a real code from a made-up one. So
  * `unusable` is one outcome here rather than four, and its copy has to read
  * correctly for all four. Nothing in this module may widen that.
+ *
+ * The shape of the user code itself is not here. `$lib/usercode` owns it, and
+ * every code handed to the calls below has already been through that module.
  */
 
 /**
