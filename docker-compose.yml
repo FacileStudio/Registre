@@ -8,25 +8,15 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-registre}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-registre-internal-db}
     volumes:
-    - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     expose:
-    - '5432'
+      - "5432"
     healthcheck:
-      test:
-      - CMD
-      - nc
-      - -z
-      - localhost
-      - '5432'
-      interval: 30s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-registre}"]
+      interval: 5s
       timeout: 5s
-      retries: 3
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
+      retries: 10
+
   registre-api:
     container_name: registre-api
     restart: unless-stopped
@@ -34,37 +24,43 @@ services:
       context: .
       dockerfile: Dockerfile
     expose:
-    - '4000'
+      - "4000"
     networks:
-    - default
-    - dokploy-network
+      - default
+      - dokploy-network
     labels:
-      traefik.enable: 'true'
+      traefik.enable: "true"
       traefik.docker.network: dokploy-network
-      traefik.http.routers.registre-web.rule: Host(`sso.facile.studio`)
+      traefik.http.routers.registre-web.rule: "Host(`sso.facile.studio`)"
       traefik.http.routers.registre-web.entrypoints: web
       traefik.http.routers.registre-web.middlewares: redirect-to-https@file
       traefik.http.routers.registre-web.service: registre-svc
-      traefik.http.routers.registre-secure.rule: Host(`sso.facile.studio`)
+      traefik.http.routers.registre-secure.rule: "Host(`sso.facile.studio`)"
       traefik.http.routers.registre-secure.entrypoints: websecure
       traefik.http.routers.registre-secure.tls.certresolver: letsencrypt
       traefik.http.routers.registre-secure.service: registre-svc
-      traefik.http.services.registre-svc.loadbalancer.server.port: '4000'
+      traefik.http.services.registre-svc.loadbalancer.server.port: "4000"
+      # An edge rate limit is the layer that answers a connection flood; the
+      # in-process ceiling answers the memory amplification behind it. The
+      # numbers are a deployment policy rather than a default, so they are
+      # commented rather than guessed — every app in the suite fetching a token
+      # at once after a restart is a legitimate burst.
+      # traefik.http.middlewares.registre-rl.ratelimit.average: "60"
+      # traefik.http.middlewares.registre-rl.ratelimit.burst: "120"
     healthcheck:
-      test:
-      - CMD
-      - nc
-      - -z
-      - localhost
-      - '4000'
-      interval: 30s
+      test: ["CMD", "/api", "healthcheck"]
+      interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 10s
     environment:
       APP_ENV: ${APP_ENV:-production}
+      # The login rate limiter keys on RemoteAddr, which is only the real
+      # client address once TRUSTED_PROXIES is set. Unset behind Traefik, every
+      # human shares one 5 req/s bucket and the whole suite cannot log in.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       DATABASE_URL: postgres://${POSTGRES_USER:-registre}:${POSTGRES_PASSWORD:-registre-internal-db}@registre-db:5432/${POSTGRES_DB:-registre}?sslmode=disable
-      PORT: '4000'
+      PORT: "4000"
       LOG_LEVEL: ${LOG_LEVEL:-info}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       REGISTRE_ISSUER: ${REGISTRE_ISSUER:-https://sso.facile.studio}
@@ -73,9 +69,20 @@ services:
       REGISTRE_REFRESH_TOKEN_TTL: ${REGISTRE_REFRESH_TOKEN_TTL:-720h}
       REGISTRE_KEY_ROTATION_INTERVAL: ${REGISTRE_KEY_ROTATION_INTERVAL:-720h}
       REGISTRE_KEY_PUBLISH_DELAY: ${REGISTRE_KEY_PUBLISH_DELAY:-15m}
+      # Left empty on purpose: unset, registre derives the retention from the
+      # access token lifetime, and pinning a literal here would silently break
+      # that the moment somebody raises the lifetime alone.
       REGISTRE_KEY_RETENTION: ${REGISTRE_KEY_RETENTION:-}
+      # How many argon2 verifications run at once. Multiply by 64 MiB for the
+      # transient memory the token endpoint may hold under load. Unset means
+      # one per core, which is what the CPU can actually use.
       REGISTRE_VERIFY_CONCURRENCY: ${REGISTRE_VERIFY_CONCURRENCY:-}
+      # Seeding needs the mounted seed.yaml and every secret_env it names
+      # added to this block by name. Setting the path alone fails the boot,
+      # which is the intended failure but a confusing one.
       REGISTRE_SEED_FILE: ${REGISTRE_SEED_FILE:-}
+      # Every secret_env the seed names must be forwarded here by name;
+      # an interpolated-but-unlisted variable never reaches the container.
       REGISTRE_SEED_SUITE_CI_SECRET: ${REGISTRE_SEED_SUITE_CI_SECRET:-}
       REGISTRE_SEED_MYCELIUM_SECRET: ${REGISTRE_SEED_MYCELIUM_SECRET:-}
       REGISTRE_SEED_SABLIER_SECRET: ${REGISTRE_SEED_SABLIER_SECRET:-}
@@ -94,10 +101,22 @@ services:
       REGISTRE_SEED_ATELIER_SECRET: ${REGISTRE_SEED_ATELIER_SECRET:-}
       REGISTRE_SEED_GLOUTON_SECRET: ${REGISTRE_SEED_GLOUTON_SECRET:-}
       REGISTRE_SEED_SONDE_SECRET: ${REGISTRE_SEED_SONDE_SECRET:-}
+      # Log shipping. Both are needed or nothing ships; the token is a per-app
+      # key from Journal's Keys page, and the URL must end in /api. registre's
+      # protocol errors — a refused client, a scope it would not grant — are
+      # the suite's auth audit trail, so this is not optional in production.
       JOURNAL_URL: ${JOURNAL_URL:-}
       JOURNAL_TOKEN: ${JOURNAL_TOKEN:-}
+      # The browser half of Journal, handed to the client over GET /api/config
+      # rather than baked into the bundle. Both or neither, and the URL ends
+      # in /api like the pair above.
       JOURNAL_BROWSER_URL: ${JOURNAL_BROWSER_URL:-}
       JOURNAL_BROWSER_KEY: ${JOURNAL_BROWSER_KEY:-}
+      # Password recovery. Absent SMTP_HOST or SMTP_FROM means recovery is off:
+      # the routes still answer identically, they just send nothing, and the
+      # boot log says which state this instance is in. Listing them here is the
+      # load-bearing part, because an entry in Dokploy's environment store that
+      # this block does not name never reaches the container.
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-}
       SMTP_USER: ${SMTP_USER:-}
@@ -105,19 +124,31 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-}
     volumes:
-    - ./seed.yaml:/etc/registre/seed.yaml:ro
+      - ./seed.yaml:/etc/registre/seed.yaml:ro
     depends_on:
       registre-db:
         condition: service_healthy
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
+
 networks:
   dokploy-network:
     external: true
+
 volumes:
   db_data:
+    # Renamed from registre_db_data on 2026-08-24, which is how this database
+    # was reinitialised rather than repaired.
+    #
+    # POSTGRES_PASSWORD only applies at initdb. When the Dokploy environment
+    # block was replaced and the custom password lost, the volume kept the
+    # password it had been initialised with while the panel and the container
+    # env both reported the compose default, so no client could authenticate
+    # and no lookup could recover the real value. Pointing at a new volume
+    # reinitialises Postgres with the password the compose file actually
+    # sends.
+    #
+    # The old volume is deliberately left on the host rather than deleted. It
+    # is the only copy of the signing keys that existed before this, and
+    # nothing in the suite consumed a registre token yet, so keeping it costs
+    # a little disk and buys the option of recovering it if the password ever
+    # turns up. Delete it by hand once nobody wants it.
     name: registre_db_data_v2
