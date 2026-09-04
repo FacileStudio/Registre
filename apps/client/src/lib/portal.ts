@@ -41,7 +41,7 @@ export const categories: Record<string, PortalApp[]> = {
 		{
 			name: 'Perception',
 			url: 'https://perception.facile.studio',
-			desc: 'Mémoire métier et intelligence contextuelle du studio.'
+			desc: 'Mémorie métier et intelligence contextuelle du studio.'
 		},
 		{
 			name: 'Courrier',
@@ -63,6 +63,26 @@ export const categories: Record<string, PortalApp[]> = {
 			url: 'https://echo.facile.studio',
 			desc: 'Visioconférence simple et sécurisée.',
 			icon: '/icons/echo.ico'
+		},
+		{
+			name: 'Casier',
+			url: 'https://casier.facile.studio',
+			desc: 'Gestionnaire de secrets et variables d\'environnement.'
+		},
+		{
+			name: 'Journal',
+			url: 'https://journal.facile.studio',
+			desc: 'Journal centralisé des logs de la suite.'
+		},
+		{
+			name: 'Capsule',
+			url: 'https://capsule.facile.studio',
+			desc: 'Partage de secrets chiffrés de bout en bout.'
+		},
+		{
+			name: 'Mycelium',
+			url: 'https://mycelium.facile.studio',
+			desc: 'Mémoire persistante et flux d\'activité des agents.'
 		}
 	],
 	Infrastructure: [
@@ -88,6 +108,16 @@ export const categories: Record<string, PortalApp[]> = {
 			name: 'Nook',
 			url: 'https://nook.facile.studio',
 			desc: 'Uptime et serveur de relai de notifications centralisé.'
+		},
+		{
+			name: 'Antenne',
+			url: 'https://antenne.facile.studio',
+			desc: 'Bus d\'alertes et de notifications du système.'
+		},
+		{
+			name: 'Sonde',
+			url: 'https://sonde.facile.studio',
+			desc: 'Monitoring d\'uptime et pages de statut.'
 		}
 	],
 	Workspace: [
@@ -101,6 +131,11 @@ export const categories: Record<string, PortalApp[]> = {
 			name: 'Coffre',
 			url: 'https://coffre.facile.studio',
 			desc: 'Coffre de mots de passe et secrets partagés.'
+		},
+		{
+			name: 'Ardoise',
+			url: 'https://ardoise.facile.studio',
+			desc: 'Générateur de PDF pour la paperasse freelance française.'
 		}
 	],
 	Studio: [

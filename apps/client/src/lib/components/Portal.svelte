@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Badge, Button, Icon, icons } from '@facile/muse';
+	import { Badge, Button, Card, Input, Icon, icons } from '@facile/muse';
 	import type { AccountView } from '$lib/account';
 	import { categories, domainColor, getDomain, type PortalApp } from '$lib/portal';
 
@@ -121,12 +121,11 @@
 		<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-fc-fg-muted">
 			<Icon icon={icons.search} size={16} />
 		</div>
-		<input
+		<Input
 			type="text"
 			bind:value={searchQuery}
 			placeholder="Search apps and services..."
-			class="w-full rounded-fc-lg border border-fc-border bg-fc-surface py-2.5 pl-10 pr-16 text-fc-sm
-				text-fc-fg placeholder-fc-fg-muted outline-none transition-colors focus:border-fc-ring"
+			class="w-full pl-10 pr-16"
 		/>
 		<button
 			type="button"
@@ -143,53 +142,48 @@
 			Nothing found for "{searchQuery}".
 		</div>
 	{:else}
-		<div class="flex flex-col gap-10">
+		<div class="flex flex-col gap-8">
 			{#each Object.entries(filteredCategories) as [cat, apps] (cat)}
 				<section class="flex flex-col gap-3">
 					<div class="flex items-center gap-2.5">
 						<h2 class="text-fc-md font-semibold tracking-tight text-fc-fg">{cat}</h2>
 						<Badge tone="neutral">{apps.length}</Badge>
 					</div>
-					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 						{#each apps as app (app.url)}
 							{@const domain = getDomain(app.url)}
-							<a
-								href={app.url}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="group flex items-center gap-3.5 rounded-fc-lg border border-fc-border
-									bg-fc-surface p-3 transition-all hover:-translate-y-0.5
-									hover:border-fc-border-hover hover:bg-fc-surface-hover"
-							>
-								<div
-									class="relative flex size-9 shrink-0 items-center justify-center overflow-hidden
-										rounded-fc-md text-fc-xs font-bold text-white shadow-sm"
-									style="background: {domainColor(domain)}"
-								>
-									<span>{app.name.charAt(0)}</span>
-									<img
-										src={app.icon || `https://${domain}/favicon.ico`}
-										alt=""
-										class="absolute inset-0 size-full rounded-fc-md bg-fc-surface object-cover
-											opacity-0 transition-opacity"
-										onload={(e) => {
-											const el = e.currentTarget as HTMLImageElement;
-											if (el.naturalWidth) el.style.opacity = '1';
-										}}
-										onerror={(e) => {
-											(e.currentTarget as HTMLImageElement).remove();
-										}}
-									/>
-								</div>
-								<div class="min-w-0 flex-1">
-									<div class="truncate text-fc-sm font-medium text-fc-fg group-hover:text-fc-primary">
-										{app.name}
+							<Card href={app.url} target="_blank" rel="noopener noreferrer">
+								<div class="flex items-center gap-3">
+									<div
+										class="relative flex size-10 shrink-0 items-center justify-center overflow-hidden
+											rounded-fc-md text-fc-xs font-bold text-white shadow-sm"
+										style="background: {domainColor(domain)}"
+									>
+										<span>{app.name.charAt(0)}</span>
+										<img
+											src={app.icon || `https://${domain}/favicon.ico`}
+											alt=""
+											class="absolute inset-0 size-full rounded-fc-md bg-fc-component object-cover
+												opacity-0 transition-opacity"
+											onload={(e) => {
+												const el = e.currentTarget as HTMLImageElement;
+												if (el.naturalWidth) el.style.opacity = '1';
+											}}
+											onerror={(e) => {
+												(e.currentTarget as HTMLImageElement).remove();
+											}}
+										/>
 									</div>
-									<div class="truncate text-fc-xs text-fc-fg-muted">
-										{app.desc}
+									<div class="min-w-0 flex-1">
+										<div class="truncate text-fc-sm font-medium text-fc-fg group-hover:text-fc-primary">
+											{app.name}
+										</div>
+										<div class="truncate text-fc-xs text-fc-fg-muted">
+											{app.desc}
+										</div>
 									</div>
 								</div>
-							</a>
+							</Card>
 						{/each}
 					</div>
 				</section>
@@ -269,3 +263,4 @@
 		</div>
 	</div>
 {/if}
+
