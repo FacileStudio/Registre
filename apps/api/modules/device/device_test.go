@@ -91,9 +91,13 @@ func (f *fixture) signIn() schemas.User {
 func (f *fixture) start(userCode string) {
 	f.t.Helper()
 	err := f.flows.Store(
-		context.Background(), "facile-cli", "device-"+userCode, userCode,
-		time.Now().UTC().Add(devices.Lifetime), []string{"openid", "offline_access"},
-	)
+		context.Background(), devices.StoreParams{
+			ClientID:   "facile-cli",
+			DeviceCode: "device-" + userCode,
+			UserCode:   userCode,
+			ExpiresAt:  time.Now().UTC().Add(devices.Lifetime),
+			Scopes:     []string{"openid", "offline_access"},
+		})
 	if err != nil {
 		f.t.Fatalf("recording the flow: %v", err)
 	}

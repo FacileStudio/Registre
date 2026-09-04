@@ -146,10 +146,13 @@ func (j *memoryJar) Cookies(*url.URL) []*http.Cookie { return j.held }
 // back", which is a workaround printed on a screen rather than a login.
 func TestASessionlessHumanCanSignInAndComeBack(t *testing.T) {
 	fixture := newLoop(t)
-	if err := fixture.flows.Store(
-		context.Background(), "facile-cli", "device-1", "BCDFGHJK",
-		time.Now().UTC().Add(devices.Lifetime), []string{"openid"},
-	); err != nil {
+	if err := fixture.flows.Store(context.Background(), devices.StoreParams{
+		ClientID:   "facile-cli",
+		DeviceCode: "device-1",
+		UserCode:   "BCDFGHJK",
+		ExpiresAt:  time.Now().UTC().Add(devices.Lifetime),
+		Scopes:     []string{"openid"},
+	}); err != nil {
 		t.Fatalf("recording the flow: %v", err)
 	}
 

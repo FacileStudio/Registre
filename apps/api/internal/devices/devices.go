@@ -158,18 +158,35 @@ func (s *Service) WithClock(now func() time.Time) *Service {
 // it warns about is a function of how many rows are live. A sweep that runs
 // exactly when the count goes up needs no goroutine, no shutdown handling and
 // no second place to look when the table is unexpectedly large.
-func (s *Service) Store(
-	ctx context.Context, clientID, deviceCode, userCode string, expires time.Time, scopes []string,
-) error {
+// StoreParams holds the parameters for storing a device flow.
+type StoreParams struct {
+	ClientID   string
+	DeviceCode string
+	UserCode   string
+	ExpiresAt  time.Time
+	Scopes     []string
+}
+
+// Store records a freshly minted flow and purges the expired ones on the way
+// past.
+//
+// The purge is here rather than on a ticker because this is the only statement
+// that adds a row, so it is the only moment the table can grow, and because
+// zitadel/oidc's interface documentation makes purging a requirement rather
+// than housekeeping: user codes are low entropy, and the collision probability
+// it warns about is a function of how many rows are live. A sweep that runs
+// exactly when the count goes up needs no goroutine, no shutdown handling and
+// no second place to look when the table is unexpectedly large.
+func (s *Service) Store(ctx context.Context, p StoreParams) error {
 	if err := s.purge(ctx); err != nil {
 		return err
 	}
 	row := schemas.DeviceCode{
-		DeviceCodeHash: hash(deviceCode),
-		UserCode:       Normalise(userCode),
-		ClientID:       clientID,
-		Scopes:         schemas.StringList(scopes),
-		ExpiresAt:      expires,
+		DeviceCodeHash: hash(p.DeviceCode),
+		UserCode:       Normalise(p.UserCode),
+		ClientID:       p.ClientID,
+		Scopes:         schemas.StringList(p.Scopes),
+		ExpiresAt:      p.ExpiresAt,
 		CreatedAt:      s.now(),
 	}
 	result := s.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&row)

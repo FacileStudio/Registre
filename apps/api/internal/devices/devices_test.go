@@ -56,10 +56,22 @@ func human(t *testing.T, db *gorm.DB, id string) string {
 	return id
 }
 
+// startParams holds the parameters for the test helper.
+type startParams struct {
+	ClientID, DeviceCode, UserCode string
+	Expires                        time.Time
+}
+
 // start records one flow with the given device and user codes.
-func start(t *testing.T, service *Service, clientID, deviceCode, userCode string, expires time.Time) {
+func start(t *testing.T, service *Service, p startParams) {
 	t.Helper()
-	err := service.Store(context.Background(), clientID, deviceCode, userCode, expires, []string{"openid"})
+	err := service.Store(context.Background(), devices.StoreParams{
+		ClientID:   p.ClientID,
+		DeviceCode: p.DeviceCode,
+		UserCode:   p.UserCode,
+		ExpiresAt:  p.Expires,
+		Scopes:     []string{"openid"},
+	})
 	if err != nil {
 		t.Fatalf("storing the flow: %v", err)
 	}
@@ -107,7 +119,7 @@ func TestTheDeviceCodeIsStoredAsADigestAndNeverAsItself(t *testing.T) {
 func TestAnApprovedFlowIsRedeemableExactlyOnce(t *testing.T) {
 	service, clock, db := flows(t)
 	subject := human(t, db, "user-1")
-	start(t, service, "facile-cli", "device-1", "BCDF-GHJK", clock.at.Add(Lifetime))
+	start(t, service, startParams{clientID: "facile-cli", deviceCode: "device-1", userCode: "BCDF-GHJK", expires: clock.at.Add(Lifetime}))
 
 	approval := Approval{UserID: subject, AMR: []string{"pwd"}, AuthTime: clock.at}
 	if err := service.Approve(context.Background(), "bcdf ghjk", approval); err != nil {
@@ -140,7 +152,7 @@ func TestAnApprovedFlowIsRedeemableExactlyOnce(t *testing.T) {
 // instead would tell a human they were refused when they were merely slow.
 func TestAnUnansweredFlowIsPendingAndAnExpiredOneIsNotDenied(t *testing.T) {
 	service, clock, _ := flows(t)
-	start(t, service, "facile-cli", "device-1", "BCDFGHJK", clock.at.Add(Lifetime))
+	start(t, service, startParams{clientID: "facile-cli", deviceCode: "device-1", userCode: "BCDFGHJK", expires: clock.at.Add(Lifetime}))
 
 	pending, err := service.Poll(context.Background(), "facile-cli", "device-1")
 	if err != nil {
@@ -169,7 +181,7 @@ func TestAnUnansweredFlowIsPendingAndAnExpiredOneIsNotDenied(t *testing.T) {
 func TestApprovingAnExpiredFlowIsRefused(t *testing.T) {
 	service, clock, db := flows(t)
 	subject := human(t, db, "user-1")
-	start(t, service, "facile-cli", "device-1", "BCDFGHJK", clock.at.Add(Lifetime))
+	start(t, service, startParams{clientID: "facile-cli", deviceCode: "device-1", userCode: "BCDFGHJK", expires: clock.at.Add(Lifetime}))
 	clock.at = clock.at.Add(Lifetime + time.Second)
 
 	err := service.Approve(context.Background(), "BCDFGHJK", Approval{UserID: subject, AuthTime: clock.at})
@@ -182,7 +194,7 @@ func TestApprovingAnExpiredFlowIsRefused(t *testing.T) {
 // leaving the flow to time out, so the CLI stops polling immediately.
 func TestADeniedFlowStaysDenied(t *testing.T) {
 	service, clock, _ := flows(t)
-	start(t, service, "facile-cli", "device-1", "BCDFGHJK", clock.at.Add(Lifetime))
+	start(t, service, startParams{clientID: "facile-cli", deviceCode: "device-1", userCode: "BCDFGHJK", expires: clock.at.Add(Lifetime}))
 
 	if err := service.Deny(context.Background(), "BCDF-GHJK"); err != nil {
 		t.Fatalf("denying: %v", err)
@@ -206,7 +218,7 @@ func TestADeniedFlowStaysDenied(t *testing.T) {
 func TestAFlowBelongsToTheClientThatStartedIt(t *testing.T) {
 	service, clock, db := flows(t)
 	subject := human(t, db, "user-1")
-	start(t, service, "facile-cli", "device-1", "BCDFGHJK", clock.at.Add(Lifetime))
+	start(t, service, startParams{clientID: "facile-cli", deviceCode: "device-1", userCode: "BCDFGHJK", expires: clock.at.Add(Lifetime}))
 	if err := service.Approve(context.Background(), "BCDFGHJK", Approval{UserID: subject, AuthTime: clock.at}); err != nil {
 		t.Fatalf("approving: %v", err)
 	}
@@ -222,10 +234,10 @@ func TestAFlowBelongsToTheClientThatStartedIt(t *testing.T) {
 // live. A table that only grows makes that number wrong.
 func TestStoringAFlowPurgesTheExpiredOnes(t *testing.T) {
 	service, clock, db := flows(t)
-	start(t, service, "facile-cli", "device-old", "BCDFGHJK", clock.at.Add(Lifetime))
+	start(t, service, startParams{clientID: "facile-cli", deviceCode: "device-old", userCode: "BCDFGHJK", expires: clock.at.Add(Lifetime}))
 
 	clock.at = clock.at.Add(Lifetime + purgeAfter + time.Minute)
-	start(t, service, "facile-cli", "device-new", "KLMNPQRS", clock.at.Add(Lifetime))
+	start(t, service, startParams{clientID: "facile-cli", deviceCode: "device-new", userCode: "KLMNPQRS", expires: clock.at.Add(Lifetime}))
 
 	var rows []schemas.DeviceCode
 	if err := db.Find(&rows).Error; err != nil {
@@ -244,10 +256,16 @@ func TestStoringAFlowPurgesTheExpiredOnes(t *testing.T) {
 // approve one device and hand the tokens to another.
 func TestACollidingUserCodeIsRefusedByName(t *testing.T) {
 	service, clock, _ := flows(t)
-	start(t, service, "facile-cli", "device-1", "BCDFGHJK", clock.at.Add(Lifetime))
+	start(t, service, startParams{clientID: "facile-cli", deviceCode: "device-1", userCode: "BCDFGHJK", expires: clock.at.Add(Lifetime}))
 
 	err := service.Store(
-		context.Background(), "facile-cli", "device-2", "bcdf-ghjk", clock.at.Add(Lifetime), nil,
+		context.Background(), devices.StoreParams{
+			ClientID:   "facile-cli",
+			DeviceCode: "device-2",
+			UserCode:   "bcdf-ghjk",
+			ExpiresAt:  clock.at.Add(Lifetime),
+			Scopes:     nil,
+		},
 	)
 	if err != ErrDuplicateUserCode {
 		t.Fatalf("a colliding user code = %v, want ErrDuplicateUserCode", err)

@@ -29,7 +29,13 @@ import (
 func (s *Storage) StoreDeviceAuthorization(
 	ctx context.Context, clientID, deviceCode, userCode string, expires time.Time, scopes []string,
 ) error {
-	err := s.svc.Devices.Store(ctx, clientID, deviceCode, userCode, expires, scopes)
+	err := s.svc.Devices.Store(ctx, devices.StoreParams{
+		ClientID:   clientID,
+		DeviceCode: deviceCode,
+		UserCode:   userCode,
+		ExpiresAt:  expires,
+		Scopes:     scopes,
+	})
 	if errors.Is(err, devices.ErrDuplicateUserCode) {
 		return op.ErrDuplicateUserCode
 	}
