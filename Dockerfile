@@ -1,4 +1,4 @@
-FROM golang:1.26-alpine AS api-build
+FROM golang:1.24-alpine AS api-build
 
 ARG TARGETOS=linux
 ARG TARGETARCH

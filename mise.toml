@@ -9,7 +9,7 @@ config_roots = ["apps/api"]
 
 [tools]
 lefthook = "latest"
-go = "1.26"
+go = "1.24"
 
 [hooks]
 postinstall = "lefthook install"
