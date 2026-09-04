@@ -89,3 +89,4 @@ routes lives under `internal/`. `filet.yml` enforces that with no exceptions.
 Part of the [Facile Suite](https://facile.studio) — self-hosted tools for creative studios
 and freelancers. One login, zero cloud dependency.
 # rebuild trigger Fri Sep  4 16:58:34 CEST 2026
+# Manual rebuild trigger 1788536391
