@@ -240,3 +240,12 @@ applications:
       - https://sonde.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
 
+  # Bulle, the suite's coding agent and harness at bulle.facile.studio.
+  - client_id: bulle
+    name: Bulle
+    backchannel_logout_uri: https://bulle.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_BULLE_SECRET
+    redirect_uris:
+      - https://bulle.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+
