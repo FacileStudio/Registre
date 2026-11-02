@@ -130,7 +130,7 @@ func TestApplyWritesTheAllowanceAndAReapplyRewritesIt(t *testing.T) {
 	}
 }
 
-func TestTheProductionSeedLetsBulleReadFourAppsAndWriteNone(t *testing.T) {
+func TestTheProductionSeedLetsBulleReadAndWriteFourApps(t *testing.T) {
 	file := loadProductionSeed(t)
 	var bulle Application
 	for _, app := range file.Applications {
@@ -142,8 +142,8 @@ func TestTheProductionSeedLetsBulleReadFourAppsAndWriteNone(t *testing.T) {
 		t.Fatalf("bulle declares %d exchange entries, want courrier, agenda, opus and sablier", len(bulle.TokenExchange))
 	}
 	for _, grant := range bulle.TokenExchange {
-		if len(grant.Scopes) != 1 || !strings.HasSuffix(grant.Scopes[0], ".read") {
-			t.Errorf("%s allows %v, want a single read scope", grant.Audience, grant.Scopes)
+		if len(grant.Scopes) != 2 || !strings.HasSuffix(grant.Scopes[0], ".read") || !strings.HasSuffix(grant.Scopes[1], ".write") {
+			t.Errorf("%s allows %v, want exactly that app's read and write scopes", grant.Audience, grant.Scopes)
 		}
 	}
 }

@@ -256,8 +256,9 @@ applications:
   # is the app's client_id, which is what these entries and suite-ci above use.
   #
   # Scopes are `<app name, lower case>.read` or `.write`, and are checked
-  # against the audience's `name` at boot. Only `.read` is granted: the Bulle
-  # tools are read-only, and a write scope is one line here when they are not.
+  # against the audience's `name` at boot. Bulle asks for `.read` on every
+  # call and for `.write` only on a change the user approved in Bulle, so a
+  # read never carries write power.
   - client_id: bulle
     name: Bulle
     backchannel_logout_uri: https://bulle.facile.studio/api/auth/backchannel-logout
@@ -267,11 +268,11 @@ applications:
     scopes: [openid, profile, email, offline_access]
     token_exchange:
       - audience: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
-        scopes: [courrier.read]
+        scopes: [courrier.read, courrier.write]
       - audience: vvVAmcun8BFuAxMdNrp6lhqs2anzvz3vnzkeZh3U
-        scopes: [agenda.read]
+        scopes: [agenda.read, agenda.write]
       - audience: aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D
-        scopes: [opus.read]
+        scopes: [opus.read, opus.write]
       - audience: 5TVdL3zCbhhh7XCs3MvaIr5nqoV2ZIMLeEdjnVYu
-        scopes: [sablier.read]
+        scopes: [sablier.read, sablier.write]
 
