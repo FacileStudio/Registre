@@ -16,7 +16,7 @@ service_accounts:
     scopes:
       - courrier.read
     audiences:
-      - courrier
+      - tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
     access_token_ttl: 1h
 
 applications:
@@ -253,10 +253,7 @@ applications:
   # `audience` is written into the issued token's `aud` claim byte for byte and
   # nothing is resolved: registre has no name lookup, so the string here must
   # equal the receiving app's OIDC_MACHINE_AUDIENCE exactly. The suite standard
-  # is the app's client_id, which is what these entries use. (suite-ci above
-  # names `courrier`, which registre likewise writes verbatim: a token minted
-  # for it opens an app set to `courrier` and is refused by one set to the
-  # client_id. Move that account to the client_id when Courrier is cut over.)
+  # is the app's client_id, which is what these entries and suite-ci above use.
   #
   # Scopes are `<app name, lower case>.read` or `.write`, and are checked
   # against the audience's `name` at boot. Only `.read` is granted: the Bulle
