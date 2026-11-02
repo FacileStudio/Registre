@@ -12,7 +12,7 @@ The interactive documentation is served live at `/docs` (powered by Scalar), and
 |---|---|---|---|
 | `GET` | `/.well-known/openid-configuration` | Public | Discovery document reporting endpoints and supported capabilities |
 | `GET` | `/oauth/v2/keys` | Public | JSON Web Key Set (JWKS) containing active public signing keys |
-| `POST` | `/oauth/v2/token` | Basic / Client Secret | Issue access tokens, refresh tokens, and ID tokens |
+| `POST` | `/oauth/v2/token` | Basic / Client Secret | Issue access tokens, refresh tokens, and ID tokens; also the RFC 8693 token exchange, which trades a signed-in human's access token for a five-minute token addressed to one app (allowance declared per client in the seed as `token_exchange`) |
 | `POST` | `/oauth/v2/introspect` | Bearer / Client Auth | Inspect active status and metadata of a token (RFC 7662) |
 | `POST` | `/oauth/v2/revoke` | Bearer / Client Auth | Revoke an issued token (RFC 7009) |
 | `GET` | `/oauth/v2/userinfo` | Bearer | Return claims for the authenticated user (OIDC UserInfo) |

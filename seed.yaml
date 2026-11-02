@@ -241,6 +241,26 @@ applications:
     scopes: [openid, profile, email, offline_access]
 
   # Bulle, the suite's coding agent and harness at bulle.facile.studio.
+  #
+  # token_exchange (RFC 8693) is how Bulle reads a signed-in user's own mail,
+  # calendar, tasks and timer. Bulle trades that user's Bulle token at the token
+  # endpoint for a five-minute token addressed to exactly one of the apps below,
+  # carrying `sub` = the user, `act.sub` = bulle and the scopes named here. The
+  # app verifies it offline through porte's OIDC_MACHINE_AUDIENCE path and maps
+  # `sub` to its own account; it never sees Bulle's login token. Declaring any
+  # entry is what grants the exchange grant, so grant_types stays unlisted.
+  #
+  # `audience` is written into the issued token's `aud` claim byte for byte and
+  # nothing is resolved: registre has no name lookup, so the string here must
+  # equal the receiving app's OIDC_MACHINE_AUDIENCE exactly. The suite standard
+  # is the app's client_id, which is what these entries use. (suite-ci above
+  # names `courrier`, which registre likewise writes verbatim: a token minted
+  # for it opens an app set to `courrier` and is refused by one set to the
+  # client_id. Move that account to the client_id when Courrier is cut over.)
+  #
+  # Scopes are `<app name, lower case>.read` or `.write`, and are checked
+  # against the audience's `name` at boot. Only `.read` is granted: the Bulle
+  # tools are read-only, and a write scope is one line here when they are not.
   - client_id: bulle
     name: Bulle
     backchannel_logout_uri: https://bulle.facile.studio/api/auth/backchannel-logout
@@ -248,4 +268,13 @@ applications:
     redirect_uris:
       - https://bulle.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    token_exchange:
+      - audience: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
+        scopes: [courrier.read]
+      - audience: vvVAmcun8BFuAxMdNrp6lhqs2anzvz3vnzkeZh3U
+        scopes: [agenda.read]
+      - audience: aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D
+        scopes: [opus.read]
+      - audience: 5TVdL3zCbhhh7XCs3MvaIr5nqoV2ZIMLeEdjnVYu
+        scopes: [sablier.read]
 

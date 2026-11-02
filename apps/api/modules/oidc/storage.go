@@ -188,6 +188,8 @@ func (s *Storage) CreateAccessToken(ctx context.Context, request op.TokenRequest
 	var clientID, subject string
 	var lifetime time.Duration
 	switch granted := request.(type) {
+	case op.TokenExchangeRequest:
+		return s.mintExchanged(ctx, granted)
 	case tokenRequest:
 		clientID, subject = granted.clientID, granted.subject
 		lifetime = granted.lifetime
@@ -217,7 +219,7 @@ func (s *Storage) mintAccessToken(
 	row := schemas.AccessToken{
 		ID: id, ClientID: clientID, Subject: subject,
 		Scopes: request.GetScopes(), Audiences: request.GetAudience(),
-		IssuedAt: issued, ExpiresAt: expires,
+		IssuedAt: issued, ExpiresAt: expires, Actor: actorOf(request),
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return "", time.Time{}, fmt.Errorf("oidc: record the token: %w", err)

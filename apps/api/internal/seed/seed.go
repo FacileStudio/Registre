@@ -73,6 +73,12 @@ type Application struct {
 	// VisibleRoles is the whitelist of roles this app may see. Empty means
 	// none, even with the roles scope granted: visibility is opt-in.
 	VisibleRoles []string `yaml:"visible_roles"`
+
+	// TokenExchange lists the apps this client may trade a signed-in
+	// human's token for (RFC 8693), each with the scopes it may ask for
+	// there. Empty means the client cannot exchange. Declaring any entry is
+	// what grants the exchange grant; it is not listed in grant_types.
+	TokenExchange []ExchangeGrant `yaml:"token_exchange"`
 }
 
 // ServiceAccount declares one machine principal.

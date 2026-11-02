@@ -13,10 +13,11 @@ import (
 // its document verbatim promises grants that answer only an error. Filtering
 // here keeps the document honest without forking the library's handler.
 var servedGrants = map[string]bool{
-	"authorization_code":              true,
-	"refresh_token":                   true,
-	"client_credentials":              true,
-	string(zoidc.GrantTypeDeviceCode): true,
+	"authorization_code":                 true,
+	"refresh_token":                      true,
+	"client_credentials":                 true,
+	string(zoidc.GrantTypeTokenExchange): true,
+	string(zoidc.GrantTypeDeviceCode):    true,
 }
 
 func filteredDiscovery(next http.Handler) http.Handler {

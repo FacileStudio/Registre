@@ -224,6 +224,22 @@ asked for, offers **approve and deny as equal-weight choices** because RFC 8628 
 `access_denied` an answer the waiting CLI is told about rather than a cancelled dialog, and it
 is the page a human opens on a phone — so the phone layout is the primary one, not the fallback.
 
+**Delegation by token exchange (RFC 8693) is the other addition.** An app that holds a signed-in
+human's token (Bulle, acting for them) trades it at the token endpoint for a token addressed to
+exactly one other app, so that app never sees the first token and the human never pastes one. The
+caller is a confidential client that authenticates normally and holds the grant; the register
+(`clients.token_exchange`, declared per application in the seed) names the audiences it may ask for
+and the scopes it may ask for there. The issued JWT carries `sub` = the human, `aud` = the one
+audience **written verbatim** (no name resolution: it must equal the receiving app's
+`OIDC_MACHINE_AUDIENCE`), `scope` = the granted scopes, `act.sub` = the caller and `client_id` = the
+caller. It lives at most five minutes and never past the subject token, carries no refresh token
+and no `roles`, and is recorded in `access_tokens` with `actor` set. The subject must be a live,
+unrevoked access token that registre issued to the caller with the caller in its `aud`, for a user
+who exists and is enabled; a delegated token is refused as a subject, so a delegation cannot be
+delegated again. Every refusal of a class answers with the same body (`invalid_grant`,
+`invalid_target`, `invalid_scope`), so the response does not say which check failed. Writes are
+not granted yet: scopes are `<app>.read` or `<app>.write`, and only `.read` is seeded.
+
 Reuse `porte/local/password.go`'s argon2id parameters **verbatim** — 64 MiB, three passes, two
 lanes — so password hashes stay portable in either direction.
 

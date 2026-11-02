@@ -115,6 +115,7 @@ func declared(row schemas.Client) map[string]any {
 		"redirect_uris":          row.RedirectURIs,
 		"backchannel_logout_uri": row.BackchannelLogoutURI,
 		"visible_roles":          row.VisibleRoles,
+		"token_exchange":         row.TokenExchange,
 		"updated_at":             time.Now().UTC(),
 	}
 	switch {
@@ -128,7 +129,7 @@ func declared(row schemas.Client) map[string]any {
 
 // Upsert replaces the whole declarative half of the row keyed by client id:
 // name, kind, grant_types, scopes, audiences, access_token_ttl, managed,
-// redirect_uris, backchannel_logout_uri and visible_roles are each written
+// redirect_uris, backchannel_logout_uri, visible_roles and token_exchange are each written
 // exactly as given, including as empty.
 //
 // Every caller must therefore read-modify-write first — fetch the existing row

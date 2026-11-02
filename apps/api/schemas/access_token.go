@@ -16,6 +16,10 @@ type AccessToken struct {
 	IssuedAt  time.Time
 	ExpiresAt time.Time `gorm:"index"`
 	RevokedAt *time.Time
+
+	// Actor is the client acting on the subject's behalf, set only on a token
+	// issued by exchange and empty for every other grant.
+	Actor string
 }
 
 // TableName is the table this model reads.

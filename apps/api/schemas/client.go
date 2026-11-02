@@ -61,6 +61,11 @@ type Client struct {
 	// learning every role anyone holds.
 	VisibleRoles StringList `gorm:"type:jsonb"`
 
+	// TokenExchange is what this client may trade a human's token for at
+	// the token endpoint: one entry per audience, each with the scopes it
+	// may ask for there. Empty means the client may not exchange.
+	TokenExchange ExchangeGrants `gorm:"type:jsonb"`
+
 	AccessTokenTTL int64
 
 	// Managed marks a row the YAML seed owns. The seed rewrites it at every

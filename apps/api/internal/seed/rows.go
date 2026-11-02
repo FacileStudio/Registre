@@ -78,7 +78,7 @@ func (f File) validate() error {
 		}
 		seen[application.ClientID] = true
 	}
-	return nil
+	return f.validateExchange()
 }
 
 // validate rejects one application declaration.
@@ -133,7 +133,7 @@ func (a Application) grants() ([]string, error) {
 		}
 		resolved = append(resolved, name)
 	}
-	return resolved, nil
+	return a.withExchangeGrant(resolved), nil
 }
 
 // contains reports whether list holds value.
@@ -188,6 +188,7 @@ func (a Application) row(ctx context.Context, register *clients.Service) (schema
 		RedirectURIs:         schemas.StringList(a.RedirectURIs),
 		BackchannelLogoutURI: a.BackchannelLogoutURI,
 		VisibleRoles:         schemas.StringList(a.VisibleRoles),
+		TokenExchange:        a.exchangeGrants(),
 		Managed:              true,
 	}, nil
 }
