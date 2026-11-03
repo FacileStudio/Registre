@@ -5,7 +5,6 @@ import (
 	"context"
 	"image"
 	"image/png"
-	"strings"
 	"testing"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
@@ -22,10 +21,10 @@ func squarePNG(t *testing.T) []byte {
 	return out.Bytes()
 }
 
-// TestIDTokenCarriesThePictureUnderProfile is the sync contract. porte reads
-// `picture` from the ID token at every sign-in and fetches it into the app's
-// own store, so this claim is the only thing that carries a new picture to the
-// suite. It must be absolute, and it must stay behind the profile scope.
+// TestIDTokenCarriesThePictureUnderProfile is the sync contract. Apps read
+// `picture` from the ID token at sign-in and store it, so this claim is the
+// only thing that carries a picture to the suite. It must be the stable per-user URL, which apps keep and which always
+// serves the current picture, and it must stay behind the profile scope.
 func TestIDTokenCarriesThePictureUnderProfile(t *testing.T) {
 	fixture := newFixture(t, defaultKeyConfig())
 	secret := fixture.application("sablier", "http://127.0.0.1:9999/callback")
@@ -35,18 +34,18 @@ func TestIDTokenCarriesThePictureUnderProfile(t *testing.T) {
 	if err := fixture.db.Where("email = ?", "yann@facile.studio").Take(&user).Error; err != nil {
 		t.Fatalf("reading the user: %v", err)
 	}
-	stored, err := avatars.New(fixture.db, fixture.issuer).Put(context.Background(), user.ID, squarePNG(t))
-	if err != nil {
+	if _, err := avatars.New(fixture.db, fixture.issuer).Put(context.Background(), user.ID, squarePNG(t)); err != nil {
 		t.Fatalf("storing the picture: %v", err)
 	}
+	stable := fixture.issuer + avatars.Path + user.ID
 
 	client := testClient{id: "sablier", secret: secret, redirect: redirectOf("sablier")}
 	var claims struct {
 		Picture string `json:"picture"`
 	}
 	decodeIDTokenPayload(t, signInAndExchange(t, fixture, client, "openid profile")["id_token"].(string), &claims)
-	if claims.Picture != stored || !strings.HasPrefix(claims.Picture, fixture.issuer+avatars.Path) {
-		t.Errorf("id_token picture = %q, want the stored %q under the issuer", claims.Picture, stored)
+	if claims.Picture != stable {
+		t.Errorf("id_token picture = %q, want the stable %q, which never changes on upload", claims.Picture, stable)
 	}
 
 	claims.Picture = ""

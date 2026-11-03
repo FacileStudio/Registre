@@ -242,12 +242,14 @@ not granted yet: scopes are `<app>.read` or `<app>.write`, and only `.read` is s
 
 **Profile pictures ride the standard `picture` claim.** A human uploads one picture on
 `/account`; registre crops it to a square, re-encodes it as PNG (which drops EXIF and anything
-appended to the file) and serves it publicly at `<issuer>/avatars/<id>`. The id is random and
-replaced on every upload, so a new picture is a new URL and the response can be `immutable`.
-`picture` is emitted in the ID token and at userinfo under the `profile` scope only. porte
-already fetches `picture` into the app's own store at every sign-in (`porte/oidc/avatar.go`), so
-this reaches every app with no porte change. An app shows a new picture after its next sign-in,
-not before: registre does not push.
+appended to the file) and serves it publicly at `<issuer>/avatars/<sub>`. That URL is stable per
+human and always serves the current picture, with `Cache-Control: no-cache` and the upload id as
+ETag, so every load revalidates and costs a 304 while nothing changed. `picture` is emitted in
+the ID token and at userinfo under the `profile` scope only. The suite's apps store that URL at
+sign-in and render it, so a new upload shows in every app on its next page load, with nothing
+pushed and no re-sync. An app that copies the bytes instead (porte's `AvatarStore`) only sees a
+change at the next sign-in, which is why no suite app should. Removing the picture makes the URL
+answer 404 and drops the claim.
 
 Reuse `porte/local/password.go`'s argon2id parameters **verbatim** — 64 MiB, three passes, two
 lanes — so password hashes stay portable in either direction.

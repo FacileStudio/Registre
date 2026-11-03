@@ -1,10 +1,12 @@
 // Package avatars owns profile pictures: normalising an upload, storing it,
 // and naming the URL apps fetch it from.
 //
-// Apps never receive the bytes from registre directly. The `picture` claim
-// carries a public URL, and porte fetches it at every sign-in into the app's
-// own store, which is how one upload reaches every app in the suite without a
-// porte change and without registre knowing which apps exist.
+// The `picture` claim carries one stable URL per human, <issuer>/avatars/<sub>,
+// which always serves the current picture. Apps store that URL and render it,
+// so a new upload shows in every app on its next page load: nothing is pushed,
+// nothing is re-synced, and registre never needs to know which apps exist.
+// The response revalidates on every load (no-cache plus an ETag), which is
+// what makes the stable URL safe to cache at all.
 package avatars
 
 import (
@@ -54,7 +56,7 @@ func (s *Service) Put(ctx context.Context, userID string, upload []byte) (string
 	if err != nil {
 		return "", fmt.Errorf("avatars: store the picture: %w", err)
 	}
-	return s.url(id), nil
+	return s.versioned(userID, id), nil
 }
 
 // Remove deletes userID's picture. Removing a picture that does not exist is
@@ -67,9 +69,40 @@ func (s *Service) Remove(ctx context.Context, userID string) error {
 	return nil
 }
 
-// Picture returns userID's picture URL, or "" when they have none. It reads
-// the id alone, never the bytes, because it runs on every token issuance.
+// Picture returns userID's stable picture URL, the one the `picture` claim
+// carries, or "" when they have none. It reads the id alone, never the bytes,
+// because it runs on every token issuance.
 func (s *Service) Picture(ctx context.Context, userID string) (string, error) {
+	id, err := s.current(ctx, userID)
+	if id == "" || err != nil {
+		return "", err
+	}
+	return s.url(userID), nil
+}
+
+// Versioned returns userID's picture URL with the current upload's id as a
+// query, or "" when they have none. It is what registre's own pages render:
+// the stable URL does not change on upload, so an <img> already showing it
+// would never ask again.
+func (s *Service) Versioned(ctx context.Context, userID string) (string, error) {
+	id, err := s.current(ctx, userID)
+	if id == "" || err != nil {
+		return "", err
+	}
+	return s.versioned(userID, id), nil
+}
+
+// Lookup reads the picture a URL key names: a user id, which is what the
+// claim carries, or an upload id, which older claims carried. A miss answers
+// gorm.ErrRecordNotFound.
+func (s *Service) Lookup(ctx context.Context, key string) (schemas.Avatar, error) {
+	var row schemas.Avatar
+	err := s.db.WithContext(ctx).Where("user_id = ? OR id = ?", key, key).Take(&row).Error
+	return row, err
+}
+
+// current is the id of userID's picture, or "" when they have none.
+func (s *Service) current(ctx context.Context, userID string) (string, error) {
 	var row schemas.Avatar
 	err := s.db.WithContext(ctx).Select("id").Where("user_id = ?", userID).Take(&row).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -78,16 +111,13 @@ func (s *Service) Picture(ctx context.Context, userID string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("avatars: read the picture id: %w", err)
 	}
-	return s.url(row.ID), nil
+	return row.ID, nil
 }
 
-// ByID reads one stored picture. A missing id answers gorm.ErrRecordNotFound.
-func (s *Service) ByID(ctx context.Context, id string) (schemas.Avatar, error) {
-	var row schemas.Avatar
-	err := s.db.WithContext(ctx).Where("id = ?", id).Take(&row).Error
-	return row, err
-}
+// url is the absolute, stable address of userID's picture. Absolute because
+// porte refuses anything that is not https, and a relative claim has no
+// scheme at all.
+func (s *Service) url(userID string) string { return s.issuer + Path + userID }
 
-// url is the absolute address of picture id. Absolute because porte refuses
-// anything that is not https, and a relative claim has no scheme at all.
-func (s *Service) url(id string) string { return s.issuer + Path + id }
+// versioned is url with the upload id appended, so it changes on upload.
+func (s *Service) versioned(userID, id string) string { return s.url(userID) + "?v=" + id }

@@ -427,10 +427,10 @@ func Reference() apiref.Config {
 					Routes: []Route{
 						{
 							Method:       "GET",
-							Path:         "/avatars/{avatarID}",
+							Path:         "/avatars/{key}",
 							Summary:      "Fetch a profile picture",
-							Description:  "Public and immutable: a new picture gets a new id.",
-							PathParams:   []Field{{Name: "avatarID", Type: "string", Description: "Random picture id"}},
+							Description:  "Public. The key is the user subject; the response revalidates (no-cache, ETag).",
+							PathParams:   []Field{{Name: "key", Type: "string", Description: "User subject"}},
 							ResponseBody: "image/png",
 						},
 					},

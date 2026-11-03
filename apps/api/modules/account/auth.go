@@ -39,7 +39,7 @@ func (s *Service) me(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
-	picture, err := s.avatars.Picture(r.Context(), user.ID)
+	picture, err := s.avatars.Versioned(r.Context(), user.ID)
 	if err != nil {
 		serverError(w, err)
 		return
