@@ -45,6 +45,7 @@ func Mount(router chi.Router, s *Service) {
 		r.Post("/{spaceID}/members/{userID}/role", s.setRole)
 		r.Delete("/{spaceID}/members/{userID}", s.removeMember)
 		r.Post("/{spaceID}/leave", s.leave)
+		r.Delete("/{spaceID}", s.deleteSpace)
 	})
 }
 

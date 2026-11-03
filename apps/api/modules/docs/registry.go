@@ -505,6 +505,7 @@ func Reference() apiref.Config {
 						{Method: "POST", Path: "/api/spaces/{spaceID}/members", Summary: "Add a Registre user by email (admin or owner)", Auth: "cookie", RequestBody: SpaceInvite{}, ResponseBody: map[string]any{"member": SpaceMember{}}},
 						{Method: "POST", Path: "/api/spaces/{spaceID}/members/{userID}/role", Summary: "Change a member's role", Auth: "cookie", RequestBody: SpaceRole{}, ResponseBody: map[string]any{"member": SpaceRole{}}},
 						{Method: "DELETE", Path: "/api/spaces/{spaceID}/members/{userID}", Summary: "Remove a member", Auth: "cookie", ResponseBody: map[string]bool{"ok": true}},
+						{Method: "DELETE", Path: "/api/spaces/{spaceID}", Summary: "Delete a space in every app (owner only)", Auth: "cookie", ResponseBody: map[string]bool{"ok": true}},
 						{Method: "POST", Path: "/api/spaces/{spaceID}/leave", Summary: "Leave a space", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]bool{"ok": true}},
 					},
 				},

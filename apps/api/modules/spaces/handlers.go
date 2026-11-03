@@ -80,3 +80,9 @@ func (s *Service) leave(w http.ResponseWriter, r *http.Request) {
 	err := s.spaces.Leave(r.Context(), holderID(r), chi.URLParam(r, "spaceID"))
 	s.answer(w, err, map[string]bool{"ok": true})
 }
+
+// deleteSpace removes a space for everybody in every app. Owners only.
+func (s *Service) deleteSpace(w http.ResponseWriter, r *http.Request) {
+	err := s.spaces.Delete(r.Context(), holderID(r), chi.URLParam(r, "spaceID"))
+	s.answer(w, err, map[string]bool{"ok": true})
+}

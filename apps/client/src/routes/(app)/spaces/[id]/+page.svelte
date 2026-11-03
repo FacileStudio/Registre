@@ -32,6 +32,7 @@
 	let name = $state('');
 	let renaming = $state(false);
 	let leaveOpen = $state(false);
+	let deleteOpen = $state(false);
 
 	const id = $derived(page.params.id ?? '');
 	const manager = $derived(space ? canManage(space.role) : false);
@@ -67,6 +68,18 @@
 			toast.danger(accountError(cause, 'Could not rename the space.'));
 		} finally {
 			renaming = false;
+		}
+	}
+
+	/** destroy deletes the space for everybody in every app; owners only. */
+	async function destroy() {
+		if (!space) return;
+		try {
+			await spaces.remove(space.id);
+			toast.success(`${space.name} is deleted in every app.`);
+			await goto('/spaces');
+		} catch (cause) {
+			toast.danger(accountError(cause, 'Could not delete the space.'));
 		}
 	}
 
@@ -141,6 +154,17 @@
 				<Button variant="outline" icon={icons.logout} onclick={() => (leaveOpen = true)}>Leave</Button>
 			</SettingsRow>
 		</SettingsSection>
+
+		{#if space.role === 'owner'}
+			<SettingsSection title="Delete">
+				<SettingsRow
+					label="Delete {space.name}"
+					description="Removes the space and everyone in it from every Facile app. Files, events and tasks inside the apps are kept."
+				>
+					<Button variant="danger" icon={icons.remove} onclick={() => (deleteOpen = true)}>Delete</Button>
+				</SettingsRow>
+			</SettingsSection>
+		{/if}
 	{/if}
 </Page>
 
@@ -152,4 +176,14 @@
 	confirmLabel="Leave"
 	cancelLabel="Stay"
 	onConfirm={leave}
+/>
+
+<ConfirmModal
+	bind:open={deleteOpen}
+	tone="danger"
+	title="Delete {space?.name ?? ''}?"
+	description="Everyone loses this space in every Facile app within seconds. This cannot be undone here."
+	confirmLabel="Delete"
+	cancelLabel="Keep"
+	onConfirm={destroy}
 />

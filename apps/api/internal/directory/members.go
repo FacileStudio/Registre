@@ -61,7 +61,8 @@ func (s *Service) Create(ctx context.Context, userID, name string) (Summary, err
 	}
 	err = s.commit(ctx, func(tx *gorm.DB) error {
 		var taken int64
-		if err := tx.Model(&schemas.Space{}).Where("lower(name) = lower(?)", name).Count(&taken).Error; err != nil {
+		if err := tx.Model(&schemas.Space{}).
+			Where("lower(name) = lower(?) AND deleted_at IS NULL", name).Count(&taken).Error; err != nil {
 			return err
 		}
 		if taken > 0 {
@@ -110,7 +111,7 @@ func (s *Service) Rename(ctx context.Context, userID, spaceID, name string) erro
 		}
 		var taken int64
 		if err := tx.Model(&schemas.Space{}).
-			Where("lower(name) = lower(?) AND id <> ?", name, spaceID).Count(&taken).Error; err != nil {
+			Where("lower(name) = lower(?) AND id <> ? AND deleted_at IS NULL", name, spaceID).Count(&taken).Error; err != nil {
 			return err
 		}
 		if taken > 0 {
@@ -124,7 +125,7 @@ func (s *Service) Rename(ctx context.Context, userID, spaceID, name string) erro
 // are not in it, so a non-member cannot learn the space exists.
 func (s *Service) membership(tx *gorm.DB, userID, spaceID string) (string, schemas.Space, error) {
 	var space schemas.Space
-	if err := tx.Where("id = ?", spaceID).Take(&space).Error; err != nil {
+	if err := tx.Where("id = ? AND deleted_at IS NULL", spaceID).Take(&space).Error; err != nil {
 		return "", schemas.Space{}, notFound(err)
 	}
 	var member schemas.SpaceMember

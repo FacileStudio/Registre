@@ -5,8 +5,13 @@ import "time"
 // Space is one shared space, the same team in every app of the suite. ID is
 // random and stable across renames; apps store it to link their own row.
 type Space struct {
-	ID        string `gorm:"primaryKey"`
-	Name      string
+	ID   string `gorm:"primaryKey"`
+	Name string
+
+	// DeletedAt marks a space an owner deleted. It stays in the snapshot
+	// with no members so every app empties its copy; see migration 00011.
+	DeletedAt *time.Time
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

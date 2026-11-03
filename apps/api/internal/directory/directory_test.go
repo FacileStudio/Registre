@@ -182,3 +182,39 @@ func equal(a, b map[string]string) bool {
 	}
 	return true
 }
+
+// TestDeletingASpaceEmptiesItInEverySnapshot is how deletion reaches apps
+// that never delete on absence: the space stays in the snapshot with nobody
+// in it, so each app removes everyone from its copy. Only an owner may
+// delete, and the name is free again afterwards.
+func TestDeletingASpaceEmptiesItInEverySnapshot(t *testing.T) {
+	svc, _, sub := fixture(t, "owner@facile.studio", "admin@facile.studio")
+	ctx := context.Background()
+	owner, admin := sub["owner@facile.studio"], sub["admin@facile.studio"]
+	space, err := svc.Create(ctx, owner, "Facile")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if _, err := svc.AddMember(ctx, owner, space.ID, "admin@facile.studio", "admin"); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+	if err := svc.Delete(ctx, admin, space.ID); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("an admin deleting answered %v, want ErrForbidden", err)
+	}
+	if err := svc.Delete(ctx, owner, space.ID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	snapshot, err := svc.Snapshot(ctx)
+	if err != nil {
+		t.Fatalf("Snapshot: %v", err)
+	}
+	if len(snapshot.Spaces) != 1 || snapshot.Spaces[0].ID != space.ID || len(snapshot.Spaces[0].Members) != 0 {
+		t.Fatalf("snapshot after delete = %+v, want the space present with no members", snapshot.Spaces)
+	}
+	if mine, _ := svc.Mine(ctx, owner); len(mine) != 0 {
+		t.Errorf("the owner still lists %d spaces after deleting", len(mine))
+	}
+	if _, err := svc.Create(ctx, owner, "facile"); err != nil {
+		t.Errorf("the name of a deleted space is not free again: %v", err)
+	}
+}

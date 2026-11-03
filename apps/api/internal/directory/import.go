@@ -121,7 +121,7 @@ func lookupUser(tx *gorm.DB, member wire.ImportMember) string {
 // spaceNamed returns the id of the space with this name, creating it.
 func spaceNamed(tx *gorm.DB, name string) (string, error) {
 	var existing schemas.Space
-	err := tx.Where("lower(name) = lower(?)", name).Take(&existing).Error
+	err := tx.Where("lower(name) = lower(?) AND deleted_at IS NULL", name).Take(&existing).Error
 	if err == nil {
 		return existing.ID, nil
 	}

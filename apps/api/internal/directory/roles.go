@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
@@ -141,4 +142,20 @@ func keepsAnOwner(tx *gorm.DB, spaceID string) error {
 // validRole reports whether role is on the suite ladder.
 func validRole(role string) bool {
 	return role == wire.RoleOwner || role == wire.RoleAdmin || role == wire.RoleMember
+}
+
+// Delete removes a space for everybody. Only an owner may. Its members are
+// dropped and the row is kept, marked deleted, so the next snapshot carries
+// it empty and every app removes everyone from its copy; no app's own data
+// is destroyed. The name becomes free for a new space.
+func (s *Service) Delete(ctx context.Context, actorID, spaceID string) error {
+	return s.commit(ctx, func(tx *gorm.DB) error {
+		if _, err := s.requireRank(tx, actorID, spaceID, wire.RoleOwner); err != nil {
+			return err
+		}
+		if err := tx.Where("space_id = ?", spaceID).Delete(&schemas.SpaceMember{}).Error; err != nil {
+			return err
+		}
+		return tx.Model(&schemas.Space{}).Where("id = ?", spaceID).Update("deleted_at", time.Now().UTC()).Error
+	})
 }

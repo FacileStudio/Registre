@@ -57,7 +57,8 @@ export const spaces = {
 	setRole: (id: string, userID: string, role: Role) =>
 		request<{ member: SpaceMember }>(`${memberPath(id, userID)}/role`, { role }),
 	removeMember: (id: string, userID: string) => send<{ ok: boolean }>(memberPath(id, userID), 'DELETE'),
-	leave: (id: string) => request<{ ok: boolean }>(`${base(id)}/leave`, {})
+	leave: (id: string) => request<{ ok: boolean }>(`${base(id)}/leave`, {}),
+	remove: (id: string) => send<{ ok: boolean }>(base(id), 'DELETE')
 };
 
 /** rank turns a role into a number where a higher rank outranks a lower one. */
