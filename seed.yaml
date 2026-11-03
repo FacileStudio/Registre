@@ -242,12 +242,13 @@ applications:
 
   # Bulle, the suite's coding agent and harness at bulle.facile.studio.
   #
-  # token_exchange (RFC 8693) is how Bulle reads a signed-in user's own mail,
-  # calendar, tasks and timer. Bulle trades that user's Bulle token at the token
-  # endpoint for a five-minute token addressed to exactly one of the apps below,
-  # carrying `sub` = the user, `act.sub` = bulle and the scopes named here. The
-  # app verifies it offline through porte's OIDC_MACHINE_AUDIENCE path and maps
-  # `sub` to its own account; it never sees Bulle's login token. Declaring any
+  # token_exchange (RFC 8693) is how Bulle reaches a signed-in user's own mail,
+  # calendar, tasks, timer, files and memory. Bulle trades that user's Bulle
+  # token at the token endpoint for a five-minute token addressed to exactly one
+  # of the apps below, carrying `sub` = the user, `act.sub` = bulle, the scopes
+  # named here and `email` when the user's address is verified. The app verifies
+  # it offline through porte's OIDC_MACHINE_AUDIENCE path and maps `sub` or
+  # `email` to its own account; it never sees Bulle's login token. Declaring any
   # entry is what grants the exchange grant, so grant_types stays unlisted.
   #
   # `audience` is written into the issued token's `aud` claim byte for byte and
@@ -275,4 +276,8 @@ applications:
         scopes: [opus.read, opus.write]
       - audience: 5TVdL3zCbhhh7XCs3MvaIr5nqoV2ZIMLeEdjnVYu
         scopes: [sablier.read, sablier.write]
+      - audience: 9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH
+        scopes: [nuage.read, nuage.write]
+      - audience: mycelium
+        scopes: [mycelium.read, mycelium.write]
 

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -130,7 +131,7 @@ func TestApplyWritesTheAllowanceAndAReapplyRewritesIt(t *testing.T) {
 	}
 }
 
-func TestTheProductionSeedLetsBulleReadAndWriteFourApps(t *testing.T) {
+func TestTheProductionSeedLetsBulleReadAndWriteSixApps(t *testing.T) {
 	file := loadProductionSeed(t)
 	var bulle Application
 	for _, app := range file.Applications {
@@ -138,11 +139,21 @@ func TestTheProductionSeedLetsBulleReadAndWriteFourApps(t *testing.T) {
 			bulle = app
 		}
 	}
-	if len(bulle.TokenExchange) != 4 {
-		t.Fatalf("bulle declares %d exchange entries, want courrier, agenda, opus and sablier", len(bulle.TokenExchange))
+	want := map[string]string{
+		"tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0": "courrier",
+		"vvVAmcun8BFuAxMdNrp6lhqs2anzvz3vnzkeZh3U": "agenda",
+		"aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D": "opus",
+		"5TVdL3zCbhhh7XCs3MvaIr5nqoV2ZIMLeEdjnVYu": "sablier",
+		"9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH": "nuage",
+		"mycelium": "mycelium",
+	}
+	if len(bulle.TokenExchange) != len(want) {
+		t.Fatalf("bulle declares %d exchange entries, want courrier, agenda, opus, sablier, nuage and mycelium",
+			len(bulle.TokenExchange))
 	}
 	for _, grant := range bulle.TokenExchange {
-		if len(grant.Scopes) != 2 || !strings.HasSuffix(grant.Scopes[0], ".read") || !strings.HasSuffix(grant.Scopes[1], ".write") {
+		prefix, ok := want[grant.Audience]
+		if !ok || !slices.Equal(grant.Scopes, []string{prefix + ".read", prefix + ".write"}) {
 			t.Errorf("%s allows %v, want exactly that app's read and write scopes", grant.Audience, grant.Scopes)
 		}
 	}
