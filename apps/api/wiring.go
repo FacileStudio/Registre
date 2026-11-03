@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
+	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
 	"github.com/FacileStudio/Registre/apps/api/internal/challenges"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
@@ -23,6 +24,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/web"
 	"github.com/FacileStudio/Registre/apps/api/modules/account"
 	"github.com/FacileStudio/Registre/apps/api/modules/admin"
+	"github.com/FacileStudio/Registre/apps/api/modules/avatar"
 	"github.com/FacileStudio/Registre/apps/api/modules/device"
 	"github.com/FacileStudio/Registre/apps/api/modules/docs"
 	"github.com/FacileStudio/Registre/apps/api/modules/login"
@@ -79,11 +81,12 @@ func assemble(
 	users := identity.New(db, svc.verifier)
 	invitationService := invites.New(db, svc.verifier)
 	deviceFlows := devices.New(db)
+	pictures := avatars.New(db, cfg.Issuer)
 
 	storage := oidc.NewStorage(db, oidc.Services{
 		Keys: keyring, Register: register, Users: users,
 		Logout:  logout.New(keyring, register, cfg.Issuer, svc.log),
-		Devices: deviceFlows,
+		Devices: deviceFlows, Avatars: pictures,
 	}, oidc.Config{
 		Issuer:          cfg.Issuer,
 		AccessTokenTTL:  cfg.AccessTokenTTL,
@@ -119,9 +122,10 @@ func assemble(
 	mountPeople(router, cfg, people{
 		ctx: ctx, db: db, users: users, invites: invitationService, register: register,
 		keyring: keyring, verifier: svc.verifier, root: root, log: svc.log,
-		deviceFlows: deviceFlows, verificationURL: verificationURL,
+		deviceFlows: deviceFlows, verificationURL: verificationURL, pictures: pictures,
 		authorizeURL: provider.AuthorizationEndpoint().Absolute(cfg.Issuer),
 	})
+	avatar.Mount(router, pictures)
 	docs.Mount(router)
 	client, err := web.Handler()
 	if err != nil {
@@ -142,6 +146,7 @@ type people struct {
 	keyring     *keys.Service
 	verifier    *credentials.Verifier
 	deviceFlows *devices.Service
+	pictures    *avatars.Service
 	root        []byte
 	log         *slog.Logger
 
@@ -179,7 +184,8 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 	account.Mount(router, account.New(account.Services{
 		Sessions: sessions, TOTP: factors, Users: p.users, Passwords: p.verifier,
 		DB: p.db, Cookies: cookies, Issuer: cfg.Issuer,
-		Logout: logout.New(p.keyring, p.register, cfg.Issuer, p.log),
+		Logout:  logout.New(p.keyring, p.register, cfg.Issuer, p.log),
+		Avatars: p.pictures,
 	}, p.log))
 	reset.Mount(router, reset.New(recoveryService(cfg, p), p.log))
 	admin.Mount(router, admin.New(admin.Services{

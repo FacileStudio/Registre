@@ -109,6 +109,11 @@ type UserProfileResponse struct {
 	Name    string `json:"name"`
 	IsAdmin bool   `json:"is_admin"`
 	HasTOTP bool   `json:"has_totp"`
+	Picture string `json:"picture"`
+}
+
+type AvatarResponse struct {
+	Picture string `json:"picture"`
 }
 
 type ChangePasswordRequest struct {
@@ -358,6 +363,26 @@ func Reference() apiref.Config {
 							Status:      http.StatusNoContent,
 						},
 						{
+							Method:       "PUT",
+							Path:         "/api/account/avatar",
+							Summary:      "Replace the profile picture",
+							Description:  "The body is the raw image. It is cropped to a square and re-encoded as PNG.",
+							Auth:         "cookie",
+							RequestBody:  "image/png, image/jpeg or image/gif, at most 4 MiB, 16 to 2048 px a side",
+							ResponseBody: AvatarResponse{},
+							Errors: []Error{
+								{Status: http.StatusBadRequest, Code: "invalid_picture", Description: "Not a usable image"},
+								{Status: http.StatusRequestEntityTooLarge, Code: "too_large", Description: "Over 4 MiB"},
+							},
+						},
+						{
+							Method:       "DELETE",
+							Path:         "/api/account/avatar",
+							Summary:      "Remove the profile picture",
+							Auth:         "cookie",
+							ResponseBody: AvatarResponse{},
+						},
+						{
 							Method:       "POST",
 							Path:         "/api/account/totp/begin",
 							Summary:      "Initiate TOTP setup",
@@ -393,6 +418,20 @@ func Reference() apiref.Config {
 							Summary:      "Logout account session",
 							Auth:         "cookie",
 							ResponseBody: map[string]any{"logged_out": true},
+						},
+					},
+				},
+				{
+					Name:        "avatars",
+					Description: "Public profile pictures, the URLs the picture claim carries",
+					Routes: []Route{
+						{
+							Method:       "GET",
+							Path:         "/avatars/{avatarID}",
+							Summary:      "Fetch a profile picture",
+							Description:  "Public and immutable: a new picture gets a new id.",
+							PathParams:   []Field{{Name: "avatarID", Type: "string", Description: "Random picture id"}},
+							ResponseBody: "image/png",
 						},
 					},
 				},

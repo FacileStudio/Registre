@@ -65,7 +65,8 @@ func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *zoidc.User
 	userinfo.Email = user.Email
 	userinfo.EmailVerified = zoidc.Bool(user.EmailVerified)
 	userinfo.Name = user.Name
-	return nil
+	userinfo.Picture, err = s.pictureFor(ctx, user.ID)
+	return err
 }
 
 // SetUserinfoFromScopes feeds the ID token's claims.
@@ -104,23 +105,9 @@ func (s *Storage) SetUserinfoFromScopes(
 	if s.svc.Users == nil {
 		return nil
 	}
-	wantsProfile := contains(scopes, zoidc.ScopeProfile)
-	wantsEmail := contains(scopes, zoidc.ScopeEmail)
-	if wantsProfile || wantsEmail {
-		user, err := s.svc.Users.ByID(ctx, userID)
-		switch {
-		case errors.Is(err, gorm.ErrRecordNotFound):
-			return nil
-		case err != nil:
-			return fmt.Errorf("oidc: read the user for the id token: %w", err)
-		}
-		if wantsEmail {
-			userinfo.Email = user.Email
-			userinfo.EmailVerified = zoidc.Bool(user.EmailVerified)
-		}
-		if wantsProfile {
-			userinfo.Name = user.Name
-		}
+	found, err := s.fillProfile(ctx, userinfo, userID, scopes)
+	if err != nil || !found {
+		return err
 	}
 	if !contains(scopes, scopeRoles) {
 		return nil
@@ -134,4 +121,46 @@ func (s *Storage) SetUserinfoFromScopes(
 	}
 	userinfo.AppendClaims(scopeRoles, roles)
 	return nil
+}
+
+// fillProfile copies the scope-gated profile and email claims of userID into
+// userinfo. found is false for an unknown subject, which is a machine
+// principal and has no profile to emit.
+//
+// picture rides with profile, as OIDC Core §5.4 places it. It is the URL porte
+// fetches at every sign-in, so emitting it here is the whole of how a new
+// picture reaches every app in the suite.
+func (s *Storage) fillProfile(
+	ctx context.Context, userinfo *zoidc.UserInfo, userID string, scopes []string,
+) (found bool, err error) {
+	wantsProfile := contains(scopes, zoidc.ScopeProfile)
+	wantsEmail := contains(scopes, zoidc.ScopeEmail)
+	if !wantsProfile && !wantsEmail {
+		return true, nil
+	}
+	user, err := s.svc.Users.ByID(ctx, userID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("oidc: read the user for the id token: %w", err)
+	}
+	if wantsEmail {
+		userinfo.Email = user.Email
+		userinfo.EmailVerified = zoidc.Bool(user.EmailVerified)
+	}
+	if wantsProfile {
+		userinfo.Name = user.Name
+		userinfo.Picture, err = s.pictureFor(ctx, user.ID)
+	}
+	return true, err
+}
+
+// pictureFor is userID's picture URL, or "" when they have none or this
+// storage was built without a picture store.
+func (s *Storage) pictureFor(ctx context.Context, userID string) (string, error) {
+	if s.svc.Avatars == nil {
+		return "", nil
+	}
+	return s.svc.Avatars.Picture(ctx, userID)
 }

@@ -20,6 +20,7 @@ import (
 	"log/slog"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
+	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
@@ -49,6 +50,7 @@ type Services struct {
 	DB        *gorm.DB
 	Cookies   accounts.Cookies
 	Issuer    string
+	Avatars   *avatars.Service
 
 	// Logout tells the apps a session reached that it has ended. A password
 	// change ends every session the account holds, and an app holding its
@@ -67,6 +69,7 @@ type Service struct {
 	cookies   accounts.Cookies
 	issuer    string
 	notifier  *logout.Service
+	avatars   *avatars.Service
 	logger    *slog.Logger
 }
 
@@ -75,7 +78,7 @@ func New(deps Services, logger *slog.Logger) *Service {
 	return &Service{
 		sessions: deps.Sessions, totp: deps.TOTP, users: deps.Users,
 		passwords: deps.Passwords, db: deps.DB, cookies: deps.Cookies,
-		issuer: deps.Issuer, notifier: deps.Logout, logger: logger,
+		issuer: deps.Issuer, notifier: deps.Logout, avatars: deps.Avatars, logger: logger,
 	}
 }
 
@@ -97,6 +100,8 @@ func Mount(router chi.Router, service *Service) {
 			private.Use(guard.Session)
 			private.Get("/", service.me)
 			private.Post("/password", service.changePassword)
+			private.Put("/avatar", service.putAvatar)
+			private.Delete("/avatar", service.deleteAvatar)
 			private.Post("/totp/begin", service.beginTOTP)
 			private.Post("/totp/confirm", service.confirmTOTP)
 			private.Post("/totp/disable", service.disableTOTP)

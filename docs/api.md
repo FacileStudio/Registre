@@ -37,6 +37,9 @@ The interactive documentation is served live at `/docs` (powered by Scalar), and
 |---|---|---|---|
 | `GET` | `/api/account/` | Cookie | Fetch profile and security status for authenticated user |
 | `POST` | `/api/account/password` | Cookie | Change current user password |
+| `PUT` | `/api/account/avatar` | Cookie | Replace the profile picture (raw PNG, JPEG or GIF body, at most 4 MiB) |
+| `DELETE` | `/api/account/avatar` | Cookie | Remove the profile picture |
+| `GET` | `/avatars/{id}` | None | Public profile picture, the URL the `picture` claim carries |
 | `POST` | `/api/account/totp/begin` | Cookie | Start TOTP registration and generate QR code/secret |
 | `POST` | `/api/account/totp/confirm` | Cookie | Verify initial TOTP code to activate two-factor authentication |
 | `POST` | `/api/account/totp/disable` | Cookie | Disable TOTP on account |

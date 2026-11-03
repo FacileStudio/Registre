@@ -240,6 +240,15 @@ delegated again. Every refusal of a class answers with the same body (`invalid_g
 `invalid_target`, `invalid_scope`), so the response does not say which check failed. Writes are
 not granted yet: scopes are `<app>.read` or `<app>.write`, and only `.read` is seeded.
 
+**Profile pictures ride the standard `picture` claim.** A human uploads one picture on
+`/account`; registre crops it to a square, re-encodes it as PNG (which drops EXIF and anything
+appended to the file) and serves it publicly at `<issuer>/avatars/<id>`. The id is random and
+replaced on every upload, so a new picture is a new URL and the response can be `immutable`.
+`picture` is emitted in the ID token and at userinfo under the `profile` scope only. porte
+already fetches `picture` into the app's own store at every sign-in (`porte/oidc/avatar.go`), so
+this reaches every app with no porte change. An app shows a new picture after its next sign-in,
+not before: registre does not push.
+
 Reuse `porte/local/password.go`'s argon2id parameters **verbatim** — 64 MiB, three passes, two
 lanes — so password hashes stay portable in either direction.
 
@@ -376,6 +385,8 @@ Cut over one app by changing `OIDC_ISSUER`, soak it, then the rest. Authentik go
 2. **What happens to Authentik's two expression policies?** The avatar policy and the settings
    authorization policy in `authentik-config` are not part of the OIDC contract. Reimplement,
    or drop and accept the behaviour change. Decide before phase 3's admin UI.
+   **Avatar answered 2026-11-03: reimplemented natively.** Registre stores the picture and emits
+   `picture` (§6). The settings authorization policy is still open.
 3. **Does porte need a second verifier to run dual-issuer?** `porte/oidc/oidc.go:118` builds one
    verifier from `ClientID`. Running Authentik and registre side by side during phase 4 may
    require porte to hold two. Verify early — it is the difference between a staged cutover and a

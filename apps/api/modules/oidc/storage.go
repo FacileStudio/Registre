@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
@@ -52,6 +53,7 @@ type Services struct {
 	Users    *identity.Service
 	Logout   *logout.Service
 	Devices  *devices.Service
+	Avatars  *avatars.Service
 }
 
 // Storage is registre's implementation of the contract zitadel/oidc issues

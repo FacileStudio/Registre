@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
+	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/testdb"
@@ -61,7 +62,7 @@ func newFixture(t *testing.T) fixture {
 	router := chi.NewRouter()
 	Mount(router, New(Services{
 		Sessions: sessions, TOTP: factors, Users: users, Passwords: verifier,
-		DB: db, Cookies: cookies, Issuer: "registre",
+		DB: db, Cookies: cookies, Issuer: "registre", Avatars: avatars.New(db, "https://registre"),
 	}, slog.New(slog.DiscardHandler)))
 
 	ctx := context.Background()

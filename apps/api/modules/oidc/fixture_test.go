@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
+	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
@@ -116,7 +117,7 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	storage := NewStorage(db, Services{
 		Keys: keyring, Register: register, Users: users,
 		Logout:  logout.New(keyring, register, issuer, logs),
-		Devices: deviceFlows,
+		Devices: deviceFlows, Avatars: avatars.New(db, issuer),
 	}, Config{
 		Issuer: issuer, AccessTokenTTL: time.Hour,
 		RefreshTokenTTL: 24 * time.Hour, Now: ticking.now,
