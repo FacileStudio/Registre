@@ -131,7 +131,7 @@ func TestApplyWritesTheAllowanceAndAReapplyRewritesIt(t *testing.T) {
 	}
 }
 
-func TestTheProductionSeedLetsBulleReadAndWriteSixApps(t *testing.T) {
+func TestTheProductionSeedLetsBulleReadAndWriteSevenApps(t *testing.T) {
 	file := loadProductionSeed(t)
 	var bulle Application
 	for _, app := range file.Applications {
@@ -145,10 +145,11 @@ func TestTheProductionSeedLetsBulleReadAndWriteSixApps(t *testing.T) {
 		"aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D": "opus",
 		"5TVdL3zCbhhh7XCs3MvaIr5nqoV2ZIMLeEdjnVYu": "sablier",
 		"9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH": "nuage",
-		"mycelium": "mycelium",
+		"mycelium":                         "mycelium",
+		"1IdqK3bA2LWI-zuWVLqFpnIlCTVu117F": "glouton",
 	}
 	if len(bulle.TokenExchange) != len(want) {
-		t.Fatalf("bulle declares %d exchange entries, want courrier, agenda, opus, sablier, nuage and mycelium",
+		t.Fatalf("bulle declares %d exchange entries, want courrier, agenda, opus, sablier, nuage, mycelium and glouton",
 			len(bulle.TokenExchange))
 	}
 	for _, grant := range bulle.TokenExchange {
@@ -156,6 +157,37 @@ func TestTheProductionSeedLetsBulleReadAndWriteSixApps(t *testing.T) {
 		if !ok || !slices.Equal(grant.Scopes, []string{prefix + ".read", prefix + ".write"}) {
 			t.Errorf("%s allows %v, want exactly that app's read and write scopes", grant.Audience, grant.Scopes)
 		}
+	}
+}
+
+func TestTheProductionSeedLetsGloutonRefreshAndReachCourrier(t *testing.T) {
+	file := loadProductionSeed(t)
+	var glouton Application
+	for _, app := range file.Applications {
+		if app.ClientID == "1IdqK3bA2LWI-zuWVLqFpnIlCTVu117F" {
+			glouton = app
+		}
+	}
+	grants, err := glouton.grants()
+	if err != nil {
+		t.Fatalf("glouton grants: %v", err)
+	}
+	for _, grant := range []string{grantAliases["refresh_token"], exchangeGrantType} {
+		if !contains(grants, grant) {
+			t.Errorf("glouton grants %v, missing %s", grants, grant)
+		}
+	}
+	if !contains(glouton.Scopes, "offline_access") {
+		t.Errorf("glouton scopes %v, missing offline_access", glouton.Scopes)
+	}
+	want := []ExchangeGrant{{
+		Audience: "tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0",
+		Scopes:   []string{"courrier.read", "courrier.write"},
+	}}
+	if len(glouton.TokenExchange) != len(want) ||
+		glouton.TokenExchange[0].Audience != want[0].Audience ||
+		!slices.Equal(glouton.TokenExchange[0].Scopes, want[0].Scopes) {
+		t.Errorf("glouton exchanges %+v, want %+v", glouton.TokenExchange, want)
 	}
 }
 

@@ -212,6 +212,9 @@ applications:
     redirect_uris:
       - https://glouton.facile.studio/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    token_exchange:
+      - audience: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
+        scopes: [courrier.read, courrier.write]
 
   # Sonde, the suite's self-hosted uptime monitor at sonde.facile.studio.
   #
@@ -315,4 +318,6 @@ applications:
         scopes: [nuage.read, nuage.write]
       - audience: mycelium
         scopes: [mycelium.read, mycelium.write]
+      - audience: 1IdqK3bA2LWI-zuWVLqFpnIlCTVu117F
+        scopes: [glouton.read, glouton.write]
 
