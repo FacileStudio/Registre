@@ -67,15 +67,6 @@
 		}
 	}
 
-	async function signOut() {
-		clearOperator();
-		signedIn = false;
-		sessionEmail = '';
-		email = '';
-		password = '';
-		await account.logout().catch(() => {});
-	}
-
 	const sections = [
 		{ id: 'users', label: 'Users', icon: icons.usersGroup, href: '/admin' },
 		{ id: 'apps', label: 'Apps', icon: icons.widget, href: '/admin/apps' },
@@ -134,11 +125,7 @@
 			title="Administration"
 			description={`Signed in as ${operatorEmail() || sessionEmail}. ` +
 				'Secrets and tokens are shown once, so copy them when they appear.'}
-		>
-			{#snippet actions()}
-				<Button variant="ghost" icon={icons.logout} onclick={signOut}>Sign out</Button>
-			{/snippet}
-		</PageHeader>
+		/>
 
 		<Stack>
 			<div class="flex flex-col gap-4">

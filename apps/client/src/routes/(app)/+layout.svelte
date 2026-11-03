@@ -1,30 +1,46 @@
 <script lang="ts">
 	import { setContext } from 'svelte';
 	import { page } from '$app/state';
-	import { MobileNav, PageTransition, SideBar, Topbar, icons } from '@facile/muse';
-	import { account, RAIL_CONTEXT, type AccountView } from '$lib/account';
+	import { MobileNav, PageTransition, SideBar, Spinner, Topbar, icons } from '@facile/muse';
+	import { account, SESSION_CONTEXT, type AccountView, type ShellSession } from '$lib/account';
 
 	let { children } = $props();
 
 	let me = $state<AccountView | null>(null);
+	let loaded = $state(false);
 	let collapsed = $state(false);
 	let scroller: HTMLElement | null = $state(null);
 
 	/*
-	 * The rail's user card is the only thing this needs, and an operator on
-	 * /admin has no account cookie at all. A refusal is therefore the normal
-	 * case here, not an error worth surfacing: the card falls back to a
-	 * generic label and the /account route does the real gating.
+	 * An operator on /admin has no account cookie at all, so a refusal is the
+	 * normal case here, not an error worth surfacing: the rail falls back to a
+	 * generic label and /account does the real gating. The home page reads the
+	 * same answer from SESSION_CONTEXT rather than asking again.
 	 */
 	function loadMe() {
 		account
 			.me()
 			.then((view) => (me = view))
-			.catch(() => (me = null));
+			.catch(() => (me = null))
+			.finally(() => (loaded = true));
 	}
 
 	$effect(loadMe);
-	setContext(RAIL_CONTEXT, loadMe);
+	setContext<ShellSession>(SESSION_CONTEXT, {
+		get me() {
+			return me;
+		},
+		get loaded() {
+			return loaded;
+		},
+		reload: loadMe
+	});
+
+	/*
+	 * The home page is the one route a signed-out visitor reaches, and to them
+	 * it is a public landing with its own header, not an app with a rail.
+	 */
+	const bare = $derived(page.url.pathname === '/' && !me);
 
 	$effect(() => {
 		if (page.url.pathname) scroller?.scrollTo({ top: 0 });
@@ -43,34 +59,50 @@
 	);
 	const onAccount = $derived(page.url.pathname.startsWith('/account'));
 	const user = $derived.by(() => ({ name: me?.name || me?.email || 'Account', avatar: me?.picture || undefined }));
-	const routeKey = $derived(onAccount ? '/account' : page.url.pathname);
+	/*
+	 * The shell transitions between sections, never within one. Keying on the
+	 * full path remounted /admin's layout on every tab switch, which flashed
+	 * its operator sign-in and re-ran its checks; sections run their own
+	 * inner transition between tabs.
+	 */
+	const routeKey = $derived(page.url.pathname.split('/')[1] ?? '');
 </script>
 
-<div class="flex h-dvh w-full overflow-hidden bg-fc-page">
-	<div class="hidden h-full shrink-0 p-3 md:block">
-		<SideBar
-			icon={icons.shield}
-			title="Registre"
-			bind:collapsed
-			pages={navPages}
-			{user}
-			userHref="/account"
-			userActive={onAccount}
-			class="h-full"
-		/>
+{#if bare}
+	{#if loaded}
+		{@render children()}
+	{:else}
+		<div class="flex min-h-dvh items-center justify-center bg-fc-page">
+			<Spinner />
+		</div>
+	{/if}
+{:else}
+	<div class="flex h-dvh w-full overflow-hidden bg-fc-page">
+		<div class="hidden h-full shrink-0 p-3 md:block">
+			<SideBar
+				icon={icons.shield}
+				title="Registre"
+				bind:collapsed
+				pages={navPages}
+				{user}
+				userHref="/account"
+				userActive={onAccount}
+				class="h-full"
+			/>
+		</div>
+
+		<!-- `min-w-0` so a wide table scrolls itself instead of pushing the shell
+		     sideways, and `overscroll-contain` because <main> is the only scroller. -->
+		<main bind:this={scroller} class="min-w-0 flex-1 overflow-auto overscroll-contain pb-28 md:pb-0">
+			<Topbar class="md:hidden">
+				<span class="text-fc-md font-semibold text-fc-fg">Registre</span>
+			</Topbar>
+
+			<PageTransition key={routeKey}>
+				{@render children()}
+			</PageTransition>
+		</main>
+
+		<MobileNav items={navPages} {user} profileHref="/account" profileActive={onAccount} />
 	</div>
-
-	<!-- `min-w-0` so a wide table scrolls itself instead of pushing the shell
-	     sideways, and `overscroll-contain` because <main> is the only scroller. -->
-	<main bind:this={scroller} class="min-w-0 flex-1 overflow-auto overscroll-contain pb-28 md:pb-0">
-		<Topbar class="md:hidden">
-			<span class="text-fc-md font-semibold text-fc-fg">Registre</span>
-		</Topbar>
-
-		<PageTransition key={routeKey}>
-			{@render children()}
-		</PageTransition>
-	</main>
-
-	<MobileNav items={navPages} {user} profileHref="/account" profileActive={onAccount} />
-</div>
+{/if}

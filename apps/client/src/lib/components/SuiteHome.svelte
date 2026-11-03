@@ -1,15 +1,10 @@
 <script lang="ts">
-	import { Avatar, Button, Card, EmptyState, Icon, Input, Page, PageHeader, Section, Topbar, icons } from '@facile/muse';
+	import { Card, EmptyState, Icon, Input, Page, PageHeader, Section, icons } from '@facile/muse';
 	import type { AccountView } from '$lib/account';
 	import { filterSuite, suite } from '$lib/suite';
 	import AppLogo from '$lib/components/AppLogo.svelte';
 
-	interface Props {
-		me: AccountView;
-		onlogout: () => Promise<void>;
-	}
-
-	let { me, onlogout }: Props = $props();
+	let { me }: { me: AccountView } = $props();
 
 	let query = $state('');
 
@@ -26,30 +21,6 @@
 </script>
 
 <svelte:window onkeydown={focusSearch} />
-
-<Topbar>
-	<a href="/" class="flex items-center gap-3 rounded-fc-sm focus-visible:outline-2 focus-visible:outline-fc-ring">
-		<img src="/logo.svg" alt="" width={24} height={24} class="block shrink-0" />
-		<span class="text-fc-lg font-semibold tracking-tight">Facile</span>
-	</a>
-	<div class="flex items-center gap-2">
-		{#if me.admin}
-			<Button variant="ghost" size="sm" href="/admin" icon={icons.shield} aria-label="Administration">
-				<span class="hidden sm:inline">Administration</span>
-			</Button>
-		{/if}
-		<Button variant="ghost" size="sm" icon={icons.logout} onclick={onlogout} aria-label="Sign out">
-			<span class="hidden sm:inline">Sign out</span>
-		</Button>
-		<a
-			href="/account"
-			aria-label="Your account"
-			class="flex size-11 items-center justify-center rounded-fc-pill focus-visible:outline-2 focus-visible:outline-fc-ring"
-		>
-			<Avatar src={me.picture || undefined} name={me.name || me.email} size="sm" />
-		</a>
-	</div>
-</Topbar>
 
 <Page width="xl">
 	<PageHeader title="Hello, {firstName}" description="Every app in the suite, signed in with the same account." />

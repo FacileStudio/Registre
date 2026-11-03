@@ -18,8 +18,9 @@
 		accountError,
 		isUnauthorized,
 		ACCOUNT_CONTEXT,
-		RAIL_CONTEXT,
+		SESSION_CONTEXT,
 		type AccountContext,
+		type ShellSession,
 		type AccountView
 	} from '$lib/account';
 
@@ -52,7 +53,7 @@
 		load();
 	});
 
-	const reloadRail = getContext<(() => void) | undefined>(RAIL_CONTEXT);
+	const shell = getContext<ShellSession | undefined>(SESSION_CONTEXT);
 
 	setContext<AccountContext>(ACCOUNT_CONTEXT, {
 		get me() {
@@ -60,7 +61,7 @@
 		},
 		refresh: async () => {
 			await load();
-			reloadRail?.();
+			shell?.reload();
 		}
 	});
 

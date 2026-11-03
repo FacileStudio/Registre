@@ -114,11 +114,19 @@ export interface AccountContext {
 export const ACCOUNT_CONTEXT = Symbol('registre.account');
 
 /**
- * RAIL_CONTEXT keys the app shell's reload of its own copy of the account, a
- * `() => void`. The shell's user card reads the account separately from the
- * /account pages, so a change made there reaches the card only through this.
+ * ShellSession is the app shell's own copy of the signed-in account, published
+ * to every page inside it. `loaded` separates "not known yet" from "nobody is
+ * signed in", which the home page needs to choose between the suite and the
+ * public landing without flashing the wrong one.
  */
-export const RAIL_CONTEXT = Symbol('registre.rail');
+export interface ShellSession {
+	readonly me: AccountView | null;
+	readonly loaded: boolean;
+	reload: () => void;
+}
+
+/** SESSION_CONTEXT keys ShellSession on the app shell. */
+export const SESSION_CONTEXT = Symbol('registre.session');
 
 /** accountError turns anything thrown by account into a line a human can read. */
 export function accountError(cause: unknown, fallback: string): string {
