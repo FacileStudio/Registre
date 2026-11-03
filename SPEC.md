@@ -253,6 +253,22 @@ pushed and no re-sync. An app that copies the bytes instead (porte's `AvatarStor
 change at the next sign-in, which is why no suite app should. Removing the picture makes the URL
 answer 404 again.
 
+**Shared spaces are registre's.** A space is a team, such as "Facile", that exists in every app
+with the same members at the same rank, owner > admin > member (porte's `spaces` ladder). Humans
+create spaces, add mates and change roles on `/spaces`; no app edits them. Apps pull
+`GET /api/directory/snapshot`, authenticated with HTTP Basic as their own application client, and
+make their tables match it. The snapshot is the whole state, so applying it is idempotent. After
+every change registre bumps a version in the same transaction and POSTs an empty nudge to each
+client's `directory_sync_uri`; apps also pull at boot and every five minutes, so a lost nudge
+costs at most one interval. This is delivery at least once with an idempotent receiver, which is
+what SCIM-style group provisioning needs, without SCIM's per-resource surface. Disabled humans
+never appear in a snapshot, which is how disabling someone removes them everywhere. Each app hands
+over the spaces it held before this existed exactly once (`POST /api/directory/import`): spaces
+merge by name ignoring case, the highest role anyone held wins, unknown people are skipped, and a
+second import from the same client is a no-op, so a restart cannot re-add someone an owner removed.
+The shared client is `github.com/FacileStudio/porte/directory`, a nested module of the public porte
+repository, because this repository is private and the apps' builds could not fetch it.
+
 Reuse `porte/local/password.go`'s argon2id parameters **verbatim** — 64 MiB, three passes, two
 lanes — so password hashes stay portable in either direction.
 

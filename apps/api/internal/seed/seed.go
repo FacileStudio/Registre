@@ -70,6 +70,11 @@ type Application struct {
 	// ends. Unset means the app hears nothing about deactivations.
 	BackchannelLogoutURI string `yaml:"backchannel_logout_uri"`
 
+	// DirectorySyncURI is where registre nudges the app after a change to
+	// shared spaces: https://<app>/api/registre/sync. Unset means the app
+	// only picks changes up on its own pull interval.
+	DirectorySyncURI string `yaml:"directory_sync_uri"`
+
 	// VisibleRoles is the whitelist of roles this app may see. Empty means
 	// none, even with the roles scope granted: visibility is opt-in.
 	VisibleRoles []string `yaml:"visible_roles"`

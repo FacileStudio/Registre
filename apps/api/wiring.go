@@ -13,6 +13,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
+	spacesdir "github.com/FacileStudio/Registre/apps/api/internal/directory"
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
@@ -26,10 +27,12 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/modules/admin"
 	"github.com/FacileStudio/Registre/apps/api/modules/avatar"
 	"github.com/FacileStudio/Registre/apps/api/modules/device"
+	"github.com/FacileStudio/Registre/apps/api/modules/directory"
 	"github.com/FacileStudio/Registre/apps/api/modules/docs"
 	"github.com/FacileStudio/Registre/apps/api/modules/login"
 	"github.com/FacileStudio/Registre/apps/api/modules/oidc"
 	"github.com/FacileStudio/Registre/apps/api/modules/reset"
+	"github.com/FacileStudio/Registre/apps/api/modules/spaces"
 
 	mailer "github.com/FacileStudio/facteur"
 	"github.com/FacileStudio/tronc/health"
@@ -82,6 +85,7 @@ func assemble(
 	invitationService := invites.New(db, svc.verifier)
 	deviceFlows := devices.New(db)
 	pictures := avatars.New(db, cfg.Issuer)
+	teams := spacesdir.New(db, pictures.URL, spacesdir.NewNudger(register.List, svc.log), svc.log)
 
 	storage := oidc.NewStorage(db, oidc.Services{
 		Keys: keyring, Register: register, Users: users,
@@ -122,10 +126,11 @@ func assemble(
 	mountPeople(router, cfg, people{
 		ctx: ctx, db: db, users: users, invites: invitationService, register: register,
 		keyring: keyring, verifier: svc.verifier, root: root, log: svc.log,
-		deviceFlows: deviceFlows, verificationURL: verificationURL, pictures: pictures,
+		deviceFlows: deviceFlows, verificationURL: verificationURL, pictures: pictures, teams: teams,
 		authorizeURL: provider.AuthorizationEndpoint().Absolute(cfg.Issuer),
 	})
 	avatar.Mount(router, pictures)
+	directory.Mount(router, directory.New(register, teams, svc.log))
 	docs.Mount(router)
 	client, err := web.Handler()
 	if err != nil {
@@ -147,6 +152,7 @@ type people struct {
 	verifier    *credentials.Verifier
 	deviceFlows *devices.Service
 	pictures    *avatars.Service
+	teams       *spacesdir.Service
 	root        []byte
 	log         *slog.Logger
 
@@ -187,6 +193,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 		Logout:  logout.New(p.keyring, p.register, cfg.Issuer, p.log),
 		Avatars: p.pictures,
 	}, p.log))
+	spaces.Mount(router, spaces.New(p.teams, sessions, cookies, p.log))
 	reset.Mount(router, reset.New(recoveryService(cfg, p), p.log))
 	admin.Mount(router, admin.New(admin.Services{
 		Register: p.register, Users: p.users, Keys: p.keyring, Invites: p.invites,

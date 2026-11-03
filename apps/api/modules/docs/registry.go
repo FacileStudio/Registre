@@ -112,6 +112,71 @@ type UserProfileResponse struct {
 	Picture string `json:"picture"`
 }
 
+type SpacesMember struct {
+	Sub     string `json:"sub"`
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+	Role    string `json:"role"`
+}
+
+type SpacesSpace struct {
+	ID      string         `json:"id"`
+	Name    string         `json:"name"`
+	Members []SpacesMember `json:"members"`
+}
+
+type SpacesSnapshot struct {
+	Version int64         `json:"version"`
+	Spaces  []SpacesSpace `json:"spaces"`
+}
+
+type SpacesImport struct {
+	Spaces []struct {
+		Name    string `json:"name"`
+		Members []struct {
+			Sub   string `json:"sub,omitempty"`
+			Email string `json:"email,omitempty"`
+			Role  string `json:"role"`
+		} `json:"members"`
+	} `json:"spaces"`
+}
+
+type SpaceSummary struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Role        string `json:"role"`
+	MemberCount int    `json:"member_count"`
+}
+
+type SpaceMember struct {
+	UserID  string `json:"user_id"`
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+	Role    string `json:"role"`
+}
+
+type SpaceDetail struct {
+	ID      string        `json:"id"`
+	Name    string        `json:"name"`
+	Role    string        `json:"role"`
+	Members []SpaceMember `json:"members"`
+}
+
+type SpaceName struct {
+	Name string `json:"name"`
+}
+
+type SpaceInvite struct {
+	Email string `json:"email"`
+	Role  string `json:"role"`
+}
+
+type SpaceRole struct {
+	Role string `json:"role"`
+}
+
 type AvatarResponse struct {
 	Picture string `json:"picture"`
 }
@@ -419,6 +484,28 @@ func Reference() apiref.Config {
 							Auth:         "cookie",
 							ResponseBody: map[string]any{"logged_out": true},
 						},
+					},
+				},
+				{
+					Name:        "directory",
+					Description: "Shared spaces for the suite's apps, authenticated with the app's own client id and secret (HTTP Basic)",
+					Routes: []Route{
+						{Method: "GET", Path: "/api/directory/snapshot", Summary: "Every shared space with its members and roles", Auth: "basic", ResponseBody: SpacesSnapshot{}},
+						{Method: "POST", Path: "/api/directory/import", Summary: "Merge the calling app's existing spaces by name, once per app", Auth: "basic", RequestBody: SpacesImport{}, ResponseBody: SpacesSnapshot{}},
+					},
+				},
+				{
+					Name:        "spaces",
+					Description: "The spaces page: create teams, invite mates and set roles for every app at once",
+					Routes: []Route{
+						{Method: "GET", Path: "/api/spaces/", Summary: "Spaces I am in", Auth: "cookie", ResponseBody: []SpaceSummary{}},
+						{Method: "POST", Path: "/api/spaces/", Summary: "Create a space I own", Auth: "cookie", RequestBody: SpaceName{}, ResponseBody: SpaceSummary{}},
+						{Method: "GET", Path: "/api/spaces/{spaceID}", Summary: "One space with its members", Auth: "cookie", ResponseBody: SpaceDetail{}},
+						{Method: "POST", Path: "/api/spaces/{spaceID}/rename", Summary: "Rename a space (admin or owner)", Auth: "cookie", RequestBody: SpaceName{}, ResponseBody: SpaceName{}},
+						{Method: "POST", Path: "/api/spaces/{spaceID}/members", Summary: "Add a Registre user by email (admin or owner)", Auth: "cookie", RequestBody: SpaceInvite{}, ResponseBody: map[string]any{"member": SpaceMember{}}},
+						{Method: "POST", Path: "/api/spaces/{spaceID}/members/{userID}/role", Summary: "Change a member's role", Auth: "cookie", RequestBody: SpaceRole{}, ResponseBody: map[string]any{"member": SpaceRole{}}},
+						{Method: "DELETE", Path: "/api/spaces/{spaceID}/members/{userID}", Summary: "Remove a member", Auth: "cookie", ResponseBody: map[string]bool{"ok": true}},
+						{Method: "POST", Path: "/api/spaces/{spaceID}/leave", Summary: "Leave a space", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]bool{"ok": true}},
 					},
 				},
 				{

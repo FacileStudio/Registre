@@ -187,6 +187,7 @@ func (a Application) row(ctx context.Context, register *clients.Service) (schema
 		Scopes:               schemas.StringList(scopes),
 		RedirectURIs:         schemas.StringList(a.RedirectURIs),
 		BackchannelLogoutURI: a.BackchannelLogoutURI,
+		DirectorySyncURI:     a.DirectorySyncURI,
 		VisibleRoles:         schemas.StringList(a.VisibleRoles),
 		TokenExchange:        a.exchangeGrants(),
 		Managed:              true,

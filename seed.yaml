@@ -35,6 +35,7 @@ applications:
   # declaring one would POST logout tokens into a 404.
   - client_id: mycelium
     name: Mycelium
+    directory_sync_uri: https://mycelium.facile.studio/api/registre/sync
     secret_env: REGISTRE_SEED_MYCELIUM_SECRET
     redirect_uris:
       - https://mycelium.facile.studio/api/auth/oidc/callback
@@ -55,6 +56,7 @@ applications:
   # the grant there is no refresh token, so claim refresh degrades in silence.
   - client_id: 5TVdL3zCbhhh7XCs3MvaIr5nqoV2ZIMLeEdjnVYu
     name: Sablier
+    directory_sync_uri: https://sablier.facile.studio/api/registre/sync
     backchannel_logout_uri: https://sablier.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_SABLIER_SECRET
     redirect_uris:
@@ -72,6 +74,7 @@ applications:
 
   - client_id: JnT6bwkiBXL9pqZKRdUHgYpK0hG7apupsUtCpl8A
     name: Antenne
+    directory_sync_uri: https://antenne.facile.studio/api/registre/sync
     backchannel_logout_uri: https://antenne.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_ANTENNE_SECRET
     redirect_uris:
@@ -82,6 +85,7 @@ applications:
   # why its callback returned HTML. The env is corrected to match this entry.
   - client_id: vvVAmcun8BFuAxMdNrp6lhqs2anzvz3vnzkeZh3U
     name: Agenda
+    directory_sync_uri: https://agenda.facile.studio/api/registre/sync
     backchannel_logout_uri: https://agenda.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_AGENDA_SECRET
     redirect_uris:
@@ -90,6 +94,7 @@ applications:
 
   - client_id: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
     name: Courrier
+    directory_sync_uri: https://courrier.facile.studio/api/registre/sync
     backchannel_logout_uri: https://courrier.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_COURRIER_SECRET
     redirect_uris:
@@ -98,6 +103,7 @@ applications:
 
   - client_id: 6FkN7WYS9xtKNMJMdKRtBWPLfLoS35EWELHIjgkf
     name: Plume
+    directory_sync_uri: https://plume.facile.studio/api/registre/sync
     backchannel_logout_uri: https://plume.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_PLUME_SECRET
     redirect_uris:
@@ -106,6 +112,7 @@ applications:
 
   - client_id: RLy72hckdFTa9eIFwCmV5MtDOWny1fLeTLpM5LUD
     name: Vision
+    directory_sync_uri: https://vision.facile.studio/api/registre/sync
     backchannel_logout_uri: https://vision.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_VISION_SECRET
     redirect_uris:
@@ -157,6 +164,7 @@ applications:
 
   - client_id: 9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH
     name: Nuage
+    directory_sync_uri: https://nuage.facile.studio/api/registre/sync
     backchannel_logout_uri: https://nuage.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_NUAGE_SECRET
     redirect_uris:
@@ -172,6 +180,7 @@ applications:
 
   - client_id: aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D
     name: Opus
+    directory_sync_uri: https://opus.facile.studio/api/registre/sync
     secret_env: REGISTRE_SEED_OPUS_SECRET
     redirect_uris:
       - https://opus.facile.studio/api/auth/oidc/callback

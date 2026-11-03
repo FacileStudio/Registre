@@ -55,6 +55,11 @@ type Client struct {
 	// field exists per client rather than as one global switch.
 	BackchannelLogoutURI string
 
+	// DirectorySyncURI is where registre nudges the app after any change to
+	// shared spaces, so it pulls the snapshot within seconds instead of at
+	// its next interval. Empty means the app only pulls on its own clock.
+	DirectorySyncURI string
+
 	// VisibleRoles is the whitelist of roles this app may see in its
 	// tokens' roles claim. The default is deliberately none: a new client
 	// must ask for role visibility, rather than every app silently
