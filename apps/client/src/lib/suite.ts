@@ -38,7 +38,7 @@ export const suite: SuiteGroup[] = [
 			{ name: 'Vision', url: 'https://vision.facile.studio', description: 'Analytics web avec suivi en temps réel.', logo: logo('vision') },
 			{ name: 'Perception', url: 'https://perception.facile.studio', description: 'Mémoire métier et intelligence contextuelle.', logo: logo('perception') },
 			{ name: 'Scribe', url: 'https://scribe.facile.studio', description: 'Transcription de réunions, en temps réel et en local.', logo: logo('scribe') },
-			{ name: 'Echo', url: 'https://echo.facile.studio', description: 'Visioconférence simple et sécurisée.', icon: icons.usersGroup },
+			{ name: 'Echo', url: 'https://echo.facile.studio', description: 'Visioconférence simple et sécurisée.', logo: logo('echo') },
 			{ name: 'Casier', url: 'https://casier.facile.studio', description: "Secrets et variables d'environnement.", logo: logo('casier') },
 			{ name: 'Capsule', url: 'https://capsule.facile.studio', description: 'Partage de secrets chiffrés de bout en bout.', logo: logo('capsule') },
 			{ name: 'Journal', url: 'https://journal.facile.studio', description: 'Logs centralisés de la suite.', logo: logo('journal') },
@@ -60,8 +60,7 @@ export const suite: SuiteGroup[] = [
 			{ name: 'Abeille', url: 'https://abeille.facile.studio', description: 'Reverse proxy et routage.', icon: icons.globe },
 			{ name: 'Miel', url: 'https://miel.facile.studio', description: 'Ressources et santé des machines.', icon: icons.dashboard },
 			{ name: 'Sonde', url: 'https://sonde.facile.studio', description: "Monitoring d'uptime et pages de statut.", logo: logo('sonde') },
-			{ name: 'Antenne', url: 'https://antenne.facile.studio', description: "Bus d'alertes et de notifications.", logo: logo('antenne') },
-			{ name: 'Nook', url: 'https://nook.facile.studio', description: 'Relai de notifications centralisé.', icon: icons.notification }
+			{ name: 'Antenne', url: 'https://antenne.facile.studio', description: "Bus d'alertes et de notifications.", logo: logo('antenne') }
 		]
 	},
 	{
