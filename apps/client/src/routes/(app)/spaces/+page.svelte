@@ -93,7 +93,7 @@
 		<Section title="Your spaces">
 			{#if list.length === 0}
 				<EmptyState
-					icon={icons.layers}
+					icon={icons.space}
 					title="No spaces yet"
 					description="Create one below and add your team. It appears in every app at once."
 				/>
@@ -103,7 +103,7 @@
 						<Card href="/spaces/{encodeURIComponent(space.id)}">
 							<div class="flex items-center gap-3">
 								<span class="flex size-10 shrink-0 items-center justify-center rounded-fc-md bg-fc-surface text-fc-fg">
-									<Icon icon={icons.layers} size={18} />
+									<Icon icon={icons.space} size={18} />
 								</span>
 								<div class="min-w-0 flex-1">
 									<div class="truncate text-fc-sm font-semibold text-fc-fg">{space.name}</div>

@@ -15,6 +15,7 @@
     "@sveltejs/kit": "^2.50.2",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^26.2.0",
     "svelte": "^5.51.0",
     "svelte-check": "^4.4.2",
     "tailwindcss": "^4.2.2",
@@ -22,7 +23,7 @@
     "vite": "^7.3.1"
   },
   "dependencies": {
-    "@facile/muse": "github:FacileStudio/muse#v0.6.4",
+    "@facile/muse": "github:FacileStudio/muse#v0.6.6",
     "@facile/journal": "github:FacileStudio/Journal#ts"
   }
 }

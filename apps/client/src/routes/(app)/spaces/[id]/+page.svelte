@@ -108,7 +108,7 @@
 		</Stack>
 	{:else if missing}
 		<EmptyState
-			icon={icons.layers}
+			icon={icons.space}
 			title="No such space"
 			description="It does not exist, or you are not one of its members."
 		>
