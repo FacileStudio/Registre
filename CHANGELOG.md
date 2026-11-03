@@ -6,6 +6,13 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-03
+
+### Added
+
+- Bulle can exchange a user's token for Glouton (`glouton.read`, `glouton.write`)
+- Glouton can exchange a user's token for Courrier (`courrier.read`, `courrier.write`) to send outreach and read replies
+
 ## [0.1.0] - 2026-11-03
 
 First tagged release of the Facile Suite's identity provider.
