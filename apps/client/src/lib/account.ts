@@ -18,6 +18,7 @@ export interface AccountView {
 	admin: boolean;
 	totp_enrolled: boolean;
 	recovery_codes_remaining: number;
+	picture: string;
 }
 
 /** TOTPEnrolment is the material needed to add the factor to an authenticator. */
@@ -52,20 +53,22 @@ export function isUnauthorized(cause: unknown): boolean {
 }
 
 async function request<T>(path: string, body?: unknown): Promise<T> {
-	const method = body === undefined ? 'GET' : 'POST';
+	if (body === undefined) return send<T>(path, 'GET');
+	return send<T>(path, 'POST', JSON.stringify(body), 'application/json');
+}
+
+/**
+ * send is the one place a request leaves this module. Every non-GET carries
+ * the CSRF header, whatever its body, which is why the picture upload goes
+ * through here rather than through a fetch of its own.
+ */
+async function send<T>(path: string, method: string, body?: BodyInit, type?: string): Promise<T> {
 	const headers = new Headers();
-	if (method !== 'GET') {
-		headers.set('X-Facile-CSRF', '1');
-		headers.set('Content-Type', 'application/json');
-	}
+	if (method !== 'GET') headers.set('X-Facile-CSRF', '1');
+	if (type) headers.set('Content-Type', type);
 	let response: Response;
 	try {
-		response = await fetch(path, {
-			method,
-			headers,
-			credentials: 'include',
-			body: body === undefined ? undefined : JSON.stringify(body)
-		});
+		response = await fetch(path, { method, headers, credentials: 'include', body });
 	} catch {
 		throw new AccountError(0, 'Registre did not answer. Check the connection and try again.');
 	}
@@ -91,7 +94,10 @@ export const account = {
 		request<RecoveryCodes>('/api/account/totp/recovery-codes', { password }),
 	changePassword: (current_password: string, new_password: string) =>
 		request<unknown>('/api/account/password', { current_password, new_password }),
-	logout: () => request<unknown>('/api/account/logout', {})
+	logout: () => request<unknown>('/api/account/logout', {}),
+	setPicture: (image: Blob) =>
+		send<{ picture: string }>('/api/account/avatar', 'PUT', image, image.type || 'image/png'),
+	removePicture: () => send<{ picture: string }>('/api/account/avatar', 'DELETE')
 };
 
 /**
@@ -106,6 +112,13 @@ export interface AccountContext {
 
 /** ACCOUNT_CONTEXT keys AccountContext on the /account layout. */
 export const ACCOUNT_CONTEXT = Symbol('registre.account');
+
+/**
+ * RAIL_CONTEXT keys the app shell's reload of its own copy of the account, a
+ * `() => void`. The shell's user card reads the account separately from the
+ * /account pages, so a change made there reaches the card only through this.
+ */
+export const RAIL_CONTEXT = Symbol('registre.rail');
 
 /** accountError turns anything thrown by account into a line a human can read. */
 export function accountError(cause: unknown, fallback: string): string {

@@ -9,6 +9,7 @@
 		toast
 	} from '@facile/muse';
 	import { account, accountError, ACCOUNT_CONTEXT, type AccountContext } from '$lib/account';
+	import PictureSection from '$lib/components/PictureSection.svelte';
 
 	const ctx = getContext<AccountContext>(ACCOUNT_CONTEXT);
 
@@ -25,6 +26,10 @@
 		}
 	}
 </script>
+
+{#if ctx.me}
+	<PictureSection me={ctx.me} onchange={ctx.refresh} />
+{/if}
 
 <SettingsSection
 	title="Details"

@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { setContext } from 'svelte';
 	import { page } from '$app/state';
 	import { MobileNav, PageTransition, SideBar, Topbar, icons } from '@facile/muse';
-	import { account, type AccountView } from '$lib/account';
+	import { account, RAIL_CONTEXT, type AccountView } from '$lib/account';
 
 	let { children } = $props();
 
@@ -15,19 +16,22 @@
 	 * case here, not an error worth surfacing: the card falls back to a
 	 * generic label and the /account route does the real gating.
 	 */
-	$effect(() => {
+	function loadMe() {
 		account
 			.me()
 			.then((view) => (me = view))
 			.catch(() => (me = null));
-	});
+	}
+
+	$effect(loadMe);
+	setContext(RAIL_CONTEXT, loadMe);
 
 	$effect(() => {
 		if (page.url.pathname) scroller?.scrollTo({ top: 0 });
 	});
 
 	const links = $derived([
-		{ label: 'Portail', href: '/', icon: icons.home },
+		{ label: 'Apps', href: '/', icon: icons.home },
 		...(me?.admin ? [{ label: 'Administration', href: '/admin', icon: icons.shield }] : [])
 	]);
 
@@ -38,7 +42,7 @@
 		}))
 	);
 	const onAccount = $derived(page.url.pathname.startsWith('/account'));
-	const user = $derived.by(() => ({ name: me?.name || me?.email || 'Account' }));
+	const user = $derived.by(() => ({ name: me?.name || me?.email || 'Account', avatar: me?.picture || undefined }));
 	const routeKey = $derived(onAccount ? '/account' : page.url.pathname);
 </script>
 

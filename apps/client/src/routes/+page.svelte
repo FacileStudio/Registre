@@ -11,7 +11,7 @@
 		icons
 	} from '@facile/muse';
 	import { account, type AccountView } from '$lib/account';
-	import Portal from '$lib/components/Portal.svelte';
+	import SuiteHome from '$lib/components/SuiteHome.svelte';
 
 	const features = [
 		{
@@ -60,7 +60,7 @@
 </script>
 
 <svelte:head>
-	<title>{me ? 'Portail Facile' : 'Registre — the Facile Suite’s identity provider'}</title>
+	<title>{me ? 'Facile' : 'Registre — the Facile Suite’s identity provider'}</title>
 </svelte:head>
 
 <div class="min-h-dvh bg-fc-page text-fc-fg">
@@ -69,7 +69,7 @@
 			<div class="size-6 animate-spin rounded-full border-2 border-fc-ring border-t-transparent"></div>
 		</div>
 	{:else if me}
-		<Portal {me} onlogout={logout} />
+		<SuiteHome {me} onlogout={logout} />
 	{:else}
 		<header class="border-b border-fc-border">
 			<div class="mx-auto flex max-w-fc-xl items-center justify-between px-6 py-4">

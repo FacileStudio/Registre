@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { setContext } from 'svelte';
+	import { getContext, setContext } from 'svelte';
 	import { page } from '$app/state';
 	import {
 		Alert,
@@ -18,6 +18,7 @@
 		accountError,
 		isUnauthorized,
 		ACCOUNT_CONTEXT,
+		RAIL_CONTEXT,
 		type AccountContext,
 		type AccountView
 	} from '$lib/account';
@@ -51,11 +52,16 @@
 		load();
 	});
 
+	const reloadRail = getContext<(() => void) | undefined>(RAIL_CONTEXT);
+
 	setContext<AccountContext>(ACCOUNT_CONTEXT, {
 		get me() {
 			return me;
 		},
-		refresh: load
+		refresh: async () => {
+			await load();
+			reloadRail?.();
+		}
 	});
 
 	const sections = [
