@@ -48,6 +48,7 @@
 
 	const links = $derived([
 		{ label: 'Apps', href: '/', icon: icons.home },
+		...(me ? [{ label: 'Spaces', href: '/spaces', icon: icons.layers }] : []),
 		...(me?.admin ? [{ label: 'Administration', href: '/admin', icon: icons.shield }] : [])
 	]);
 

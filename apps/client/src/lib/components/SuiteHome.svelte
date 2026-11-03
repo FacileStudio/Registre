@@ -1,12 +1,21 @@
 <script lang="ts">
-	import { Card, EmptyState, Icon, Input, Page, PageHeader, Section, icons } from '@facile/muse';
+	import { Button, Card, EmptyState, Icon, Input, Page, PageHeader, Section, icons } from '@facile/muse';
 	import type { AccountView } from '$lib/account';
+	import { spaces, type SpaceSummary } from '$lib/spaces';
 	import { filterSuite, suite } from '$lib/suite';
 	import AppLogo from '$lib/components/AppLogo.svelte';
 
 	let { me }: { me: AccountView } = $props();
 
 	let query = $state('');
+	let mySpaces = $state<SpaceSummary[]>([]);
+
+	$effect(() => {
+		spaces
+			.list()
+			.then((list) => (mySpaces = list.sort((a, b) => a.name.localeCompare(b.name))))
+			.catch(() => (mySpaces = []));
+	});
 
 	const groups = $derived(filterSuite(suite, query));
 	const firstName = $derived((me.name || me.email).split(/[\s@]/)[0]);
@@ -60,4 +69,17 @@
 			</div>
 		</Section>
 	{/each}
+
+	{#if mySpaces.length > 0}
+		<Section title="Your spaces">
+			{#snippet actions()}
+				<Button variant="ghost" size="sm" href="/spaces" iconRight={icons.arrow}>Manage</Button>
+			{/snippet}
+			<div class="flex flex-wrap gap-2">
+				{#each mySpaces as space (space.id)}
+					<Button variant="outline" size="sm" href="/spaces/{encodeURIComponent(space.id)}">{space.name}</Button>
+				{/each}
+			</div>
+		</Section>
+	{/if}
 </Page>

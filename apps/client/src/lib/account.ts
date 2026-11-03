@@ -52,7 +52,12 @@ export function isUnauthorized(cause: unknown): boolean {
 	return cause instanceof AccountError && cause.status === 401;
 }
 
-async function request<T>(path: string, body?: unknown): Promise<T> {
+/**
+ * request sends a GET when there is no body and a JSON POST when there is one.
+ * Every Registre API module that speaks to a cookie-authenticated route goes
+ * through here, so the CSRF rule below covers it too.
+ */
+export async function request<T>(path: string, body?: unknown): Promise<T> {
 	if (body === undefined) return send<T>(path, 'GET');
 	return send<T>(path, 'POST', JSON.stringify(body), 'application/json');
 }
@@ -62,7 +67,7 @@ async function request<T>(path: string, body?: unknown): Promise<T> {
  * the CSRF header, whatever its body, which is why the picture upload goes
  * through here rather than through a fetch of its own.
  */
-async function send<T>(path: string, method: string, body?: BodyInit, type?: string): Promise<T> {
+export async function send<T>(path: string, method: string, body?: BodyInit, type?: string): Promise<T> {
 	const headers = new Headers();
 	if (method !== 'GET') headers.set('X-Facile-CSRF', '1');
 	if (type) headers.set('Content-Type', type);
