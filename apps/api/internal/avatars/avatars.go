@@ -69,16 +69,13 @@ func (s *Service) Remove(ctx context.Context, userID string) error {
 	return nil
 }
 
-// Picture returns userID's stable picture URL, the one the `picture` claim
-// carries, or "" when they have none. It reads the id alone, never the bytes,
-// because it runs on every token issuance.
-func (s *Service) Picture(ctx context.Context, userID string) (string, error) {
-	id, err := s.current(ctx, userID)
-	if id == "" || err != nil {
-		return "", err
-	}
-	return s.url(userID), nil
-}
+// URL is userID's stable picture URL, the one the `picture` claim carries.
+//
+// It is emitted for every human, picture or not, and answers 404 until one is
+// uploaded. That is what makes a first upload instant: an app stores the URL
+// at its first sign-in and never needs another to learn that a picture now
+// exists behind it. An app renders initials on the 404.
+func (s *Service) URL(userID string) string { return s.url(userID) }
 
 // Versioned returns userID's picture URL with the current upload's id as a
 // query, or "" when they have none. It is what registre's own pages render:

@@ -65,8 +65,8 @@ func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *zoidc.User
 	userinfo.Email = user.Email
 	userinfo.EmailVerified = zoidc.Bool(user.EmailVerified)
 	userinfo.Name = user.Name
-	userinfo.Picture, err = s.pictureFor(ctx, user.ID)
-	return err
+	userinfo.Picture = s.pictureFor(user.ID)
+	return nil
 }
 
 // SetUserinfoFromScopes feeds the ID token's claims.
@@ -127,9 +127,9 @@ func (s *Storage) SetUserinfoFromScopes(
 // userinfo. found is false for an unknown subject, which is a machine
 // principal and has no profile to emit.
 //
-// picture rides with profile, as OIDC Core §5.4 places it. It is the URL porte
-// fetches at every sign-in, so emitting it here is the whole of how a new
-// picture reaches every app in the suite.
+// picture rides with profile, as OIDC Core §5.4 places it. It is the stable
+// per-human URL apps store and render, so emitting it here is the whole of how
+// a picture reaches every app in the suite.
 func (s *Storage) fillProfile(
 	ctx context.Context, userinfo *zoidc.UserInfo, userID string, scopes []string,
 ) (found bool, err error) {
@@ -151,16 +151,16 @@ func (s *Storage) fillProfile(
 	}
 	if wantsProfile {
 		userinfo.Name = user.Name
-		userinfo.Picture, err = s.pictureFor(ctx, user.ID)
+		userinfo.Picture = s.pictureFor(user.ID)
 	}
-	return true, err
+	return true, nil
 }
 
-// pictureFor is userID's picture URL, or "" when they have none or this
-// storage was built without a picture store.
-func (s *Storage) pictureFor(ctx context.Context, userID string) (string, error) {
+// pictureFor is userID's stable picture URL, emitted whether or not a picture
+// exists yet, or "" when this storage was built without a picture store.
+func (s *Storage) pictureFor(userID string) string {
 	if s.svc.Avatars == nil {
-		return "", nil
+		return ""
 	}
-	return s.svc.Avatars.Picture(ctx, userID)
+	return s.svc.Avatars.URL(userID)
 }

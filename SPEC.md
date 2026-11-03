@@ -245,11 +245,13 @@ not granted yet: scopes are `<app>.read` or `<app>.write`, and only `.read` is s
 appended to the file) and serves it publicly at `<issuer>/avatars/<sub>`. That URL is stable per
 human and always serves the current picture, with `Cache-Control: no-cache` and the upload id as
 ETag, so every load revalidates and costs a 304 while nothing changed. `picture` is emitted in
-the ID token and at userinfo under the `profile` scope only. The suite's apps store that URL at
+the ID token and at userinfo under the `profile` scope only, and for every human whether or not
+a picture exists: the URL answers 404 (cacheable for thirty seconds) until one is uploaded, so an
+app that stored it at its first sign-in shows a first upload too, and renders initials meanwhile. The suite's apps store that URL at
 sign-in and render it, so a new upload shows in every app on its next page load, with nothing
 pushed and no re-sync. An app that copies the bytes instead (porte's `AvatarStore`) only sees a
 change at the next sign-in, which is why no suite app should. Removing the picture makes the URL
-answer 404 and drops the claim.
+answer 404 again.
 
 Reuse `porte/local/password.go`'s argon2id parameters **verbatim** — 64 MiB, three passes, two
 lanes — so password hashes stay portable in either direction.

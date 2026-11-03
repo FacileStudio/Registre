@@ -33,11 +33,15 @@ func Mount(router chi.Router, service *avatars.Service) {
 }
 
 // serve answers the picture a key names, 304 when the caller already holds
-// it, or 404 when there is none.
+// it, or 404 when there is none. The 404 is cacheable for thirty seconds:
+// every human's URL is in the claim, so a page listing fifty people with no
+// picture would otherwise ask fifty times on every render, and a first upload
+// still shows within half a minute.
 func serve(service *avatars.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		row, err := service.Lookup(r.Context(), chi.URLParam(r, "key"))
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.Header().Set("Cache-Control", "public, max-age=30")
 			http.NotFound(w, r)
 			return
 		}

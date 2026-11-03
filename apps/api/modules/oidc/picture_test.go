@@ -48,6 +48,16 @@ func TestIDTokenCarriesThePictureUnderProfile(t *testing.T) {
 		t.Errorf("id_token picture = %q, want the stable %q, which never changes on upload", claims.Picture, stable)
 	}
 
+	if err := avatars.New(fixture.db, fixture.issuer).Remove(context.Background(), user.ID); err != nil {
+		t.Fatalf("removing the picture: %v", err)
+	}
+	claims.Picture = ""
+	decodeIDTokenPayload(t, signInAndExchange(t, fixture, client, "openid profile")["id_token"].(string), &claims)
+	if claims.Picture != stable {
+		t.Errorf("without a picture the id_token carried %q, want the stable %q so a first upload is instant",
+			claims.Picture, stable)
+	}
+
 	claims.Picture = ""
 	decodeIDTokenPayload(t, signInAndExchange(t, fixture, client, "openid")["id_token"].(string), &claims)
 	if claims.Picture != "" {
