@@ -15,6 +15,8 @@
 	import ClientEditDrawer from '$lib/components/ClientEditDrawer.svelte';
 	import ClientActionModals from '$lib/components/ClientActionModals.svelte';
 	import { admin, errorMessage, formatDate, type ClientView } from '$lib/admin';
+	import AppLogo from '$lib/components/AppLogo.svelte';
+	import { appLogo } from '$lib/access';
 
 	let clients = $state<ClientView[]>([]);
 	let loading = $state(true);
@@ -257,8 +259,7 @@
 				<thead>
 					<tr>
 						<th scope="col">Application</th>
-						<th scope="col">Client ID</th>
-						<th scope="col">Redirect URIs</th>
+						<th scope="col">Who can sign in</th>
 						<th scope="col">Visible Roles</th>
 						<th scope="col">Logout Hook</th>
 						<th scope="col">Status</th>
@@ -270,8 +271,14 @@
 						{@const origin = getAppOrigin(app.redirect_uris)}
 						<tr class={app.disabled_at ? 'opacity-55' : ''}>
 							<td>
-								<div class="flex items-center gap-2">
-									<span class="font-medium text-fc-fg">{app.name}</span>
+								<div class="flex items-center gap-3">
+									<AppLogo app={{ logo: appLogo(app.name), icon: icons.widget }} />
+									<a href="/admin/apps/{encodeURIComponent(app.client_id)}" class="flex min-w-0 flex-col">
+										<span class="font-medium text-fc-fg hover:underline">{app.name}</span>
+										<span class="truncate font-fc-mono text-fc-xs text-fc-fg-muted" title={(app.redirect_uris || []).join(', ')}>
+											{app.client_id}
+										</span>
+									</a>
 									{#if app.managed}
 										<Badge tone="neutral">managed</Badge>
 									{/if}
@@ -288,11 +295,12 @@
 									{/if}
 								</div>
 							</td>
-							<td class="font-fc-mono text-fc-xs text-fc-fg-muted max-w-[140px] truncate" title={app.client_id}>
-								{app.client_id}
-							</td>
-							<td class="font-fc-mono text-fc-xs max-w-[200px] truncate" title={(app.redirect_uris || []).join(', ')}>
-								{(app.redirect_uris || []).join(', ') || '—'}
+							<td>
+								{#if app.access_policy === 'assigned'}
+									<Badge tone="warning">people with access</Badge>
+								{:else}
+									<Badge tone="success">everyone</Badge>
+								{/if}
 							</td>
 							<td>
 								{#if app.visible_roles && app.visible_roles.length > 0}
@@ -319,6 +327,15 @@
 							</td>
 							<td class="text-right">
 								<div class="flex items-center justify-end gap-1">
+									<Button
+										variant="ghost"
+										size="sm"
+										icon={icons.usersGroup}
+										href="/admin/apps/{encodeURIComponent(app.client_id)}"
+										aria-label="Manage access to {app.name}"
+									>
+										Access
+									</Button>
 									<Button
 										variant="ghost"
 										size="sm"

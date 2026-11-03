@@ -2,7 +2,7 @@
 	import { Icon } from '@facile/muse';
 	import type { SuiteApp } from '$lib/suite';
 
-	let { app }: { app: SuiteApp } = $props();
+	let { app }: { app: Pick<SuiteApp, 'logo' | 'icon'> } = $props();
 </script>
 
 <!--

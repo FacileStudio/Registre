@@ -15,10 +15,72 @@ export interface UserView {
 	email: string;
 	name: string;
 	admin: boolean;
-	roles?: string[];
 	email_verified: boolean;
 	created_at: string;
 	disabled_at?: string;
+	picture_url?: string;
+	last_sign_in_at?: string;
+	apps: string[];
+	totp: boolean;
+}
+
+/** AccessPolicy decides who may sign in to an application. */
+export type AccessPolicy = 'everyone' | 'assigned';
+
+/** AppAccess is one application as seen from one user. */
+export interface AppAccess {
+	client_id: string;
+	name: string;
+	access_policy: AccessPolicy;
+	visible_roles: string[];
+	granted: boolean;
+	allowed: boolean;
+	roles: string[];
+	disabled: boolean;
+}
+
+/** SpaceSummary is one shared space a user belongs to. */
+export interface SpaceSummary {
+	id: string;
+	name: string;
+	role: string;
+	member_count: number;
+}
+
+/** UserDetail is one account with its access to every app and its spaces. */
+export interface UserDetail {
+	user: UserView;
+	apps: AppAccess[];
+	spaces: SpaceSummary[];
+}
+
+/** GrantView is one person holding access to an application. */
+export interface GrantView {
+	user: UserView;
+	roles: string[];
+	granted_at: string;
+	granted_by: string;
+}
+
+/** ClientAccess is an application's policy and everyone granted to it. */
+export interface ClientAccess {
+	client_id: string;
+	access_policy: AccessPolicy;
+	visible_roles: string[];
+	self: boolean;
+	grants: GrantView[];
+}
+
+/** AdminEvent is one change an operator made. */
+export interface AdminEvent {
+	id: number;
+	at: string;
+	actor?: UserView;
+	actor_id: string;
+	action: string;
+	target_type: string;
+	target_id: string;
+	detail: Record<string, unknown>;
 }
 
 /** ClientView is an application or service account in the register. */
@@ -33,6 +95,7 @@ export interface ClientView {
 	redirect_uris?: string[];
 	visible_roles?: string[];
 	backchannel_logout_uri?: string;
+	access_policy?: AccessPolicy;
 	managed: boolean;
 	created_at: string;
 	disabled_at?: string;
@@ -68,7 +131,6 @@ export interface NewUser {
 export interface UpdateUser {
 	name?: string;
 	admin?: boolean;
-	roles?: string[];
 }
 
 export interface NewClient {
@@ -221,7 +283,27 @@ export const admin = {
 		call<{ deleted: string }>(`/api/admin/clients/${encodeURIComponent(clientID)}`, {
 			method: 'DELETE'
 		}),
-	listKeys: () => call<KeyState[]>('/api/admin/keys')
+	listKeys: () => call<KeyState[]>('/api/admin/keys'),
+	getUser: (id: string) => call<UserDetail>(`/api/admin/users/${encodeURIComponent(id)}`),
+	clientAccess: (clientID: string) =>
+		call<ClientAccess>(`/api/admin/clients/${encodeURIComponent(clientID)}/access`),
+	setPolicy: (clientID: string, policy: AccessPolicy) =>
+		call<{ access_policy: AccessPolicy }>(`/api/admin/clients/${encodeURIComponent(clientID)}/access`, {
+			method: 'PUT',
+			body: JSON.stringify({ access_policy: policy })
+		}),
+	grant: (clientID: string, userID: string, roles: string[]) =>
+		call<{ roles: string[] }>(
+			`/api/admin/clients/${encodeURIComponent(clientID)}/grants/${encodeURIComponent(userID)}`,
+			{ method: 'PUT', body: JSON.stringify({ roles }) }
+		),
+	revoke: (clientID: string, userID: string) =>
+		call<{ ok: boolean }>(
+			`/api/admin/clients/${encodeURIComponent(clientID)}/grants/${encodeURIComponent(userID)}`,
+			{ method: 'DELETE' }
+		),
+	listEvents: (before?: number) =>
+		call<AdminEvent[]>(`/api/admin/events${before ? `?before=${before}` : ''}`)
 };
 
 /**

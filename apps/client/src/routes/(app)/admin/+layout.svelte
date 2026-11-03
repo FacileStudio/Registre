@@ -72,6 +72,7 @@
 		{ id: 'apps', label: 'Apps', icon: icons.widget, href: '/admin/apps' },
 		{ id: 'clients', label: 'Service accounts', icon: icons.server, href: '/admin/clients' },
 		{ id: 'invitations', label: 'Invitations', icon: icons.mail, href: '/admin/invitations' },
+		{ id: 'activity', label: 'Activity', icon: icons.history, href: '/admin/activity' },
 		{ id: 'keys', label: 'Signing keys', icon: icons.key, href: '/admin/keys' }
 	];
 

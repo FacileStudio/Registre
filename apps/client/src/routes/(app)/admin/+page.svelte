@@ -1,6 +1,7 @@
 <script lang="ts">
 	import {
 		Alert,
+		Avatar,
 		Badge,
 		Button,
 		EmptyState,
@@ -9,9 +10,11 @@
 		Section,
 		Skeleton,
 		Table,
+		Tabs,
 		icons,
 		toast
 	} from '@facile/muse';
+	import { displayName, matchesUser, relativeTime, type UserFilter } from '$lib/access';
 	import { MIN_PASSWORD } from '$lib/policy';
 	import { admin, errorMessage, formatDate, type UserView } from '$lib/admin';
 	import UserModals from '$lib/components/UserModals.svelte';
@@ -51,13 +54,14 @@
 	let deleteTarget = $state<UserView | null>(null);
 	let deleteOpen = $state(false);
 
-	const filteredUsers = $derived.by(() => {
-		const q = search.toLowerCase().trim();
-		if (!q) return users;
-		return users.filter(
-			(u) => u.email.toLowerCase().includes(q) || (u.name && u.name.toLowerCase().includes(q))
-		);
-	});
+	let filter = $state<UserFilter>('all');
+	const filters = $derived([
+		{ id: 'all', label: `All (${users.length})` },
+		{ id: 'active', label: 'Active' },
+		{ id: 'admins', label: 'Operators' },
+		{ id: 'disabled', label: `Disabled (${users.filter((u) => u.disabled_at).length})` }
+	]);
+	const filteredUsers = $derived(users.filter((u) => matchesUser(u, search, filter)));
 
 	$effect(() => {
 		load();
@@ -234,7 +238,9 @@
 		</EmptyState>
 	{:else}
 		<div class="flex flex-col gap-3">
-			<div class="relative w-full max-w-xs">
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<Tabs items={filters} value={filter} onChange={(id) => (filter = id as UserFilter)} label="Filter users" />
+			<div class="relative w-full sm:max-w-xs">
 				<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-fc-fg-muted">
 					<Icon icon={icons.search} size={15} />
 				</div>
@@ -246,23 +252,34 @@
 						text-fc-fg placeholder-fc-fg-muted outline-none transition-colors focus:border-fc-ring"
 				/>
 			</div>
+			</div>
 
 			<Table>
 				<thead>
 					<tr>
-						<th scope="col">Email</th>
-						<th scope="col">Name</th>
+						<th scope="col">Person</th>
 						<th scope="col">Role</th>
+						<th scope="col">Apps</th>
 						<th scope="col">Status</th>
-						<th scope="col">Created</th>
+						<th scope="col">Last sign-in</th>
 						<th scope="col" class="text-right" aria-label="Actions"></th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each filteredUsers as user (user.id)}
 						<tr class={user.disabled_at ? 'opacity-55' : ''}>
-							<td class="font-fc-mono text-fc-xs">{user.email}</td>
-							<td>{user.name || '—'}</td>
+							<td>
+								<a
+									href="/admin/users/{user.id}"
+									class="flex min-w-0 items-center gap-3 rounded-fc-md focus-visible:outline-2 focus-visible:outline-fc-ring"
+								>
+									<Avatar name={displayName(user)} src={user.picture_url || undefined} size="sm" />
+									<span class="flex min-w-0 flex-col">
+										<span class="truncate font-medium text-fc-fg">{displayName(user)}</span>
+										<span class="truncate font-fc-mono text-fc-xs text-fc-fg-muted">{user.email}</span>
+									</span>
+								</a>
+							</td>
 							<td>
 								{#if user.admin}
 									<Badge tone="admin">operator</Badge>
@@ -270,12 +287,22 @@
 									<Badge tone="neutral">member</Badge>
 								{/if}
 							</td>
-							<td>
-								<Badge tone={user.disabled_at ? 'neutral' : 'success'}>
-									{user.disabled_at ? 'disabled' : 'active'}
-								</Badge>
+							<td class="text-fc-fg-muted">
+								{user.apps.length
+									? `${user.apps.length} granted`
+									: 'Open apps only'}
 							</td>
-							<td class="whitespace-nowrap text-fc-fg-muted">{formatDate(user.created_at)}</td>
+							<td>
+								<div class="flex flex-wrap gap-1">
+									<Badge tone={user.disabled_at ? 'neutral' : 'success'}>
+										{user.disabled_at ? 'disabled' : 'active'}
+									</Badge>
+									{#if user.totp}<Badge tone="info">2FA</Badge>{/if}
+								</div>
+							</td>
+							<td class="whitespace-nowrap text-fc-fg-muted" title={formatDate(user.created_at)}>
+								{relativeTime(user.last_sign_in_at)}
+							</td>
 							<td class="text-right">
 								<div class="flex items-center justify-end gap-1">
 									<Button

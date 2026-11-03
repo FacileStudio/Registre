@@ -15,6 +15,8 @@
 	let error = $state('');
 	let status = $state<AuthStatus>('checking');
 
+	const NO_ACCESS =
+		"Your account doesn't have access to this app. Ask an administrator to give you access in Registre.";
 	const REFUSED = 'Wrong email or password.';
 	const CODE_REFUSED = 'That code is not valid.';
 
@@ -94,13 +96,12 @@
 				method: 'GET',
 				credentials: 'include'
 			});
-			if (response.ok) {
-				const body = await response.json().catch(() => null);
-				if (body?.redirect) {
-					redirect(body.redirect);
-					return;
-				}
+			const body = await response.json().catch(() => null);
+			if (response.ok && body?.redirect) {
+				redirect(body.redirect);
+				return;
 			}
+			if (body?.error === 'no_access') error = NO_ACCESS;
 			status = 'ready';
 		} catch {
 			status = 'ready';
@@ -120,7 +121,7 @@
 			});
 			const body = await response.json().catch(() => null);
 			if (!response.ok) {
-				error = REFUSED;
+				error = body?.error === 'no_access' ? NO_ACCESS : REFUSED;
 				status = 'ready';
 				return;
 			}
@@ -151,7 +152,7 @@
 			});
 			const body = await response.json().catch(() => null);
 			if (!response.ok) {
-				error = CODE_REFUSED;
+				error = body?.error === 'no_access' ? NO_ACCESS : CODE_REFUSED;
 				code = '';
 				status = 'ready';
 				return;
