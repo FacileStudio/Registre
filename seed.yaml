@@ -257,6 +257,21 @@ applications:
       - https://prisme.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
 
+  # Capsule, the suite's end-to-end encrypted paste at capsule.facile.studio.
+  # Pastes stay anonymous; sign-in exists so the capsule CLI can hold a session
+  # through the same one-step browser login as the other tools. A fresh
+  # registration, so the id is its own name, like Sonde and Prisme.
+  #
+  # porte is mounted inside router.Route("/api", ...), so the redirect keeps
+  # the /api prefix. Capsule reads no roles and syncs no directory.
+  - client_id: capsule
+    name: Capsule
+    backchannel_logout_uri: https://capsule.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_CAPSULE_SECRET
+    redirect_uris:
+      - https://capsule.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+
   # Bulle, the suite's coding agent and harness at bulle.facile.studio.
   #
   # token_exchange (RFC 8693) is how Bulle reaches a signed-in user's own mail,
