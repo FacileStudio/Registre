@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Alert, Button, Card, Field, Input, Stack } from '@facile/muse';
+	import { Alert, Button, Card, Field, Icon, Input, Stack, icons } from '@facile/muse';
 
 	type Step = 'password' | 'second-factor';
-	type AuthStatus = 'checking' | 'redirecting' | 'ready' | 'submitting';
+	type AuthStatus = 'checking' | 'redirecting' | 'handed-off' | 'ready' | 'submitting';
 
 	let authRequest = $state('');
 	let email = $state('');
@@ -45,6 +45,29 @@
 	const PLAIN_REASON = /^[a-z][a-z ,.'-]{2,79}$/i;
 
 	/**
+	 * HAND_OFF_MS is how long a redirect may leave this page alive before it
+	 * counts as handed to a native app.
+	 *
+	 * A desktop or mobile app ends its sign-in on a custom-scheme URL. The
+	 * browser hands that URL to the app and keeps this document open, so the
+	 * spinner would turn forever. A web redirect unloads the page well before
+	 * the timer fires, so only the native case ever sees the done state.
+	 */
+	const HAND_OFF_MS = 4000;
+
+	/**
+	 * redirect sends the browser on and, if the page is still here after
+	 * HAND_OFF_MS, tells the human they are signed in and can close the tab.
+	 */
+	function redirect(target: string) {
+		status = 'redirecting';
+		window.location.assign(target);
+		setTimeout(() => {
+			if (status === 'redirecting') status = 'handed-off';
+		}, HAND_OFF_MS);
+	}
+
+	/**
 	 * refusal turns the `error` on the URL into a line this page will show,
 	 * capitalised so it sits beside the messages above it.
 	 */
@@ -74,8 +97,7 @@
 			if (response.ok) {
 				const body = await response.json().catch(() => null);
 				if (body?.redirect) {
-					status = 'redirecting';
-					window.location.assign(body.redirect);
+					redirect(body.redirect);
 					return;
 				}
 			}
@@ -109,8 +131,7 @@
 				status = 'ready';
 				return;
 			}
-			status = 'redirecting';
-			window.location.assign(body?.redirect || '/');
+			redirect(body?.redirect || '/');
 		} catch {
 			error = 'Something went wrong. Try again.';
 			status = 'ready';
@@ -135,8 +156,7 @@
 				status = 'ready';
 				return;
 			}
-			status = 'redirecting';
-			window.location.assign(body?.redirect || '/');
+			redirect(body?.redirect || '/');
 		} catch {
 			error = 'Something went wrong. Try again.';
 			status = 'ready';
@@ -164,7 +184,21 @@
 </svelte:head>
 
 <Card class="p-8">
-	{#if status === 'checking' || status === 'redirecting'}
+	{#if status === 'handed-off'}
+		<div class="stage py-8">
+			<Stack gap="content" class="items-center text-center">
+				<div class="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+					<Icon icon={icons.check} size={24} />
+				</div>
+				<div class="flex flex-col gap-1.5 pt-2">
+					<h1 class="text-base font-medium text-foreground">You're signed in</h1>
+					<p class="text-xs text-muted-foreground">
+						Go back to the app you were opening. You can close this tab.
+					</p>
+				</div>
+			</Stack>
+		</div>
+	{:else if status === 'checking' || status === 'redirecting'}
 		<div class="stage py-8">
 			<Stack gap="content" class="items-center text-center">
 				<div class="relative flex size-12 items-center justify-center">
