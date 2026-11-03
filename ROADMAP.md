@@ -287,6 +287,12 @@ Two facts already gathered that the tool has to satisfy:
 
 ## Known small things
 
+- [ ] `TestEveryRouteIsDocumented` and `TestReferenceIsServedAtDocs` fail with a database because
+      `buildTestRouter` sets an http issuer without `AppEnv: Development`. Fixing that (set
+      `Core: troncenv.Core{AppEnv: troncenv.Development}`) exposes the real gap: the zitadel op
+      routes mounted for every method, `/api/login/session`, and the older admin routes
+      (`GET|PUT|DELETE` a single client or user, enable, disable, password, `/update`) are not
+      in `modules/docs/registry.go`. The access routes added 2026-11-03 are documented
 - [x] ~~Discovery over-advertises `authorization_code`, `implicit` and the JWT bearer grant~~ —
       fixed 2026-08-24, see the phase 2 exit note above
 - [ ] `Ensure` and `Upsert` both read-then-create, so two replicas booting in the same instant
