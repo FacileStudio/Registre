@@ -97,19 +97,31 @@ func (s *Storage) CreateTokenExchangeRequest(context.Context, op.TokenExchangeRe
 }
 
 // GetPrivateClaimsFromTokenExchangeRequest returns the claims that make a token
-// a delegation: the scopes it carries, and who is acting.
+// a delegation: the scopes it carries, who is acting, and the subject's email.
 //
 // scope is a space-separated string, the shape RFC 9068 gives it and the one
 // porte reads. act names the calling client as its only member (RFC 8693 §4.1);
-// the human stays in sub. roles are left out on purpose: a delegated token
-// carries the least that works, and an app that wants a role asks for a scope.
+// the human stays in sub. email is the subject's address, present only when
+// registre holds it as verified: the audience maps a delegated caller to its
+// own account by address, and an unverified one must never be the key that
+// does it. Only exchanged tokens carry it; a plain access token and an ID token
+// are unchanged. roles are left out on purpose: a delegated token carries the
+// least that works, and an app that wants a role asks for a scope.
 func (s *Storage) GetPrivateClaimsFromTokenExchangeRequest(
-	_ context.Context, request op.TokenExchangeRequest,
+	ctx context.Context, request op.TokenExchangeRequest,
 ) (map[string]any, error) {
-	return map[string]any{
+	user, err := s.svc.Users.ByID(ctx, request.GetSubject())
+	if err != nil {
+		return nil, zoidc.ErrServerError().WithParent(err)
+	}
+	claims := map[string]any{
 		"scope": strings.Join(request.GetScopes(), " "),
 		"act":   map[string]any{"sub": request.GetClientID()},
-	}, nil
+	}
+	if user.EmailVerified && user.Email != "" {
+		claims["email"] = user.Email
+	}
+	return claims, nil
 }
 
 // SetUserinfoFromTokenExchangeRequest is never reached, because an ID token is
