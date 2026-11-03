@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
@@ -174,6 +175,9 @@ func (s *Storage) TokenRequestByRefreshToken(ctx context.Context, refreshToken s
 	}
 	if !row.Live(s.now()) {
 		return nil, errors.New("oidc: the refresh token is revoked or expired")
+	}
+	if err := access.New(s.db, "").Require(ctx, row.ClientID, row.UserID); err != nil {
+		return nil, fmt.Errorf("oidc: refresh refused: %w", err)
 	}
 	return &refreshRequest{row: row}, nil
 }

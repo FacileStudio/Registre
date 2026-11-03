@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
@@ -28,7 +29,19 @@ func (s *Service) AuthRequestByID(ctx context.Context, id string) (schemas.AuthR
 	return row, nil
 }
 
+// Complete binds an authenticated user to a pending auth request, after
+// checking that the user may use the app the request is for. It answers
+// access.ErrNoAccess for a restricted app the user holds no grant to, so every
+// sign-in path, password, second factor or live session, is gated in one place.
 func (s *Service) Complete(ctx context.Context, id, userID, sessionID string, at time.Time) error {
+	var clientID string
+	if err := s.db.WithContext(ctx).Model(&schemas.AuthRequest{}).Select("client_id").
+		Where("id = ?", id).Scan(&clientID).Error; err != nil {
+		return fmt.Errorf("identity: read the auth request's app: %w", err)
+	}
+	if err := access.New(s.db, "").Require(ctx, clientID, userID); err != nil {
+		return err
+	}
 	result := s.db.WithContext(ctx).Model(&schemas.AuthRequest{}).
 		Where("id = ? AND user_id IS NULL AND expires_at > ?", id, at).
 		Updates(map[string]any{"user_id": userID, "authenticated_at": at, "session_id": sessionID})

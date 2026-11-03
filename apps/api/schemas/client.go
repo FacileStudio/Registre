@@ -10,6 +10,12 @@ const (
 	KindApplication    = "application"
 )
 
+// Access policies. An app is open to everyone until an operator restricts it.
+const (
+	AccessEveryone = "everyone"
+	AccessAssigned = "assigned"
+)
+
 // Client is one OAuth client: an entry in the register, with the credential it
 // authenticates by and the ceiling on what it may ask for.
 //
@@ -72,6 +78,12 @@ type Client struct {
 	TokenExchange ExchangeGrants `gorm:"type:jsonb"`
 
 	AccessTokenTTL int64
+
+	// AccessPolicy decides who may sign in to an application: AccessEveryone
+	// admits every enabled user, AccessAssigned only users holding an
+	// AppGrant for it. The seed never writes it, so an operator's choice
+	// survives every boot.
+	AccessPolicy string `gorm:"default:everyone"`
 
 	// Managed marks a row the YAML seed owns. The seed rewrites it at every
 	// boot, so an edit made anywhere else is lost on the next restart.

@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
+	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
 	"github.com/FacileStudio/Registre/apps/api/internal/challenges"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
@@ -199,6 +201,8 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 		Register: p.register, Users: p.users, Keys: p.keyring, Invites: p.invites,
 		Logout:   logout.New(p.keyring, p.register, cfg.Issuer, p.log),
 		Sessions: sessions, Cookies: cookies,
+		Access: access.New(p.db, clients.SelfClientID), Audit: audit.New(p.db),
+		Avatars: p.pictures, Directory: p.teams, Self: clients.SelfClientID,
 	}, p.log))
 	device.Mount(router, device.New(device.Services{
 		Devices: p.deviceFlows, Sessions: sessions, Register: p.register, Cookies: cookies,

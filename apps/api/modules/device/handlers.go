@@ -3,6 +3,7 @@ package device
 import (
 	"encoding/json"
 	"errors"
+	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"log/slog"
 	"net/http"
 	"time"
@@ -94,7 +95,8 @@ func (s *Service) userCode(w http.ResponseWriter, r *http.Request) (string, bool
 }
 
 // refuse answers the one 404 an unknown, expired, already-answered or
-// already-spent code gets, and 500 for anything registre broke.
+// already-spent code gets, 403 no_access when the signed-in human may not use
+// the requesting app, and 500 for anything registre broke.
 //
 // One status for all four states is the point. Telling a caller that a code
 // exists but was already used confirms they found a real one, which is the
@@ -102,6 +104,10 @@ func (s *Service) userCode(w http.ResponseWriter, r *http.Request) (string, bool
 func (s *Service) refuse(w http.ResponseWriter, err error) {
 	if errors.Is(err, devices.ErrUnknownCode) {
 		encode(w, map[string]string{"error": "unknown_code"}, http.StatusNotFound)
+		return
+	}
+	if errors.Is(err, access.ErrNoAccess) {
+		encode(w, map[string]string{"error": "no_access"}, http.StatusForbidden)
 		return
 	}
 	s.logger.Error("registre: device verification failed", slog.Any("error", err))

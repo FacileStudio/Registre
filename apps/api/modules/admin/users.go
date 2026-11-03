@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
@@ -19,8 +20,11 @@ type userView struct {
 	Email         string   `json:"email"`
 	Name          string   `json:"name"`
 	Admin         bool     `json:"admin"`
-	Roles         []string `json:"roles,omitempty"`
 	EmailVerified bool     `json:"email_verified"`
+	PictureURL    string   `json:"picture_url,omitempty"`
+	LastSignInAt  *string  `json:"last_sign_in_at,omitempty"`
+	Apps          []string `json:"apps"`
+	TOTP          bool     `json:"totp"`
 	CreatedAt     string   `json:"created_at"`
 	DisabledAt    *string  `json:"disabled_at,omitempty"`
 }
@@ -28,7 +32,7 @@ type userView struct {
 func viewUser(row schemas.User) userView {
 	view := userView{
 		ID: row.ID, Email: row.Email, Name: row.Name, Admin: row.Admin,
-		Roles: row.Roles, EmailVerified: row.EmailVerified,
+		EmailVerified: row.EmailVerified, Apps: []string{}, TOTP: row.TOTPConfirmedAt != nil,
 		CreatedAt: row.CreatedAt.UTC().Format(timeFormat),
 	}
 	if row.DisabledAt != nil {
@@ -44,9 +48,10 @@ func (s *Service) listUsers(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
-	views := make([]userView, 0, len(rows))
-	for _, row := range rows {
-		views = append(views, viewUser(row))
+	views, err := s.userViews(r, rows)
+	if err != nil {
+		serverError(w, err)
+		return
 	}
 	encode(w, views, http.StatusOK)
 }
@@ -56,11 +61,10 @@ func (s *Service) listUsers(w http.ResponseWriter, r *http.Request) {
 // construction, and the password is hashed under the ceiling.
 func (s *Service) createUser(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Email    string   `json:"email"`
-		Name     string   `json:"name"`
-		Password string   `json:"password"`
-		Admin    bool     `json:"admin"`
-		Roles    []string `json:"roles"`
+		Email    string `json:"email"`
+		Name     string `json:"name"`
+		Password string `json:"password"`
+		Admin    bool   `json:"admin"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		badRequest(w)
@@ -72,13 +76,14 @@ func (s *Service) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	row, err := s.users.Create(r.Context(), identity.NewUser{
 		Email: body.Email, Password: body.Password, Name: body.Name,
-		Admin: body.Admin, Roles: body.Roles,
+		Admin: body.Admin,
 	})
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 	operator := r.Context().Value(operatorKey).(schemas.User)
+	s.record(r, "user.create", userTarget(row.ID), map[string]any{"email": row.Email, "admin": row.Admin})
 	s.logger.Info("registre: admin minted a user",
 		slog.String("email", row.Email), slog.String("operator", operator.Email))
 	encode(w, viewUser(row), http.StatusCreated)
@@ -87,20 +92,20 @@ func (s *Service) createUser(w http.ResponseWriter, r *http.Request) {
 func (s *Service) updateUser(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "userID")
 	var body struct {
-		Name  string   `json:"name"`
-		Admin *bool    `json:"admin"`
-		Roles []string `json:"roles"`
+		Name  string `json:"name"`
+		Admin *bool  `json:"admin"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		badRequest(w)
 		return
 	}
-	row, err := s.users.Update(r.Context(), id, body.Name, body.Admin, body.Roles)
+	row, err := s.users.Update(r.Context(), id, body.Name, body.Admin)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 	operator := r.Context().Value(operatorKey).(schemas.User)
+	s.record(r, "user.update", userTarget(id), map[string]any{"name": body.Name, "admin": body.Admin})
 	s.logger.Info("registre: admin updated user",
 		slog.String("user_id", id), slog.String("operator", operator.Email))
 	encode(w, viewUser(row), http.StatusOK)
@@ -130,6 +135,7 @@ func (s *Service) setUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	s.fireLogout(r, id, reached)
 	operator := r.Context().Value(operatorKey).(schemas.User)
+	s.record(r, "user.password", userTarget(id), nil)
 	s.logger.Info("registre: admin updated password for user",
 		slog.String("user_id", id), slog.String("operator", operator.Email))
 	encode(w, map[string]any{"ok": true, "logout_targets": len(reached)}, http.StatusOK)
@@ -144,6 +150,7 @@ func (s *Service) disableUser(w http.ResponseWriter, r *http.Request) {
 	}
 	s.fireLogout(r, id, reached)
 	operator := r.Context().Value(operatorKey).(schemas.User)
+	s.record(r, "user.disable", userTarget(id), nil)
 	s.logger.Info("registre: admin disabled a user",
 		slog.String("user_id", id), slog.String("operator", operator.Email))
 	encode(w, map[string]any{"disabled": id, "logout_targets": len(reached)}, http.StatusOK)
@@ -156,6 +163,7 @@ func (s *Service) enableUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	operator := r.Context().Value(operatorKey).(schemas.User)
+	s.record(r, "user.enable", userTarget(id), nil)
 	s.logger.Info("registre: admin enabled a user",
 		slog.String("user_id", id), slog.String("operator", operator.Email))
 	encode(w, map[string]any{"enabled": id}, http.StatusOK)
@@ -174,6 +182,7 @@ func (s *Service) deleteUser(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
+	s.record(r, "user.delete", userTarget(id), nil)
 	s.logger.Info("registre: admin deleted user",
 		slog.String("user_id", id), slog.String("operator", operator.Email))
 	encode(w, map[string]any{"deleted": id}, http.StatusOK)
@@ -209,6 +218,7 @@ func (s *Service) inviteUser(w http.ResponseWriter, r *http.Request) {
 		encode(w, map[string]string{"error": "a valid email address is required"}, http.StatusBadRequest)
 		return
 	}
+	s.record(r, "invite.create", audit.Target{Type: "invite", ID: body.Email}, nil)
 	s.logger.Info("registre: admin invited a user",
 		slog.String("email", body.Email), slog.String("operator", operator.Email))
 	encode(w, map[string]any{"email": body.Email, "token": token}, http.StatusCreated)

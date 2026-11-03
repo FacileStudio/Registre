@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"gorm.io/gorm"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/access"
+	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
@@ -32,6 +35,7 @@ type fixture struct {
 	register    *clients.Service
 	users       *identity.Service
 	invitations *invites.Service
+	db          *gorm.DB
 }
 
 func newFixture(t *testing.T) fixture {
@@ -61,6 +65,7 @@ func newFixture(t *testing.T) fixture {
 	invitations := invites.New(db, verifier)
 	service := New(Services{
 		Register: register, Users: users, Keys: keyring, Invites: invitations,
+		Access: access.New(db, clients.SelfClientID), Audit: audit.New(db), Self: clients.SelfClientID,
 	}, discard())
 	router := chi.NewRouter()
 	Mount(router, service)
@@ -71,7 +76,7 @@ func newFixture(t *testing.T) fixture {
 	if err != nil {
 		t.Fatalf("creating the operator: %v", err)
 	}
-	return fixture{router, operator, verifier, register, users, invitations}
+	return fixture{router, operator, verifier, register, users, invitations, db}
 }
 
 func (f fixture) call(t *testing.T, method, path string, body any, auth bool) (*http.Response, map[string]any) {

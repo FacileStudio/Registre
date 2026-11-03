@@ -18,12 +18,6 @@ type User struct {
 	// arrives, sets this false until an address challenge answers.
 	EmailVerified bool
 
-	// Roles is the flat list this human holds. What reaches a token is
-	// the intersection with the client's VisibleRoles, never the raw row:
-	// SPEC §6 requires the claim filtered per client, and porte's role
-	// checks deny silently on anything else.
-	Roles StringList `gorm:"type:jsonb"`
-
 	// TOTPSecret is the RFC 6238 seed, sealed under the process root key
 	// beside the nonce that sealed it. It is sealed rather than hashed
 	// because verifying a code needs the seed back, which is exactly what

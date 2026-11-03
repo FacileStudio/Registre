@@ -3,6 +3,7 @@ package oidc
 import (
 	"context"
 	"errors"
+	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"log/slog"
 	"strings"
 	"time"
@@ -51,6 +52,9 @@ func (s *Storage) ValidateTokenExchangeRequest(ctx context.Context, request op.T
 	if err != nil {
 		return err
 	}
+	if err := s.checkAudienceAccess(ctx, request); err != nil {
+		return err
+	}
 	scopes, err := narrowExchangeScopes(grant, request.GetScopes())
 	if err != nil {
 		return err
@@ -85,6 +89,26 @@ func (s *Storage) checkSubjectToken(ctx context.Context, request op.TokenExchang
 	}
 	if !user.Enabled() {
 		return refusedSubject()
+	}
+	return nil
+}
+
+// checkAudienceAccess refuses minting a delegated token for an app the
+// subject may not use: an exchange must never reach an app the human could not
+// sign in to themselves. Audiences that name no registered app are left to
+// exchangeAllowance.
+func (s *Storage) checkAudienceAccess(ctx context.Context, request op.TokenExchangeRequest) error {
+	token, err := s.liveToken(ctx, request.GetExchangeSubjectTokenIDOrToken())
+	if err != nil {
+		return refusedSubject()
+	}
+	for _, audience := range request.GetAudience() {
+		if _, err := s.svc.Register.ByClientID(ctx, audience); err != nil {
+			continue
+		}
+		if err := access.New(s.db, "").Require(ctx, audience, token.Subject); err != nil {
+			return zoidc.ErrAccessDenied().WithDescription("the user may not use %s", audience).WithParent(err)
+		}
 	}
 	return nil
 }

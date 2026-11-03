@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/FacileStudio/Registre/apps/api/internal/access"
 
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
@@ -45,8 +46,19 @@ func (s *Service) Pending(ctx context.Context, userCode string) (schemas.DeviceC
 // copied out of the session the human is already holding with registre rather
 // than invented here. A token minted from this flow therefore says the same
 // things about how its owner signed in as one minted from a browser login,
-// which is what lets a relying party treat the two identically.
+// which is what lets a relying party treat the two identically. A human who
+// may not use the requesting app is refused with access.ErrNoAccess.
 func (s *Service) Approve(ctx context.Context, userCode string, by Approval) error {
+	var clientID string
+	if err := s.db.WithContext(ctx).Model(&schemas.DeviceCode{}).Select("client_id").
+		Where("user_code = ?", Normalise(userCode)).Scan(&clientID).Error; err != nil {
+		return fmt.Errorf("devices: read the flow's app: %w", err)
+	}
+	if clientID != "" {
+		if err := access.New(s.db, "").Require(ctx, clientID, by.UserID); err != nil {
+			return err
+		}
+	}
 	return s.answer(ctx, userCode, map[string]any{
 		"approved_at": s.now(),
 		"user_id":     by.UserID,

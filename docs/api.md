@@ -75,4 +75,10 @@ The interactive documentation is served live at `/docs` (powered by Scalar), and
 | `GET` | `/api/admin/invites` | Cookie (Admin) | List pending invitations |
 | `POST` | `/api/admin/invites` | Cookie (Admin) | Generate a new user invitation link |
 | `GET` | `/api/admin/keys` | Cookie (Admin) | Inspect signing key rotation status |
+| `GET` | `/api/admin/users/{userID}` | Cookie (Admin) | One user, their access to every app and their spaces |
+| `GET` | `/api/admin/clients/{clientID}/access` | Cookie (Admin) | An app's access policy and grants |
+| `PUT` | `/api/admin/clients/{clientID}/access` | Cookie (Admin) | Set who may sign in: `everyone` or `assigned` |
+| `PUT` | `/api/admin/clients/{clientID}/grants/{userID}` | Cookie (Admin) | Grant access with roles, or change roles |
+| `DELETE` | `/api/admin/clients/{clientID}/grants/{userID}` | Cookie (Admin) | Remove a user's access to an app |
+| `GET` | `/api/admin/events` | Cookie (Admin) | The admin activity log, newest first |
 | `POST` | `/api/invites/redeem` | Public | Accept invitation and complete registration |

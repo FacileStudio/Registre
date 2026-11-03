@@ -179,6 +179,13 @@ end to end in `apps/api/modules/oidc`.
       involved in any of it. Asserted end to end against a running binary over real HTTP, and in
       `internal/totp`, `modules/account` and `modules/login`
 
+- [x] Per-app access, per-app roles and an admin activity log — shipped 2026-11-03 (plan in
+      `docs/plan-admin-access.md`). `clients.access_policy` (everyone or assigned), `app_grants`
+      carrying roles per user and per app (replacing `users.roles`), enforced in
+      `identity.Complete`, device approval, refresh and token exchange through
+      `internal/access`; `admin_events` written by every dashboard mutation. The dashboard gained
+      pictures, status filters, last sign-in, user and app detail pages and an Activity tab.
+
 ## Phase 4 — migration and cutover
 
 **Blocked on reading the live Authentik instance, not on writing code.** `authentik-config`

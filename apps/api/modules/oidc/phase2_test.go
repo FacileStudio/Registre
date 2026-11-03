@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
@@ -148,10 +149,11 @@ func TestRolesArriveFilteredPerClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading the user: %v", err)
 	}
-	user.Roles = schemas.StringList{"admin", "editor"}
-	err = fixture.db.Model(&schemas.User{}).Where("id = ?", user.ID).Update("roles", user.Roles).Error
-	if err != nil {
-		t.Fatalf("giving the user roles: %v", err)
+	for _, app := range []string{"sablier", "courrier"} {
+		grant := schemas.AppGrant{ClientID: app, UserID: user.ID, Roles: schemas.StringList{"admin", "editor"}, GrantedAt: time.Now()}
+		if err := fixture.db.Create(&grant).Error; err != nil {
+			t.Fatalf("granting the user roles in %s: %v", app, err)
+		}
 	}
 
 	for name, tc := range map[string]struct {

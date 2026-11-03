@@ -6,9 +6,9 @@
 // through the same identity path as `registre user-create`: an email and
 // password presented as HTTP Basic on every request, checked by
 // identity.Verify under the argon2 ceiling and refused unless the account
-// holds the admin role. There are no cookies here, so there is no CSRF
-// surface; if a cookie session ever replaces Basic auth, X-Facile-CSRF comes
-// with it. Invite redemption is the one unauthenticated route, because it is
+// holds the admin role. A live admin session cookie is accepted too, and then
+// every mutation must carry X-Facile-CSRF, which no cross-origin page can set
+// without a preflight this API never answers. Invite redemption is the one unauthenticated route, because it is
 // how a human becomes one, and it runs rate-limited and ceiling-bound like
 // the login endpoint it mirrors.
 package admin
@@ -16,8 +16,12 @@ package admin
 import (
 	"log/slog"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
+	"github.com/FacileStudio/Registre/apps/api/internal/audit"
+	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
+	"github.com/FacileStudio/Registre/apps/api/internal/directory"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
@@ -46,6 +50,15 @@ type Services struct {
 	Logout   *logout.Service
 	Sessions *accounts.Service
 	Cookies  accounts.Cookies
+
+	Access    *access.Service
+	Audit     *audit.Service
+	Avatars   *avatars.Service
+	Directory *directory.Service
+
+	// Self is registre's own client id, the one application the dashboard
+	// refuses to restrict.
+	Self string
 }
 
 // Service serves the dashboard's API over the register, the accounts, the
@@ -59,6 +72,12 @@ type Service struct {
 	sessions *accounts.Service
 	cookies  accounts.Cookies
 	logger   *slog.Logger
+
+	access    *access.Service
+	audit     *audit.Service
+	avatars   *avatars.Service
+	directory *directory.Service
+	self      string
 }
 
 // New builds the admin service over the process's services.
@@ -67,6 +86,7 @@ func New(deps Services, logger *slog.Logger) *Service {
 		register: deps.Register, users: deps.Users, keyring: deps.Keys,
 		invites: deps.Invites, logout: deps.Logout, sessions: deps.Sessions,
 		cookies: deps.Cookies, logger: logger,
+		access: deps.Access, audit: deps.Audit, avatars: deps.Avatars, directory: deps.Directory, self: deps.Self,
 	}
 }
 
@@ -89,6 +109,12 @@ func Mount(router chi.Router, service *Service) {
 		admin.Post("/clients/{clientID}/disable", service.disableClient)
 		admin.Post("/clients/{clientID}/enable", service.enableClient)
 		admin.Delete("/clients/{clientID}", service.deleteClient)
+		admin.Get("/clients/{clientID}/access", service.clientAccess)
+		admin.Put("/clients/{clientID}/access", service.setPolicy)
+		admin.Put("/clients/{clientID}/grants/{userID}", service.putGrant)
+		admin.Delete("/clients/{clientID}/grants/{userID}", service.deleteGrant)
+		admin.Get("/events", service.listEvents)
+		admin.Get("/users/{userID}", service.getUser)
 		admin.Get("/users", service.listUsers)
 		admin.Post("/users", service.createUser)
 		admin.Put("/users/{userID}", service.updateUser)

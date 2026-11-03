@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"log/slog"
 	"net/http"
 	"time"
@@ -126,8 +127,14 @@ func (s *Service) jsonSubmit(w http.ResponseWriter, r *http.Request) {
 
 // refuse writes the one refusal both endpoints make. A refusal registre
 // caused rather than the caller is logged and answered 500, with the same
-// body, so an operator can find it without the client learning anything.
+// body, so an operator can find it without the client learning anything. A
+// user who proved who they are but may not use the app answers 403 no_access:
+// they already know their account exists, so saying so leaks nothing.
 func (s *Service) refuse(w http.ResponseWriter, err error) {
+	if errors.Is(err, access.ErrNoAccess) {
+		encode(w, map[string]string{"error": "no_access"}, http.StatusForbidden)
+		return
+	}
 	status := http.StatusUnauthorized
 	switch {
 	case errors.Is(err, identity.ErrInvalid), errors.Is(err, errAuthRequestGone),
@@ -287,6 +294,10 @@ func (s *Service) sessionLogin(w http.ResponseWriter, r *http.Request) {
 			s.logger.Warn("registre: touch session client", slog.Any("error", err))
 		}
 		if err := s.identity.Complete(r.Context(), authReq.ID, user.ID, session.ID, s.now()); err != nil {
+			if errors.Is(err, access.ErrNoAccess) {
+				encode(w, map[string]string{"error": "no_access"}, http.StatusForbidden)
+				return
+			}
 			encode(w, map[string]string{"error": "failed to complete auth request"}, http.StatusBadRequest)
 			return
 		}

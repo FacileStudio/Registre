@@ -45,13 +45,12 @@ func New(db *gorm.DB, verifier *credentials.Verifier) *Service {
 // emission of the claim is worth nothing if the only truth it can tell is no.
 // Self-service signup, when it arrives, creates unverified accounts instead.
 
-// NewUser carries the fields for a fresh account. Roles is optional.
+// NewUser carries the fields for a fresh account.
 type NewUser struct {
 	Email    string
 	Password string
 	Name     string
 	Admin    bool
-	Roles    []string
 }
 
 func (s *Service) Create(ctx context.Context, in NewUser) (schemas.User, error) {
@@ -71,9 +70,6 @@ func (s *Service) Create(ctx context.Context, in NewUser) (schemas.User, error) 
 		ID: subject, Email: email, Name: in.Name,
 		PasswordHash: hash, Admin: in.Admin,
 		EmailVerified: true,
-	}
-	if len(in.Roles) > 0 {
-		row.Roles = schemas.StringList(in.Roles)
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return schemas.User{}, fmt.Errorf("identity: create the user: %w", err)
@@ -182,16 +178,13 @@ func (s *Service) SetPassword(ctx context.Context, userID, password string) erro
 	return nil
 }
 
-func (s *Service) Update(ctx context.Context, userID, name string, admin *bool, roles []string) (schemas.User, error) {
+func (s *Service) Update(ctx context.Context, userID, name string, admin *bool) (schemas.User, error) {
 	updates := map[string]any{
 		"name":       name,
 		"updated_at": time.Now().UTC(),
 	}
 	if admin != nil {
 		updates["admin"] = *admin
-	}
-	if roles != nil {
-		updates["roles"] = schemas.StringList(roles)
 	}
 	result := s.db.WithContext(ctx).Model(&schemas.User{}).
 		Where("id = ?", userID).

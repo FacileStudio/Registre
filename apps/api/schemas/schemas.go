@@ -57,3 +57,33 @@ func (list StringList) Contains(value string) bool {
 	}
 	return false
 }
+
+// JSONMap is a small object held in a jsonb column, read whole.
+type JSONMap map[string]any
+
+// Value encodes the map as a JSON object; a nil map is stored as {}.
+func (m JSONMap) Value() (driver.Value, error) {
+	if m == nil {
+		return "{}", nil
+	}
+	encoded, err := json.Marshal(map[string]any(m))
+	if err != nil {
+		return nil, err
+	}
+	return string(encoded), nil
+}
+
+// Scan decodes a jsonb object back into the map.
+func (m *JSONMap) Scan(src any) error {
+	switch typed := src.(type) {
+	case nil:
+		*m = nil
+		return nil
+	case []byte:
+		return json.Unmarshal(typed, m)
+	case string:
+		return json.Unmarshal([]byte(typed), m)
+	default:
+		return fmt.Errorf("schemas: cannot scan %T into a JSONMap", src)
+	}
+}

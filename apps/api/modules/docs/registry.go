@@ -257,6 +257,47 @@ type UserResponse struct {
 	Disabled bool   `json:"disabled"`
 }
 
+// AccessPolicyRequest switches who may sign in to an application.
+type AccessPolicyRequest struct {
+	AccessPolicy string `json:"access_policy" validate:"required" enum:"everyone,assigned"`
+}
+
+// GrantRequest sets the roles a user holds in an application.
+type GrantRequest struct {
+	Roles []string `json:"roles"`
+}
+
+// GrantResponse is one person's access to an application.
+type GrantResponse struct {
+	ClientID string   `json:"client_id"`
+	UserID   string   `json:"user_id"`
+	Roles    []string `json:"roles"`
+}
+
+// ClientAccessResponse is an application's policy and its grants.
+type ClientAccessResponse struct {
+	ClientID     string          `json:"client_id"`
+	AccessPolicy string          `json:"access_policy"`
+	VisibleRoles []string        `json:"visible_roles"`
+	Self         bool            `json:"self"`
+	Grants       []GrantResponse `json:"grants"`
+}
+
+// OKResponse acknowledges a change that has nothing else to report.
+type OKResponse struct {
+	OK bool `json:"ok"`
+}
+
+// AdminEventResponse is one change an operator made.
+type AdminEventResponse struct {
+	ID         int64  `json:"id"`
+	At         string `json:"at"`
+	ActorID    string `json:"actor_id"`
+	Action     string `json:"action"`
+	TargetType string `json:"target_type"`
+	TargetID   string `json:"target_id"`
+}
+
 type CreateUserRequest struct {
 	Email    string `json:"email" validate:"required"`
 	Name     string `json:"name" validate:"required"`
@@ -630,6 +671,62 @@ func Reference() apiref.Config {
 							Auth:       "cookie",
 							PathParams: []Field{{Name: "userID", Type: "string", Description: "User ID"}},
 							Status:     http.StatusNoContent,
+						},
+						{
+							Method:       "GET",
+							Path:         "/api/admin/users/{userID}",
+							Summary:      "One user with their access to every app and their spaces",
+							Auth:         "cookie",
+							PathParams:   []Field{{Name: "userID", Type: "string", Description: "User ID"}},
+							ResponseBody: UserResponse{},
+						},
+						{
+							Method:       "GET",
+							Path:         "/api/admin/clients/{clientID}/access",
+							Summary:      "An app's access policy and the people granted to it",
+							Auth:         "cookie",
+							PathParams:   []Field{{Name: "clientID", Type: "string", Description: "Client ID"}},
+							ResponseBody: ClientAccessResponse{},
+						},
+						{
+							Method:       "PUT",
+							Path:         "/api/admin/clients/{clientID}/access",
+							Summary:      "Set who may sign in to an app: everyone or assigned",
+							Auth:         "cookie",
+							PathParams:   []Field{{Name: "clientID", Type: "string", Description: "Client ID"}},
+							RequestBody:  AccessPolicyRequest{},
+							ResponseBody: AccessPolicyRequest{},
+						},
+						{
+							Method:  "PUT",
+							Path:    "/api/admin/clients/{clientID}/grants/{userID}",
+							Summary: "Give a user access to an app with roles, or change their roles",
+							Auth:    "cookie",
+							PathParams: []Field{
+								{Name: "clientID", Type: "string", Description: "Client ID"},
+								{Name: "userID", Type: "string", Description: "User ID"},
+							},
+							RequestBody:  GrantRequest{},
+							ResponseBody: GrantResponse{},
+						},
+						{
+							Method:  "DELETE",
+							Path:    "/api/admin/clients/{clientID}/grants/{userID}",
+							Summary: "Remove a user's access to an app",
+							Auth:    "cookie",
+							PathParams: []Field{
+								{Name: "clientID", Type: "string", Description: "Client ID"},
+								{Name: "userID", Type: "string", Description: "User ID"},
+							},
+							ResponseBody: OKResponse{},
+						},
+						{
+							Method:       "GET",
+							Path:         "/api/admin/events",
+							Summary:      "The admin activity log, newest first, fifty at a time",
+							Auth:         "cookie",
+							QueryParams:  []Field{{Name: "before", Type: "integer", Description: "Return events older than this id"}},
+							ResponseBody: []AdminEventResponse{},
 						},
 						{
 							Method:       "GET",

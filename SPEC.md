@@ -253,6 +253,18 @@ pushed and no re-sync. An app that copies the bytes instead (porte's `AvatarStor
 change at the next sign-in, which is why no suite app should. Removing the picture makes the URL
 answer 404 again.
 
+**Who may use which app is registre's.** Each application has an access policy: `everyone`, the
+default, admits every enabled user; `assigned` admits only users holding a grant to it. A grant
+(`app_grants`) is one user, one app and the roles they hold there, so a person can be admin in
+one app and nothing in another. The `roles` claim is the grant's roles intersected with the
+client's `visible_roles`, still a flat array filtered per client as the table above requires.
+The check runs wherever a human gets a token for an app: completing a login (password, second
+factor or live session), approving a device code, redeeming a refresh token and exchanging a
+token for another audience. Restricting an app or revoking a grant revokes the refresh tokens
+that no longer qualify, so access ends within one access-token lifetime. Registre's own client
+can never be restricted, so no operator can lock the dashboard. Every dashboard change is
+written to `admin_events`.
+
 **Shared spaces are registre's.** A space is a team, such as "Facile", that exists in every app
 with the same members at the same rank, owner > admin > member (porte's `spaces` ladder). Humans
 create spaces, add mates and change roles on `/spaces`; no app edits them. Apps pull

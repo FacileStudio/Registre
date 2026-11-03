@@ -38,6 +38,8 @@ type clientView struct {
 	VisibleRoles         []string `json:"visible_roles,omitempty"`
 	BackchannelLogoutURI string   `json:"backchannel_logout_uri,omitempty"`
 
+	AccessPolicy string `json:"access_policy"`
+
 	Managed    bool    `json:"managed"`
 	CreatedAt  string  `json:"created_at"`
 	DisabledAt *string `json:"disabled_at,omitempty"`
@@ -48,7 +50,7 @@ func viewClient(row schemas.Client) clientView {
 		ClientID: row.ClientID, Subject: row.Subject, Name: row.Name, Kind: row.Kind,
 		GrantTypes: row.GrantTypes, Scopes: row.Scopes, Audiences: row.Audiences,
 		RedirectURIs: row.RedirectURIs, VisibleRoles: row.VisibleRoles,
-		BackchannelLogoutURI: row.BackchannelLogoutURI, Managed: row.Managed,
+		BackchannelLogoutURI: row.BackchannelLogoutURI, Managed: row.Managed, AccessPolicy: row.AccessPolicy,
 		CreatedAt: row.CreatedAt.UTC().Format(timeFormat),
 	}
 	if row.DisabledAt != nil {
@@ -89,6 +91,7 @@ func (s *Service) createClient(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
+	s.record(r, "client.create", clientTarget(row.ClientID), map[string]any{"name": row.Name, "kind": row.Kind})
 	s.logger.Info("registre: admin minted a client",
 		slog.String("client_id", row.ClientID), slog.String("kind", row.Kind))
 	encode(w, map[string]any{"client": viewClient(row), "secret": secret}, http.StatusCreated)
@@ -141,6 +144,7 @@ func (s *Service) updateClient(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
+	s.record(r, "client.update", clientTarget(clientID), nil)
 	s.logger.Info("registre: admin updated client", slog.String("client_id", clientID))
 	encode(w, viewClient(row), http.StatusOK)
 }
@@ -156,6 +160,7 @@ func (s *Service) rotateSecret(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
+	s.record(r, "client.rotate_secret", clientTarget(clientID), nil)
 	s.logger.Info("registre: admin rotated a client secret", slog.String("client_id", clientID))
 	encode(w, map[string]string{"client_id": clientID, "secret": secret}, http.StatusOK)
 }
@@ -170,6 +175,7 @@ func (s *Service) disableClient(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
+	s.record(r, "client.disable", clientTarget(clientID), nil)
 	s.logger.Info("registre: admin disabled client", slog.String("client_id", clientID))
 	encode(w, map[string]any{"disabled": clientID}, http.StatusOK)
 }
@@ -184,6 +190,7 @@ func (s *Service) enableClient(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
+	s.record(r, "client.enable", clientTarget(clientID), nil)
 	s.logger.Info("registre: admin enabled client", slog.String("client_id", clientID))
 	encode(w, map[string]any{"enabled": clientID}, http.StatusOK)
 }
@@ -194,6 +201,7 @@ func (s *Service) deleteClient(w http.ResponseWriter, r *http.Request) {
 		encode(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
+	s.record(r, "client.delete", clientTarget(clientID), nil)
 	s.logger.Info("registre: admin deleted client", slog.String("client_id", clientID))
 	encode(w, map[string]any{"deleted": clientID}, http.StatusOK)
 }
