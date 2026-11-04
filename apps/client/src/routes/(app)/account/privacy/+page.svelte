@@ -29,6 +29,8 @@
 		} catch (cause) {
 			if (cause instanceof AccountError && cause.message === 'reauth_required') {
 				reauthOpen = true;
+			} else if (cause instanceof AccountError && cause.message === 'sole_owner') {
+				toast.danger(t('privacy.soleOwner'));
 			} else {
 				toast.danger(accountError(cause, t('common.failed')));
 			}

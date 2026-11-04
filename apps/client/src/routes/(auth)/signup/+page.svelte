@@ -8,12 +8,10 @@
 	type Status = 'ready' | 'proving' | 'sending' | 'sent' | 'closed';
 
 	let email = $state('');
-	let authRequest = $state('');
 	let status = $state<Status>('ready');
 	let error = $state('');
 
 	onMount(async () => {
-		authRequest = new URLSearchParams(window.location.search).get('auth_request') ?? '';
 		const config = await fetch('/api/config')
 			.then((r) => r.json())
 			.catch(() => null);
@@ -33,7 +31,7 @@
 		try {
 			const proof = await fetchAndSolve();
 			status = 'sending';
-			await signup.start(email.trim(), proof, authRequest);
+			await signup.start(email.trim(), proof);
 			status = 'sent';
 		} catch (cause) {
 			error = explain(cause);

@@ -67,7 +67,8 @@
 			confirm = '';
 			toast.success(t('password.changed'));
 		} catch (cause) {
-			passwordError = accountError(cause, t('common.failed'));
+			const message = accountError(cause, t('common.failed'));
+			passwordError = message === 'password_breached' ? t('password.breached') : message;
 		} finally {
 			savingPassword = false;
 		}

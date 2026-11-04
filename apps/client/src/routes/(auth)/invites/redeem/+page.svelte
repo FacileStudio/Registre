@@ -43,7 +43,8 @@
 				body: JSON.stringify({ token, password })
 			});
 			if (!response.ok) {
-				error = t('invite.used');
+				const answer = await response.json().catch(() => null);
+				error = answer?.error === 'password_breached' ? t('password.breached') : t('invite.used');
 				return;
 			}
 			done = true;

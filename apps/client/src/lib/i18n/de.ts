@@ -328,5 +328,6 @@ export const de: Messages = {
 	"spaces.deleteName": "{name} löschen",
 	"spaces.deleteHint": "Entfernt den Bereich und alle Mitglieder aus allen Facile-Apps. Dateien, Termine und Aufgaben in den Apps bleiben erhalten.",
 	"spaces.deleteTitle": "{name} löschen?",
-	"spaces.deleteBody": "Alle verlieren diesen Bereich innerhalb von Sekunden in allen Facile-Apps. Das lässt sich hier nicht rückgängig machen."
+	"spaces.deleteBody": "Alle verlieren diesen Bereich innerhalb von Sekunden in allen Facile-Apps. Das lässt sich hier nicht rückgängig machen.",
+	"privacy.soleOwner": "Du bist der einzige Eigentümer eines Bereichs, den andere nutzen. Mach zuerst jemand anderen zum Eigentümer und versuch es dann erneut."
 };

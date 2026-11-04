@@ -6,13 +6,21 @@
 	import { t } from '$lib/i18n/i18n.svelte';
 
 	let authRequest = $state('');
+	let next = $state('/');
 	let accepted = $state(false);
 	let busy = $state(false);
 	let error = $state('');
 
 	onMount(() => {
-		authRequest = new URLSearchParams(window.location.search).get('auth_request') ?? '';
+		const query = new URLSearchParams(window.location.search);
+		authRequest = query.get('auth_request') ?? '';
+		next = localPath(query.get('next') ?? '');
 	});
+
+	/** localPath keeps a same-origin path and refuses anything that could leave the site. */
+	function localPath(candidate: string): string {
+		return /^\/(?![\/\\])/.test(candidate) ? candidate : '/';
+	}
 
 	/**
 	 * accept records the acceptance, then resumes the sign-in that was waiting
@@ -25,7 +33,7 @@
 		try {
 			await request('/api/account/consent', { accept_terms: true });
 			if (!authRequest) {
-				window.location.assign('/');
+				window.location.assign(next);
 				return;
 			}
 			const response = await fetch(`/api/login/session?auth_request=${encodeURIComponent(authRequest)}`, {
