@@ -295,7 +295,7 @@
 					<p class="text-center text-fc-sm text-fc-fg-muted">
 						{t('login.noAccount')}
 						<a
-							href="/signup"
+							href={authRequest ? `/signup?auth_request=${encodeURIComponent(authRequest)}` : '/signup'}
 							class="font-medium text-fc-fg underline underline-offset-2"
 						>
 							{t('signup.title')}

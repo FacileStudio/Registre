@@ -18,9 +18,10 @@ type PasskeyOptions struct {
 
 // SignupStart is the first sign-up step.
 type SignupStart struct {
-	Email  string `json:"email" validate:"required"`
-	Altcha string `json:"altcha" validate:"required"`
-	Locale string `json:"locale,omitempty"`
+	Email       string `json:"email" validate:"required"`
+	Altcha      string `json:"altcha" validate:"required"`
+	Locale      string `json:"locale,omitempty"`
+	AuthRequest string `json:"auth_request,omitempty"`
 }
 
 // SignupFinish creates the account behind a live link.

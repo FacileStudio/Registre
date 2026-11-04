@@ -17,6 +17,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/consent"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
+	"github.com/FacileStudio/Registre/apps/api/internal/flows"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	"github.com/FacileStudio/Registre/apps/api/internal/recovery"
@@ -161,29 +162,75 @@ func TestStartIsLimitedPerAddress(t *testing.T) {
 	}
 }
 
-// TestSignupNeverCompletesAPendingLogin is the reviewer's PoC: a starter
-// naming somebody else's authorization request must not get it completed by
-// whoever finishes the link.
-func TestSignupNeverCompletesAPendingLogin(t *testing.T) {
+// carry is one sign-up started and finished by browsers holding the given
+// flow cookies, for an app login bound to the flow cookie "bound-secret".
+type carry struct {
+	startCookie, finishCookie string
+	named                     string
+}
+
+// signUpCarrying runs start and finish with those cookies and answers the
+// finish body and the auth request's state afterwards.
+func signUpCarrying(t *testing.T, c carry) (string, schemas.AuthRequest) {
+	t.Helper()
 	router := open(t, DefaultLimits())
 	url, _ := testdb.URL()
 	db, _ := testdb.Open(url)
-	db.Create(&schemas.AuthRequest{ID: "attacker-R", ClientID: "app", RedirectURI: "https://app/cb", ExpiresAt: time.Now().Add(10 * time.Minute)})
-	status, _ := call(t, router, http.MethodPost, "/api/signup/start",
-		`{"email":"victim@example.com","altcha":"`+proof(t, router)+`","auth_request":"attacker-R"}`)
-	if status != http.StatusAccepted {
+	db.Create(&schemas.AuthRequest{ID: "R", ClientID: "app", RedirectURI: "https://app/cb",
+		ExpiresAt: time.Now().Add(10 * time.Minute), BrowserHash: flows.Digest("bound-secret")})
+	start := `{"email":"new@example.com","altcha":"` + proof(t, router) + `","auth_request":"` + c.named + `"}`
+	if status, _ := callWithFlow(t, router, "/api/signup/start", start, c.startCookie); status != http.StatusAccepted {
 		t.Fatalf("start = %d", status)
 	}
-	sum := sha256.Sum256([]byte("victim-token"))
-	db.Model(&schemas.SignupChallenge{}).Where("email = ?", "victim@example.com").Update("token_hash", hex.EncodeToString(sum[:]))
-	status, body := call(t, router, http.MethodPost, "/api/signup/finish",
-		`{"token":"victim-token","name":"Victim","locale":"en","accept_terms":true,"password":"correct horse battery staple zz"}`)
-	if status != http.StatusCreated || strings.Contains(body, "attacker-R") {
-		t.Fatalf("finish = %d %s, want 201 to Registre's home", status, body)
-	}
+	sum := sha256.Sum256([]byte("new-token"))
+	db.Model(&schemas.SignupChallenge{}).Where("email = ?", "new@example.com").Update("token_hash", hex.EncodeToString(sum[:]))
+	_, body := callWithFlow(t, router, "/api/signup/finish",
+		`{"token":"new-token","name":"New","locale":"en","accept_terms":true,"password":"correct horse battery staple zz"}`, c.finishCookie)
 	var pending schemas.AuthRequest
-	db.Where("id = ?", "attacker-R").Take(&pending)
-	if pending.UserID != nil {
-		t.Fatalf("the attacker's auth request was completed for %s", *pending.UserID)
+	db.Where("id = ?", "R").Take(&pending)
+	return body, pending
+}
+
+// callWithFlow posts body with a flow cookie holding secret, when one is given.
+func callWithFlow(t *testing.T, router http.Handler, path, body, secret string) (int, string) {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+	request.RemoteAddr = "192.0.2.1:1234"
+	if secret != "" {
+		request.AddCookie(&http.Cookie{Name: flows.CookieName(flows.Digest(secret), false), Value: secret})
+	}
+	router.ServeHTTP(rec, request)
+	return rec.Code, rec.Body.String()
+}
+
+// TestABoundLoginIsCarriedThroughSignup finishes the app login when the same
+// browser that started it starts and finishes sign-up.
+func TestABoundLoginIsCarriedThroughSignup(t *testing.T) {
+	body, pending := signUpCarrying(t, carry{startCookie: "bound-secret", finishCookie: "bound-secret", named: "R"})
+	if !strings.Contains(body, "/authorize/callback?id=R") || pending.UserID == nil {
+		t.Fatalf("finish = %s, request %+v; want the bound login completed", body, pending)
+	}
+}
+
+// TestAForeignLoginIsNeverCarried is the reviewer's PoC: naming an auth
+// request another browser started gets nothing completed.
+func TestAForeignLoginIsNeverCarried(t *testing.T) {
+	body, pending := signUpCarrying(t, carry{startCookie: "attacker-secret", finishCookie: "bound-secret", named: "R"})
+	if strings.Contains(body, "attacker") || strings.Contains(body, "callback") || pending.UserID != nil {
+		t.Fatalf("finish = %s, request %+v; want Registre's home and nothing completed", body, pending)
+	}
+}
+
+// TestALinkOpenedElsewhereDoesNotFinishTheLogin refuses a finishing browser
+// that does not hold the flow cookie, even when the start was bound.
+func TestALinkOpenedElsewhereDoesNotFinishTheLogin(t *testing.T) {
+	for name, finish := range map[string]string{"unbound": "", "foreign": "attacker-secret"} {
+		t.Run(name, func(t *testing.T) {
+			body, pending := signUpCarrying(t, carry{startCookie: "bound-secret", finishCookie: finish, named: "R"})
+			if strings.Contains(body, "callback") || pending.UserID != nil {
+				t.Fatalf("finish = %s, request %+v; want Registre's home and nothing completed", body, pending)
+			}
+		})
 	}
 }
