@@ -328,5 +328,6 @@ export const es: Messages = {
 	"spaces.deleteName": "Eliminar {name}",
 	"spaces.deleteHint": "Quita el espacio y a todos sus miembros de todas las aplicaciones Facile. Los archivos, eventos y tareas de las aplicaciones se conservan.",
 	"spaces.deleteTitle": "¿Eliminar {name}?",
-	"spaces.deleteBody": "Todos pierden este espacio en todas las aplicaciones Facile en segundos. Aquí no se puede deshacer."
+	"spaces.deleteBody": "Todos pierden este espacio en todas las aplicaciones Facile en segundos. Aquí no se puede deshacer.",
+	"privacy.soleOwner": "Eres el único propietario de un espacio que usan otras personas. Nombra antes a otro propietario y vuelve a intentarlo."
 };

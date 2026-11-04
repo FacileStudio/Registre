@@ -9,6 +9,8 @@
 	import {
 		device,
 		isSignedOut,
+		needsConsent,
+		CONSENT_PATH,
 		outcomeOf,
 		stash,
 		unstash,
@@ -67,6 +69,11 @@
 		if (isSignedOut(cause)) {
 			stash(code);
 			stage = 'signed-out';
+			return;
+		}
+		if (needsConsent(cause)) {
+			stash(code);
+			window.location.assign(CONSENT_PATH);
 			return;
 		}
 		const named = outcomeOf(cause);

@@ -85,6 +85,14 @@ export class DeviceError extends Error {
 	}
 }
 
+/** CONSENT_PATH is where an approval waiting on the current terms is sent. */
+export const CONSENT_PATH = '/consent?next=%2Fdevice';
+
+/** needsConsent reports whether a failure means the current terms are still owed. */
+export function needsConsent(cause: unknown): boolean {
+	return cause instanceof DeviceError && cause.status === 403 && cause.message === 'consent_required';
+}
+
 /** isSignedOut reports whether a failure means there is no session to verify with. */
 export function isSignedOut(cause: unknown): boolean {
 	return cause instanceof DeviceError && cause.status === 401;
@@ -187,6 +195,7 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
 		throw new DeviceError(0, t(RETRY), null);
 	}
 	const parsed = await response.json().catch(() => null);
+	if (!response.ok && parsed?.error === 'consent_required') throw new DeviceError(403, 'consent_required', null);
 	if (!response.ok) throw refusal(response.status);
 	return parsed as T;
 }

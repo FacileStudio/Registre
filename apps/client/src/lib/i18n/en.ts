@@ -326,7 +326,8 @@ export const en = {
 	"spaces.deleteName": "Delete {name}",
 	"spaces.deleteHint": "Removes the space and everyone in it from every Facile app. Files, events and tasks inside the apps are kept.",
 	"spaces.deleteTitle": "Delete {name}?",
-	"spaces.deleteBody": "Everyone loses this space in every Facile app within seconds. This cannot be undone here."
+	"spaces.deleteBody": "Everyone loses this space in every Facile app within seconds. This cannot be undone here.",
+	"privacy.soleOwner": "You are the only owner of a space other people use. Make someone else owner first, then ask again."
 } as const;
 
 /** MessageKey is every key the catalogs carry. */

@@ -58,7 +58,8 @@
 				body: JSON.stringify({ token, password })
 			});
 			if (!response.ok) {
-				error = t('reset.used');
+				const answer = await response.json().catch(() => null);
+				error = answer?.error === 'password_breached' ? t('password.breached') : t('reset.used');
 				return;
 			}
 			done = true;
