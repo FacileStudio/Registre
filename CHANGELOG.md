@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-04
+
 ### Security
 
 - An auth request id is no longer enough to collect a code. Before, a signed-in human who
