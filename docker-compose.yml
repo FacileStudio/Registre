@@ -114,6 +114,12 @@ services:
       # in /api like the pair above.
       JOURNAL_BROWSER_URL: ${JOURNAL_BROWSER_URL:-}
       JOURNAL_BROWSER_KEY: ${JOURNAL_BROWSER_KEY:-}
+      # Plans. Ardoise's client id may push entitlements; the plan section on
+      # /spaces needs the URL and a token of at least 32 characters. Each
+      # unset means that half is off.
+      ENTITLEMENTS_WRITER: ${ENTITLEMENTS_WRITER:-}
+      ARDOISE_BILLING_URL: ${ARDOISE_BILLING_URL:-}
+      BILLING_API_TOKEN: ${BILLING_API_TOKEN:-}
       # Password recovery. Absent SMTP_HOST or SMTP_FROM means recovery is off:
       # the routes still answer identically, they just send nothing, and the
       # boot log says which state this instance is in. Listing them here is the

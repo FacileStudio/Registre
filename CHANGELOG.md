@@ -6,6 +6,18 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `PUT /api/directory/entitlements`: Ardoise pushes every space's and person's plan
+  entitlements as one full replacement, guarded by a revision (409 when stale), validated
+  strictly, and audited. Only the client named by `ENTITLEMENTS_WRITER` may call it
+- The directory snapshot carries `entitlements_revision`, `entitlements` on each space and a
+  `people` list with each person's personal entitlements (porte `directory` wire types)
+- A plan section on each space page: members see the plan, owners see the published catalog,
+  upgrade through Stripe checkout and open the billing portal. Needs `ARDOISE_BILLING_URL`
+  and a `BILLING_API_TOKEN` of at least 32 characters; hidden otherwise
+- Migration `00013_entitlements`
+
 ## [0.3.0] - 2026-11-04
 
 ### Added

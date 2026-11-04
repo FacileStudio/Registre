@@ -108,6 +108,24 @@ the same enumeration oracle wearing a stopwatch. Delivery failures reach the log
 caller, which is the right trade: the caller has been told a link is on its way whether or not
 their address was known, so there is no answer a failure could usefully change.
 
+## Plans and billing
+
+| Variable | Default | What it decides |
+|---|---|---|
+| `ENTITLEMENTS_WRITER` | unset | The one client id allowed to `PUT /api/directory/entitlements`, Ardoise's. Unset means the route answers 404 to everyone |
+| `ARDOISE_BILLING_URL` | unset | Ardoise's API base, such as `https://api-ardoise.facile.studio`. The only host the plan section calls. Must be `https` unless `APP_ENV=development`; a malformed value refuses boot |
+| `BILLING_API_TOKEN` | unset | The bearer registre sends to Ardoise, the same value Ardoise holds. Server side only, never logged |
+
+The plan section on `/spaces/<id>` shows only when `ARDOISE_BILLING_URL` is set and
+`BILLING_API_TOKEN` is at least 32 characters. A shorter token counts as absent, so a guessable
+secret turns the feature off rather than weakening it. With the section off, the plan API answers
+`enabled: false` and checkout and portal answer 404. Every call to Ardoise has a 5 s timeout and a
+1 MiB response cap, and a checkout or portal URL is only handed to the page when its origin is
+exactly `https://checkout.stripe.com` or `https://billing.stripe.com`.
+
+The writer is checked after the usual client authentication, so the argon2 ceiling still applies:
+a wrong secret is 401, another app is 403.
+
 ## Break-glass
 
 | Variable | Default | What it decides |

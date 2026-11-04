@@ -53,6 +53,16 @@ outlast a token, and the publish delay must be shorter than the rotation interva
 same suite-wide 401, caught by arithmetic. See
 [docs/configuration.md](docs/configuration.md).
 
+Plans are off unless configured: `ENTITLEMENTS_WRITER` names the client allowed to push
+entitlements, and `ARDOISE_BILLING_URL` with a `BILLING_API_TOKEN` of at least 32 characters
+turns on the plan section of the spaces pages.
+
+| Variable | Default | What it decides |
+|---|---|---|
+| `ENTITLEMENTS_WRITER` | unset | Client id allowed to `PUT /api/directory/entitlements`. Unset: 404 |
+| `ARDOISE_BILLING_URL` | unset | Ardoise's API base. `https` outside development |
+| `BILLING_API_TOKEN` | unset | Bearer for Ardoise, 32+ characters, server side only |
+
 `OIDC_ISSUER` stays `https://sso.facile.studio` for every consuming app — the hostname was
 deliberately made product-neutral so registre could move in behind it without any app changing a
 variable.

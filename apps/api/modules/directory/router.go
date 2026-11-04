@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	spaces "github.com/FacileStudio/Registre/apps/api/internal/directory"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
@@ -23,11 +24,14 @@ import (
 // maxImportBytes bounds an import body. A suite's spaces fit in kilobytes.
 const maxImportBytes = 1 << 20
 
-// Service serves the snapshot and the one-time import.
+// Service serves the snapshot, the one-time import and the entitlements
+// push.
 type Service struct {
 	register *clients.Service
 	spaces   *spaces.Service
 	logger   *slog.Logger
+	writer   string
+	audit    *audit.Service
 }
 
 // New builds the module over the register and the spaces service.
@@ -39,6 +43,7 @@ func New(register *clients.Service, spaces *spaces.Service, logger *slog.Logger)
 func Mount(router chi.Router, s *Service) {
 	router.Get("/api/directory/snapshot", s.snapshot)
 	router.Post("/api/directory/import", s.importSpaces)
+	router.Put("/api/directory/entitlements", s.setEntitlements)
 }
 
 // snapshot answers every shared space with its members.

@@ -121,14 +121,47 @@ type SpacesMember struct {
 }
 
 type SpacesSpace struct {
-	ID      string         `json:"id"`
-	Name    string         `json:"name"`
-	Members []SpacesMember `json:"members"`
+	ID           string         `json:"id"`
+	Name         string         `json:"name"`
+	Members      []SpacesMember `json:"members"`
+	Entitlements map[string]any `json:"entitlements,omitempty"`
+}
+
+type SpacesPerson struct {
+	Sub          string         `json:"sub"`
+	Entitlements map[string]any `json:"entitlements,omitempty"`
 }
 
 type SpacesSnapshot struct {
-	Version int64         `json:"version"`
-	Spaces  []SpacesSpace `json:"spaces"`
+	Version              int64          `json:"version"`
+	EntitlementsRevision int64          `json:"entitlements_revision,omitempty"`
+	Spaces               []SpacesSpace  `json:"spaces"`
+	People               []SpacesPerson `json:"people,omitempty"`
+}
+
+type EntitlementsPush struct {
+	Revision int64 `json:"revision"`
+	Spaces   []struct {
+		ID           string         `json:"id"`
+		Entitlements map[string]any `json:"entitlements"`
+	} `json:"spaces"`
+	People []struct {
+		Sub          string         `json:"sub,omitempty"`
+		Email        string         `json:"email,omitempty"`
+		Entitlements map[string]any `json:"entitlements"`
+	} `json:"people"`
+}
+
+type SpacePlan struct {
+	Enabled   bool             `json:"enabled"`
+	Available bool             `json:"available"`
+	Owner     bool             `json:"owner"`
+	Plan      map[string]any   `json:"plan,omitempty"`
+	Catalog   []map[string]any `json:"catalog,omitempty"`
+}
+
+type BillingCheckout struct {
+	LookupKey string `json:"lookup_key"`
 }
 
 type SpacesImport struct {
@@ -533,6 +566,7 @@ func Reference() apiref.Config {
 					Routes: []Route{
 						{Method: "GET", Path: "/api/directory/snapshot", Summary: "Every shared space with its members and roles", Auth: "basic", ResponseBody: SpacesSnapshot{}},
 						{Method: "POST", Path: "/api/directory/import", Summary: "Merge the calling app's existing spaces by name, once per app", Auth: "basic", RequestBody: SpacesImport{}, ResponseBody: SpacesSnapshot{}},
+						{Method: "PUT", Path: "/api/directory/entitlements", Summary: "Replace every plan entitlement (ENTITLEMENTS_WRITER only); 204, 409 on a stale revision", Auth: "basic", RequestBody: EntitlementsPush{}, Status: 204},
 					},
 				},
 				{
@@ -548,6 +582,9 @@ func Reference() apiref.Config {
 						{Method: "DELETE", Path: "/api/spaces/{spaceID}/members/{userID}", Summary: "Remove a member", Auth: "cookie", ResponseBody: map[string]bool{"ok": true}},
 						{Method: "DELETE", Path: "/api/spaces/{spaceID}", Summary: "Delete a space in every app (owner only)", Auth: "cookie", ResponseBody: map[string]bool{"ok": true}},
 						{Method: "POST", Path: "/api/spaces/{spaceID}/leave", Summary: "Leave a space", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]bool{"ok": true}},
+						{Method: "GET", Path: "/api/spaces/{spaceID}/billing", Summary: "The space's plan, and the catalog for owners", Auth: "cookie", ResponseBody: SpacePlan{}},
+						{Method: "POST", Path: "/api/spaces/{spaceID}/billing/checkout", Summary: "Start a Stripe checkout for a published price (owner only)", Auth: "cookie", RequestBody: BillingCheckout{}, ResponseBody: map[string]string{"url": ""}},
+						{Method: "POST", Path: "/api/spaces/{spaceID}/billing/portal", Summary: "Open the Stripe billing portal (owner only)", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]string{"url": ""}},
 					},
 				},
 				{

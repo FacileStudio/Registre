@@ -57,7 +57,8 @@ func New(db *gorm.DB, picture func(string) string, nudger *Nudger, logger *slog.
 	return &Service{db: db, picture: picture, nudger: nudger, logger: logger, ladder: spaces.Default()}
 }
 
-// Snapshot is every space with its enabled members, as apps receive it.
+// Snapshot is every space with its enabled members and plan entitlements,
+// plus every enabled person with personal entitlements, as apps receive it.
 // Disabled humans are left out, which is what makes disabling somebody
 // remove them from every space in every app.
 func (s *Service) Snapshot(ctx context.Context) (wire.Snapshot, error) {
@@ -70,7 +71,7 @@ func (s *Service) Snapshot(ctx context.Context) (wire.Snapshot, error) {
 		if err != nil {
 			return err
 		}
-		if err := s.attachMembers(tx, spacesByID); err != nil {
+		if err := s.populate(tx, &out, spacesByID); err != nil {
 			return err
 		}
 		out.Spaces = make([]wire.Space, 0, len(order))
