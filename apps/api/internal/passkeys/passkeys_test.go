@@ -194,3 +194,21 @@ func TestSignInRequiresUserVerification(t *testing.T) {
 		t.Fatalf("an unverified assertion = %v, want ErrInvalid", err)
 	}
 }
+
+// TestRegistrationRequiresUserVerification refuses a passkey created without
+// verifying the person.
+func TestRegistrationRequiresUserVerification(t *testing.T) {
+	svc, db := open(t)
+	user(t, db, "alice", "")
+	device := passkeytest.New(rpID, origin)
+	device.SkipVerification = true
+	ctx := context.Background()
+	options, err := svc.BeginRegistration(ctx, passkeys.PurposeRegister, "alice", "alice@example.com")
+	if err != nil {
+		t.Fatalf("BeginRegistration: %v", err)
+	}
+	answer, _ := device.Create(options.PublicKey)
+	if _, err := svc.FinishRegistration(ctx, options.Ceremony, passkeys.PurposeRegister, answer); !errors.Is(err, passkeys.ErrInvalid) {
+		t.Fatalf("an unverified registration = %v, want ErrInvalid", err)
+	}
+}

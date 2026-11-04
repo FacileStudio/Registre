@@ -23,6 +23,15 @@ type invitationNotice struct {
 // "join Facile" mail to an address without one while sign-up is open, and
 // nothing otherwise. The caller answers the same in every case.
 func (s *Service) noticeFor(tx *gorm.DB, row schemas.SpaceInvitation) (invitationNotice, error) {
+	notice, err := s.pickNotice(tx, row)
+	if err != nil || notice.to == "" {
+		return notice, err
+	}
+	return logMail(tx, notice)
+}
+
+// pickNotice decides which mail, if any, an invitation would send.
+func (s *Service) pickNotice(tx *gorm.DB, row schemas.SpaceInvitation) (invitationNotice, error) {
 	var space schemas.Space
 	if err := tx.Where("id = ?", row.SpaceID).Take(&space).Error; err != nil {
 		return invitationNotice{}, err
@@ -34,9 +43,6 @@ func (s *Service) noticeFor(tx *gorm.DB, row schemas.SpaceInvitation) (invitatio
 	name := inviter.Name
 	if name == "" {
 		name = inviter.Email
-	}
-	if capped, err := mailCapped(tx, row.Email); err != nil || capped {
-		return invitationNotice{}, err
 	}
 	vars := map[string]string{"inviter": name, "space": space.Name, "role": row.Role}
 	var invitee schemas.User
@@ -53,21 +59,29 @@ func (s *Service) noticeFor(tx *gorm.DB, row schemas.SpaceInvitation) (invitatio
 	return invitationNotice{to: row.Email, locale: inviter.Locale, kind: i18n.MailSpaceJoin}, nil
 }
 
-// mailCapped reports whether email, or the instance as a whole, has had its
-// share of invitation mail. The row just written counts toward both.
-func mailCapped(tx *gorm.DB, email string) (bool, error) {
+// logMail counts the invitation mails actually sent, to this address in the
+// last day and by the instance in the last hour, from invitation_mails, and
+// either logs this one or drops it when a cap is reached. Counting mails
+// rather than invitation rows is the point: refreshing one invitation
+// rewrites its row, and would otherwise mail without limit.
+func logMail(tx *gorm.DB, notice invitationNotice) (invitationNotice, error) {
 	now := time.Now().UTC()
 	var toRecipient, overall int64
-	err := tx.Model(&schemas.SpaceInvitation{}).
-		Where("lower(email) = ? AND created_at > ?", email, now.Add(-24*time.Hour)).Count(&toRecipient).Error
+	err := tx.Table("invitation_mails").
+		Where("lower(email) = lower(?) AND sent_at > ?", notice.to, now.Add(-24*time.Hour)).Count(&toRecipient).Error
 	if err != nil {
-		return false, err
+		return invitationNotice{}, err
 	}
-	err = tx.Model(&schemas.SpaceInvitation{}).Where("created_at > ?", now.Add(-time.Hour)).Count(&overall).Error
-	if err != nil {
-		return false, err
+	if err := tx.Table("invitation_mails").Where("sent_at > ?", now.Add(-time.Hour)).Count(&overall).Error; err != nil {
+		return invitationNotice{}, err
 	}
-	return toRecipient > MaxMailsPerRecipient || overall > MaxMailsPerHour, nil
+	if toRecipient >= MaxMailsPerRecipient || overall >= MaxMailsPerHour {
+		return invitationNotice{}, nil
+	}
+	if err := tx.Exec("INSERT INTO invitation_mails (email, sent_at) VALUES (lower(?), ?)", notice.to, now).Error; err != nil {
+		return invitationNotice{}, err
+	}
+	return notice, nil
 }
 
 // notify hands the notice to the mailer, which delivers asynchronously.
@@ -141,7 +155,11 @@ func (s *Service) claimInvitation(tx *gorm.DB, userID, invitationID string) (sch
 	return row, nil
 }
 
-// PurgeInvitations deletes invitations that expired before cutoff.
+// PurgeInvitations deletes invitations that expired before cutoff and the
+// mail log older than a day before it.
 func (s *Service) PurgeInvitations(ctx context.Context, cutoff time.Time) error {
-	return s.db.WithContext(ctx).Where("expires_at < ?", cutoff).Delete(&schemas.SpaceInvitation{}).Error
+	if err := s.db.WithContext(ctx).Where("expires_at < ?", cutoff).Delete(&schemas.SpaceInvitation{}).Error; err != nil {
+		return err
+	}
+	return s.db.WithContext(ctx).Exec("DELETE FROM invitation_mails WHERE sent_at < ?", cutoff.Add(-24*time.Hour)).Error
 }

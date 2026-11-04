@@ -62,9 +62,10 @@ type Service struct {
 	now    func() time.Time
 }
 
-// New builds the relying party. User verification is preferred, not
-// required: a security key without a PIN still proves possession, and a
-// passkey on a phone verifies the person anyway.
+// New builds the relying party. User verification is required for every
+// ceremony, registration included: a passkey stands in for a password and a
+// second factor at once, so a credential made without verifying the person
+// must never exist.
 func New(db *gorm.DB, cfg Config, logger *slog.Logger) (*Service, error) {
 	web, err := webauthn.New(&webauthn.Config{
 		RPID:          cfg.RPID,
@@ -72,7 +73,7 @@ func New(db *gorm.DB, cfg Config, logger *slog.Logger) (*Service, error) {
 		RPOrigins:     cfg.Origins,
 		AuthenticatorSelection: protocol.AuthenticatorSelection{
 			ResidentKey:      protocol.ResidentKeyRequirementRequired,
-			UserVerification: protocol.VerificationPreferred,
+			UserVerification: protocol.VerificationRequired,
 		},
 		AttestationPreference: protocol.PreferNoAttestation,
 	})

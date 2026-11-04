@@ -33,8 +33,8 @@ type Authenticator struct {
 	RPID   string
 	Origin string
 
-	// SkipVerification answers assertions with user presence only, as a
-	// security key without a PIN would.
+	// SkipVerification answers registrations and assertions with user
+	// presence only, as a security key without a PIN would.
 	SkipVerification bool
 
 	key          *ecdsa.PrivateKey
@@ -127,7 +127,11 @@ func (a *Authenticator) header(flags byte) []byte {
 // attestedData is the registration authenticator data: the header, a zero
 // AAGUID, the credential id and its COSE public key.
 func (a *Authenticator) attestedData() []byte {
-	out := a.header(flagUserPresent | flagUserVerified | flagAttested)
+	flags := byte(flagUserPresent | flagUserVerified | flagAttested)
+	if a.SkipVerification {
+		flags = flagUserPresent | flagAttested
+	}
+	out := a.header(flags)
 	out = append(out, make([]byte, 16)...)
 	out = binary.BigEndian.AppendUint16(out, uint16(len(a.credentialID)))
 	out = append(out, a.credentialID...)

@@ -25,6 +25,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS space_invitations_one ON space_invitations (sp
 CREATE INDEX IF NOT EXISTS space_invitations_email ON space_invitations (lower(email));
 CREATE INDEX IF NOT EXISTS space_invitations_expires ON space_invitations (expires_at);
 
+-- One row per invitation mail sent, so the per-recipient and hourly caps
+-- count mails rather than invitations: refreshing an invitation rewrites its
+-- row and would otherwise mail without limit. Purged after a day.
+CREATE TABLE IF NOT EXISTS invitation_mails (
+    id      BIGSERIAL   PRIMARY KEY,
+    email   TEXT        NOT NULL,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS invitation_mails_email ON invitation_mails (lower(email), sent_at);
+CREATE INDEX IF NOT EXISTS invitation_mails_sent ON invitation_mails (sent_at);
+
 -- +goose Down
 
+DROP TABLE IF EXISTS invitation_mails;
 DROP TABLE IF EXISTS space_invitations;
