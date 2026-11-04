@@ -21,6 +21,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/billing"
 	"github.com/FacileStudio/Registre/apps/api/internal/directory"
 
+	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -61,10 +62,33 @@ func Mount(router chi.Router, s *Service) {
 		r.Delete("/{spaceID}/members/{userID}", s.removeMember)
 		r.Post("/{spaceID}/leave", s.leave)
 		r.Delete("/{spaceID}", s.deleteSpace)
-		r.Get("/{spaceID}/billing", s.plan)
-		r.Post("/{spaceID}/billing/checkout", s.checkout)
-		r.Post("/{spaceID}/billing/portal", s.portal)
+		r.Group(func(plan chi.Router) {
+			plan.Use(troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
+				Limit: PlanLimit, Burst: PlanBurst, KeyFunc: planKey,
+			}))
+			plan.Get("/{spaceID}/billing", s.plan)
+			plan.Post("/{spaceID}/billing/checkout", s.checkout)
+			plan.Post("/{spaceID}/billing/portal", s.portal)
+		})
 	})
+}
+
+// PlanLimit and PlanBurst are each person's budget on the plan routes, which
+// each cost a call to Ardoise: a page load spends two or three, a script
+// looping on them is refused with 429 long before Ardoise notices.
+const (
+	PlanLimit = 1.0
+	PlanBurst = 20
+)
+
+// planKey buckets the plan routes per signed-in human, falling back to the
+// caller's address. The routes sit behind Session, so the fallback only
+// matters if that ever changes.
+func planKey(r *http.Request) string {
+	if id := holderID(r); id != "" {
+		return "user:" + id
+	}
+	return "addr:" + r.RemoteAddr
 }
 
 // holderID is the signed-in human's subject.

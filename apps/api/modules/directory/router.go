@@ -12,7 +12,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	spaces "github.com/FacileStudio/Registre/apps/api/internal/directory"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
@@ -31,7 +30,6 @@ type Service struct {
 	spaces   *spaces.Service
 	logger   *slog.Logger
 	writer   string
-	audit    *audit.Service
 }
 
 // New builds the module over the register and the spaces service.

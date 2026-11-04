@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
+	"strconv"
 
-	"github.com/FacileStudio/Registre/apps/api/schemas"
+	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 
 	wire "github.com/FacileStudio/porte/directory"
 	"gorm.io/gorm"
@@ -59,9 +59,13 @@ type Applied struct {
 // The push is the whole truth: a scope it leaves out loses its values. A
 // revision equal to the one applied is accepted so a writer retrying after a
 // lost answer converges; an older one answers *StaleRevisionError and changes
-// nothing. An unknown space or person is skipped and counted, never fatal,
-// because Ardoise may learn of a space a moment before or after Registre.
-func (s *Service) SetEntitlements(ctx context.Context, revision int64,
+// nothing, and so does one more than MaxRevisionJump ahead, which would
+// otherwise let a single bad push lock out every honest one after it. An
+// unknown space or person is skipped and counted, never fatal, because
+// Ardoise may learn of a space a moment before or after Registre. The audit
+// row for actorID is written in the same transaction, so a push is never
+// applied without its record nor recorded without being applied.
+func (s *Service) SetEntitlements(ctx context.Context, actorID string, revision int64,
 	spaces []SpaceEntitlements, people []PersonEntitlements) (Applied, error) {
 	if err := validatePush(revision, spaces, people); err != nil {
 		return Applied{}, err
@@ -75,8 +79,10 @@ func (s *Service) SetEntitlements(ctx context.Context, revision int64,
 		if out.Spaces, out.SkippedSpaces, err = replaceSpaces(tx, spaces); err != nil {
 			return err
 		}
-		out.People, out.SkippedPeople, err = replacePeople(tx, people)
-		return err
+		if out.People, out.SkippedPeople, err = replacePeople(tx, people); err != nil {
+			return err
+		}
+		return recordPush(tx, actorID, revision, out)
 	})
 	if err != nil {
 		return Applied{}, err
@@ -102,67 +108,21 @@ func advanceRevision(tx *gorm.DB, revision int64) error {
 	if revision < current {
 		return &StaleRevisionError{Current: current}
 	}
+	if revision-current > MaxRevisionJump {
+		return fmt.Errorf("%w: revision %d is more than %d past %d", ErrInvalidEntitlements,
+			revision, MaxRevisionJump, current)
+	}
 	return tx.Exec("UPDATE entitlements_state SET revision = ? WHERE id = 1", revision).Error
 }
 
-// replaceSpaces clears every space's values and writes the pushed ones,
-// skipping ids that name no space.
-func replaceSpaces(tx *gorm.DB, in []SpaceEntitlements) (int, int, error) {
-	if err := tx.Exec("DELETE FROM space_entitlements").Error; err != nil {
-		return 0, 0, err
-	}
-	stored, skipped := 0, 0
-	for _, space := range in {
-		values, _ := json.Marshal(space.Entitlements)
-		result := tx.Exec(`INSERT INTO space_entitlements (space_id, "values", updated_at)
-			SELECT id, ?::jsonb, now() FROM spaces WHERE id = ?
-			ON CONFLICT (space_id) DO UPDATE SET "values" = EXCLUDED."values", updated_at = now()`,
-			string(values), space.ID)
-		if result.Error != nil {
-			return 0, 0, result.Error
-		}
-		stored, skipped = tally(stored, skipped, result.RowsAffected > 0)
-	}
-	return stored, skipped, nil
-}
-
-// replacePeople clears every person's values and writes the pushed ones,
-// skipping people Registre cannot resolve.
-func replacePeople(tx *gorm.DB, in []PersonEntitlements) (int, int, error) {
-	if err := tx.Exec("DELETE FROM user_entitlements").Error; err != nil {
-		return 0, 0, err
-	}
-	stored, skipped := 0, 0
-	for _, person := range in {
-		userID := resolvePerson(tx, person)
-		if userID == "" {
-			skipped++
-			continue
-		}
-		values, _ := json.Marshal(person.Entitlements)
-		err := tx.Exec(`INSERT INTO user_entitlements (user_id, "values") VALUES (?, ?::jsonb)
-			ON CONFLICT (user_id) DO UPDATE SET "values" = EXCLUDED."values", updated_at = now()`,
-			userID, string(values)).Error
-		if err != nil {
-			return 0, 0, err
-		}
-		stored++
-	}
-	return stored, skipped, nil
-}
-
-// resolvePerson finds the user a pushed person names: by subject, then by a
-// verified email, or "" when neither matches.
-func resolvePerson(tx *gorm.DB, person PersonEntitlements) string {
-	var user schemas.User
-	if person.Subject != "" && tx.Select("id").Where("id = ?", person.Subject).Take(&user).Error == nil {
-		return user.ID
-	}
-	email := strings.ToLower(strings.TrimSpace(person.Email))
-	if email != "" && tx.Select("id").Where("lower(email) = ? AND email_verified", email).Take(&user).Error == nil {
-		return user.ID
-	}
-	return ""
+// recordPush writes the push's audit row inside its transaction.
+func recordPush(tx *gorm.DB, actorID string, revision int64, out Applied) error {
+	return audit.Write(tx, actorID, "entitlements.set",
+		audit.Target{Type: "entitlements", ID: strconv.FormatInt(revision, 10)},
+		map[string]any{
+			"spaces": out.Spaces, "people": out.People,
+			"skipped_spaces": out.SkippedSpaces, "skipped_people": out.SkippedPeople,
+		})
 }
 
 // populate fills the snapshot's spaces with their members and entitlements,

@@ -13,6 +13,15 @@ import (
 // without limit.
 const MaxEntitlementKeys = 200
 
+// MaxScopes bounds how many spaces and people one push may carry together.
+// The 1 MiB body cap alone would admit about a hundred thousand.
+const MaxScopes = 10_000
+
+// MaxRevisionJump bounds how far one push may move the revision. Revisions
+// only ever rise, so a push far ahead would make every honest push after it
+// stale.
+const MaxRevisionJump = 1_000_000
+
 // entitlementKey is the app.feature shape every key takes, such as
 // nuage.storage_gb.
 var entitlementKey = regexp.MustCompile(`^[a-z0-9_]+\.[a-z0-9_]+$`)
@@ -38,6 +47,9 @@ func validatePush(revision int64, spaces []SpaceEntitlements, people []PersonEnt
 	if revision < 1 {
 		return fmt.Errorf("%w: revision must be at least 1", ErrInvalidEntitlements)
 	}
+	if len(spaces)+len(people) > MaxScopes {
+		return fmt.Errorf("%w: more than %d scopes in one push", ErrInvalidEntitlements, MaxScopes)
+	}
 	for _, space := range spaces {
 		if space.ID == "" {
 			return fmt.Errorf("%w: a space needs an id", ErrInvalidEntitlements)
@@ -61,14 +73,6 @@ func validatePeople(people []PersonEntitlements) error {
 		}
 	}
 	return nil
-}
-
-// tally adds one stored or one skipped row to the running counts.
-func tally(stored, skipped int, ok bool) (int, int) {
-	if ok {
-		return stored + 1, skipped
-	}
-	return stored, skipped + 1
 }
 
 // validateValues checks one scope: bounded size, app.feature keys, and each

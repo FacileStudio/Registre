@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	spaces "github.com/FacileStudio/Registre/apps/api/internal/directory"
@@ -47,8 +46,8 @@ func writerRouters(t *testing.T) (chi.Router, chi.Router, *gorm.DB) {
 	logs := slog.New(slog.DiscardHandler)
 	team := spaces.New(db, nil, nil, logs)
 	on, off := chi.NewRouter(), chi.NewRouter()
-	Mount(on, New(register, team, logs).WithWriter("ardoise", audit.New(db)))
-	Mount(off, New(register, team, logs).WithWriter("", audit.New(db)))
+	Mount(on, New(register, team, logs).WithWriter("ardoise"))
+	Mount(off, New(register, team, logs).WithWriter(""))
 	return on, off, db
 }
 

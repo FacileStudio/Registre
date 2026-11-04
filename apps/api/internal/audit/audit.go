@@ -30,11 +30,17 @@ type Target struct {
 // Record stores one event. It is called after the change succeeded, so the
 // log never claims something that did not happen.
 func (s *Service) Record(ctx context.Context, actorID, action string, target Target, detail map[string]any) error {
+	return Write(s.db.WithContext(ctx), actorID, action, target, detail)
+}
+
+// Write stores one event through db, which may be a transaction: a change
+// that must never be applied without its record writes both in one.
+func Write(db *gorm.DB, actorID, action string, target Target, detail map[string]any) error {
 	row := schemas.AdminEvent{
 		At: time.Now().UTC(), ActorID: actorID, Action: action,
 		TargetType: target.Type, TargetID: target.ID, Detail: schemas.JSONMap(detail),
 	}
-	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
+	if err := db.Create(&row).Error; err != nil {
 		return fmt.Errorf("audit: record %s: %w", action, err)
 	}
 	return nil
