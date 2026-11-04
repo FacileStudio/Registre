@@ -215,6 +215,8 @@ applications:
     token_exchange:
       - audience: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
         scopes: [courrier.read, courrier.write]
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   # Sonde, the suite's self-hosted uptime monitor at sonde.facile.studio.
   #

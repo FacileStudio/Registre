@@ -160,7 +160,7 @@ func TestTheProductionSeedLetsBulleReadAndWriteSevenApps(t *testing.T) {
 	}
 }
 
-func TestTheProductionSeedLetsGloutonRefreshAndReachCourrier(t *testing.T) {
+func TestTheProductionSeedLetsGloutonRefreshAndReachCourrierAndBulle(t *testing.T) {
 	file := loadProductionSeed(t)
 	var glouton Application
 	for _, app := range file.Applications {
@@ -180,13 +180,13 @@ func TestTheProductionSeedLetsGloutonRefreshAndReachCourrier(t *testing.T) {
 	if !contains(glouton.Scopes, "offline_access") {
 		t.Errorf("glouton scopes %v, missing offline_access", glouton.Scopes)
 	}
-	want := []ExchangeGrant{{
-		Audience: "tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0",
-		Scopes:   []string{"courrier.read", "courrier.write"},
-	}}
-	if len(glouton.TokenExchange) != len(want) ||
-		glouton.TokenExchange[0].Audience != want[0].Audience ||
-		!slices.Equal(glouton.TokenExchange[0].Scopes, want[0].Scopes) {
+	want := []ExchangeGrant{
+		{Audience: "tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0", Scopes: []string{"courrier.read", "courrier.write"}},
+		{Audience: "bulle", Scopes: []string{"bulle.read", "bulle.write"}},
+	}
+	if !slices.EqualFunc(glouton.TokenExchange, want, func(a, b ExchangeGrant) bool {
+		return a.Audience == b.Audience && slices.Equal(a.Scopes, b.Scopes)
+	}) {
 		t.Errorf("glouton exchanges %+v, want %+v", glouton.TokenExchange, want)
 	}
 }
