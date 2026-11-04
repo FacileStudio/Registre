@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { MIN_PASSWORD } from '$lib/policy';
 
 	const inputClass =
@@ -38,14 +39,14 @@
 		history.replaceState(history.state, '', window.location.pathname);
 	});
 
-	const tooShort = $derived(password.length > 0 && password.length < MIN_PASSWORD);
+	const tooShort = $derived(password.length > 0 && [...password].length < MIN_PASSWORD);
 	const mismatch = $derived(confirm.length > 0 && confirm !== password);
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 		if (busy) return;
 		if (password !== confirm) {
-			error = 'The passwords do not match.';
+			error = t('password.mismatch');
 			return;
 		}
 		busy = true;
@@ -57,12 +58,12 @@
 				body: JSON.stringify({ token, password })
 			});
 			if (!response.ok) {
-				error = 'This reset link is not valid, or it has already been used.';
+				error = t('reset.used');
 				return;
 			}
 			done = true;
 		} catch {
-			error = 'Something went wrong. Try again.';
+			error = t('common.failed');
 		} finally {
 			busy = false;
 		}
@@ -70,25 +71,25 @@
 </script>
 
 <svelte:head>
-	<title>Choose a new password — Registre</title>
+	<title>{t('reset.title')} — Facile</title>
 </svelte:head>
 
 <div class="mb-8">
 	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
-		Choose a new password
+		{t('reset.title')}
 	</h1>
 	<p class="mt-1.5 text-sm text-muted-foreground">
-		This link works once. Setting a password here signs out every session on the account.
+		{t('reset.subtitle')}
 	</p>
 </div>
 
 {#if done}
 	<p role="status" class="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
-		Your password is set. Go back to the app you came from and sign in there.
+		{t('reset.done')}
 	</p>
 {:else if !token}
 	<p role="alert" class="rounded-md bg-destructive/10 px-3 py-3 text-sm text-destructive">
-		This reset link is not valid. Start again from the reset form.
+		{t('reset.invalid')}
 	</p>
 {:else}
 	<form onsubmit={submit} class="space-y-4">
@@ -99,7 +100,7 @@
 		{/if}
 
 		<div class="space-y-1.5">
-			<label for="password" class={labelClass}>New password</label>
+			<label for="password" class={labelClass}>{t('password.new')}</label>
 			<input
 				id="password"
 				name="password"
@@ -118,12 +119,12 @@
 				id="password-hint"
 				class="text-xs {tooShort ? 'text-destructive' : 'text-muted-foreground'}"
 			>
-				At least {MIN_PASSWORD} characters.
+				{t('password.rule', { min: MIN_PASSWORD })}
 			</p>
 		</div>
 
 		<div class="space-y-1.5">
-			<label for="confirm-password" class={labelClass}>Confirm password</label>
+			<label for="confirm-password" class={labelClass}>{t('password.confirm')}</label>
 			<input
 				id="confirm-password"
 				name="confirm-password"
@@ -139,7 +140,7 @@
 			/>
 			{#if mismatch}
 				<p id="confirm-password-error" class="text-sm text-destructive">
-					The passwords do not match.
+					{t('password.mismatch')}
 				</p>
 			{/if}
 		</div>
@@ -150,13 +151,13 @@
 			aria-busy={busy}
 			class={primaryButtonClass}
 		>
-			{busy ? 'Setting…' : 'Set password'}
+			{busy ? t('common.saving') : t('reset.submit')}
 		</button>
 	</form>
 {/if}
 
 <p class="mt-6 text-center text-sm text-muted-foreground">
 	<a href="/recover" class="underline underline-offset-2 transition-colors hover:text-foreground">
-		Ask for a new link
+		{t('reset.again')}
 	</a>
 </p>

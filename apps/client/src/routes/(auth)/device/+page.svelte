@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { replaceState } from '$app/navigation';
@@ -133,7 +134,7 @@
 </script>
 
 <svelte:head>
-	<title>Approve a sign-in — Registre</title>
+	<title>{t('device.title')} — Facile</title>
 </svelte:head>
 
 {#key stage}
@@ -154,15 +155,13 @@
 		{:else}
 			<div class="mb-8">
 				<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
-					Sign in first
+					{t('device.signInFirst')}
 				</h1>
 				<p class="mt-1.5 text-sm text-muted-foreground">
-					Registre has to know who you are before it can approve a sign-in for you. Signing
-					in brings you straight back here — your code is saved on this device and is
-					waiting.
+					{t('device.signInFirstBody')}
 				</p>
 			</div>
-			<a href={device.signInPath} class={primaryButtonClass}>Sign in</a>
+			<a href={device.signInPath} class={primaryButtonClass}>{t('login.submit')}</a>
 			<button
 				type="button"
 				onclick={retry}
@@ -170,7 +169,7 @@
 				aria-busy={busy}
 				class="{outlineButtonClass} mt-3"
 			>
-				{busy ? 'Checking…' : 'I already signed in elsewhere'}
+				{busy ? t('common.checking') : t('device.already')}
 			</button>
 		{/if}
 	</div>

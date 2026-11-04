@@ -4,6 +4,7 @@
 	The page fetches the enrolment and confirms it.
 -->
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { Alert, Button, Field, Input, Modal, SecretField, Spinner, icons } from '@facile/muse';
 	import type { TOTPEnrolment } from '$lib/account';
 
@@ -26,31 +27,31 @@
 	} = $props();
 </script>
 
-<Modal bind:open title="Turn on two-step sign-in" showClose size="md">
+<Modal bind:open title={t('totp.onLabel')} showClose size="md">
 	{#if error && !enrolment}
-		<Alert tone="danger" title="Could not start the enrolment">{error}</Alert>
+		<Alert tone="danger" title={t('totp.startFailed')}>{error}</Alert>
 	{:else if !enrolment}
 		<div class="flex justify-center py-10" aria-live="polite">
-			<Spinner label="Preparing your enrolment" />
+			<Spinner label={t('totp.preparing')} />
 		</div>
 	{:else}
 		<form class="flex flex-col gap-4" onsubmit={onSubmit}>
 			<p class="text-fc-sm text-fc-fg-muted">
-				Scan this with your authenticator app, then type the code it shows.
+				{t('totp.scan')}
 			</p>
 
 			<div class="flex justify-center">
 				<img
 					src={`data:image/png;base64,${enrolment.qr_png}`}
-					alt="QR code holding your two-step sign-in secret"
+					alt={t('totp.qrAlt')}
 					class="size-44 rounded-fc-md bg-fc-bg p-2"
 				/>
 			</div>
 
 			<SecretField
 				value={enrolment.secret}
-				label="Or type this secret in by hand"
-				helper="Same secret as the QR code, for an app that cannot scan."
+				label={t('totp.secret')}
+				helper={t('totp.secretHint')}
 			/>
 
 			<div aria-live="polite">
@@ -59,7 +60,7 @@
 				{/if}
 			</div>
 
-			<Field label="Six-digit code">
+			<Field label={t('login.code')}>
 				<Input
 					inputmode="numeric"
 					autocomplete="one-time-code"
@@ -80,7 +81,7 @@
 					disabled={busy}
 					onclick={onCancel}
 				>
-					Cancel
+					{t('common.cancel')}
 				</Button>
 				<Button
 					type="submit"
@@ -88,7 +89,7 @@
 					class="w-full sm:w-auto"
 					disabled={busy || code.trim().length === 0}
 				>
-					{busy ? 'Checking…' : 'Confirm'}
+					{busy ? t('common.checking') : t('common.confirm')}
 				</Button>
 			</div>
 		</form>

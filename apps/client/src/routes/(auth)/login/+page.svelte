@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Alert, Button, Card, Field, Icon, Input, Stack, icons } from '@facile/muse';
+	import { Alert, Button, Card, Divider, Field, Icon, Input, Stack, icons } from '@facile/muse';
+	import { t } from '$lib/i18n/i18n.svelte';
+	import { getPasskey, passkeysSupported } from '$lib/webauthn';
+	import { signupOpen as isSignupOpen } from '$lib/signup';
 
 	type Step = 'password' | 'second-factor';
 	type AuthStatus = 'checking' | 'redirecting' | 'handed-off' | 'ready' | 'submitting';
@@ -14,11 +17,8 @@
 	let recovery = $state(false);
 	let error = $state('');
 	let status = $state<AuthStatus>('checking');
-
-	const NO_ACCESS =
-		"Your account doesn't have access to this app. Ask an administrator to give you access in Registre.";
-	const REFUSED = 'Wrong email or password.';
-	const CODE_REFUSED = 'That code is not valid.';
+	let signupOpen = $state(false);
+	let canPasskey = $state(false);
 
 	/**
 	 * REDIRECTED is what this page says when a sign-in was refused elsewhere and
@@ -30,7 +30,6 @@
 	 * away the only explanation the human is ever given and shows them a blank
 	 * form instead, which reads as though nothing happened at all.
 	 */
-	const REDIRECTED = 'That sign-in did not finish. Start again from the app you were opening.';
 
 	/**
 	 * PLAIN_REASON is the shape of a reason this page is willing to print back,
@@ -75,7 +74,7 @@
 	 */
 	function refusal(reason: string): string {
 		if (!reason) return '';
-		if (!PLAIN_REASON.test(reason)) return REDIRECTED;
+		if (!PLAIN_REASON.test(reason)) return t('login.redirected');
 		return reason[0].toUpperCase() + reason.slice(1);
 	}
 
@@ -84,8 +83,42 @@
 		const req = query.get('auth_request') ?? '';
 		authRequest = req;
 		error = refusal(query.get('error') ?? '');
+		canPasskey = passkeysSupported();
 		checkSession(req);
+		isSignupOpen().then((open) => (signupOpen = open));
 	});
+
+	/**
+	 * signInWithPasskey runs a discoverable assertion: no address to type, the
+	 * authenticator offers the passkeys it holds for this site. A passkey is a
+	 * second factor on its own, so the answer is always a redirect.
+	 */
+	async function signInWithPasskey() {
+		if (status === 'submitting' || status === 'redirecting') return;
+		status = 'submitting';
+		error = '';
+		try {
+			const begin = await fetch('/api/login/passkey/begin', { method: 'POST', body: '{}' });
+			const options = await begin.json();
+			if (!begin.ok) throw new Error('begin');
+			const credential = await getPasskey(options.publicKey);
+			const response = await fetch('/api/login/passkey/finish', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ auth_request: authRequest, ceremony: options.ceremony, credential })
+			});
+			const body = await response.json().catch(() => null);
+			if (!response.ok) {
+				error = body?.error === 'no_access' ? t('login.noAccess') : t('login.passkeyRefused');
+				status = 'ready';
+				return;
+			}
+			redirect(body?.redirect || '/');
+		} catch {
+			error = t('login.passkeyCancelled');
+			status = 'ready';
+		}
+	}
 
 	async function checkSession(req: string) {
 		try {
@@ -102,7 +135,7 @@
 				redirect(body.redirect);
 				return;
 			}
-			if (body?.error === 'no_access') error = NO_ACCESS;
+			if (body?.error === 'no_access') error = t('login.noAccess');
 			status = 'ready';
 		} catch {
 			status = 'ready';
@@ -122,7 +155,7 @@
 			});
 			const body = await response.json().catch(() => null);
 			if (!response.ok) {
-				error = body?.error === 'no_access' ? NO_ACCESS : REFUSED;
+				error = body?.error === 'no_access' ? t('login.noAccess') : t('login.refused');
 				status = 'ready';
 				return;
 			}
@@ -135,7 +168,7 @@
 			}
 			redirect(body?.redirect || '/');
 		} catch {
-			error = 'Something went wrong. Try again.';
+			error = t('common.failed');
 			status = 'ready';
 		}
 	}
@@ -153,14 +186,14 @@
 			});
 			const body = await response.json().catch(() => null);
 			if (!response.ok) {
-				error = body?.error === 'no_access' ? NO_ACCESS : CODE_REFUSED;
+				error = body?.error === 'no_access' ? t('login.noAccess') : t('login.codeRefused');
 				code = '';
 				status = 'ready';
 				return;
 			}
 			redirect(body?.redirect || '/');
 		} catch {
-			error = 'Something went wrong. Try again.';
+			error = t('common.failed');
 			status = 'ready';
 		}
 	}
@@ -182,7 +215,7 @@
 </script>
 
 <svelte:head>
-	<title>Sign in — Registre</title>
+	<title>{t('login.title')} — Facile</title>
 </svelte:head>
 
 <Card class="p-8">
@@ -193,10 +226,8 @@
 					<Icon icon={icons.check} size={24} />
 				</div>
 				<div class="flex flex-col gap-1.5 pt-2">
-					<h1 class="text-base font-medium text-foreground">You're signed in</h1>
-					<p class="text-xs text-muted-foreground">
-						Go back to the app you were opening. You can close this tab.
-					</p>
+					<h1 class="text-base font-medium text-foreground">{t('login.handedOff')}</h1>
+					<p class="text-xs text-muted-foreground">{t('login.handedOffHint')}</p>
 				</div>
 			</Stack>
 		</div>
@@ -209,12 +240,10 @@
 				</div>
 				<div class="flex flex-col gap-1.5 pt-2">
 					<h1 class="text-base font-medium text-foreground">
-						{status === 'redirecting' ? 'Connecting to application…' : 'Signing you in…'}
+						{status === 'redirecting' ? t('login.connecting') : t('login.signingIn')}
 					</h1>
 					<p class="text-xs text-muted-foreground">
-						{status === 'redirecting'
-							? 'Redirecting you back automatically.'
-							: 'Reusing your active Facile session.'}
+						{status === 'redirecting' ? t('login.redirecting') : t('login.reusing')}
 					</p>
 				</div>
 			</Stack>
@@ -223,13 +252,20 @@
 		<div class="stage">
 			<Stack>
 				<div class="flex flex-col gap-1">
-					<h1 class="text-fc-lg font-semibold text-fc-fg">Sign in to Registre</h1>
+					<h1 class="text-fc-lg font-semibold text-fc-fg">{t('login.title')}</h1>
 					<p class="text-fc-sm text-fc-fg-muted">
-						{authRequest
-							? 'Sign-in starts from the app you are trying to reach.'
-							: 'Sign in with your Facile account.'}
+						{authRequest ? t('login.fromApp') : t('login.subtitle')}
 					</p>
 				</div>
+
+				{#if canPasskey}
+					<Button icon={icons.key} onclick={signInWithPasskey} disabled={status === 'submitting'}>
+						{t('login.passkey')}
+					</Button>
+					<div class="flex items-center gap-3 text-fc-xs text-fc-fg-muted">
+						<Divider class="flex-1" />{t('common.or')}<Divider class="flex-1" />
+					</div>
+				{/if}
 
 				<form onsubmit={submitPassword} class="flex flex-col gap-4">
 					<div aria-live="polite">
@@ -237,14 +273,14 @@
 							<Alert tone="danger" title={error} />
 						{/if}
 					</div>
-					<Field label="Email">
+					<Field label={t('common.email')}>
 						<Input type="email" autocomplete="username" required bind:value={email} />
 					</Field>
-					<Field label="Password">
+					<Field label={t('common.password')}>
 						<Input type="password" autocomplete="current-password" required bind:value={password} />
 					</Field>
-					<Button type="submit" disabled={status === 'submitting'}>
-						{status === 'submitting' ? 'Signing in…' : 'Sign in'}
+					<Button type="submit" variant={canPasskey ? 'outline' : 'primary'} disabled={status === 'submitting'}>
+						{status === 'submitting' ? t('login.submitting') : t('login.submit')}
 					</Button>
 					<a
 						href="/recover"
@@ -252,20 +288,29 @@
 							underline-offset-2 transition-colors hover:text-fc-fg focus-visible:outline-2
 							focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
 					>
-						Forgotten your password?
+						{t('login.forgot')}
 					</a>
 				</form>
+				{#if signupOpen}
+					<p class="text-center text-fc-sm text-fc-fg-muted">
+						{t('login.noAccount')}
+						<a
+							href={authRequest ? `/signup?auth_request=${encodeURIComponent(authRequest)}` : '/signup'}
+							class="font-medium text-fc-fg underline underline-offset-2"
+						>
+							{t('signup.title')}
+						</a>
+					</p>
+				{/if}
 			</Stack>
 		</div>
 	{:else}
 		<div class="stage">
 			<Stack>
 				<div class="flex flex-col gap-1">
-					<h1 class="text-fc-lg font-semibold text-fc-fg">Two-step sign-in</h1>
+					<h1 class="text-fc-lg font-semibold text-fc-fg">{t('login.twoStep')}</h1>
 					<p class="text-fc-sm text-fc-fg-muted">
-						{recovery
-							? 'Enter one of the recovery codes you saved when you turned on two-step sign-in.'
-							: 'Enter the six-digit code from your authenticator app.'}
+						{recovery ? t('login.recoveryHint') : t('login.codeHint')}
 					</p>
 				</div>
 
@@ -276,11 +321,11 @@
 						{/if}
 					</div>
 					{#if recovery}
-						<Field label="Recovery code" helper="Each code works once.">
+						<Field label={t('login.recoveryCode')} helper={t('login.recoveryOnce')}>
 							<Input type="text" autocomplete="off" required bind:value={code} />
 						</Field>
 					{:else}
-						<Field label="Six-digit code">
+						<Field label={t('login.code')}>
 							<Input
 								type="text"
 								inputmode="numeric"
@@ -292,12 +337,12 @@
 						</Field>
 					{/if}
 					<Button type="submit" disabled={status === 'submitting' || code.trim().length === 0}>
-						{status === 'submitting' ? 'Checking…' : 'Continue'}
+						{status === 'submitting' ? t('common.checking') : t('common.continue')}
 					</Button>
 					<Button variant="outline" onclick={useRecovery}>
-						{recovery ? 'Use my authenticator app' : 'Use a recovery code instead'}
+						{recovery ? t('login.useApp') : t('login.useRecovery')}
 					</Button>
-					<Button variant="ghost" onclick={startOver}>Start again</Button>
+					<Button variant="ghost" onclick={startOver}>{t('common.startAgain')}</Button>
 				</form>
 			</Stack>
 		</div>

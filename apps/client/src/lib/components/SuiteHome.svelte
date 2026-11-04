@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { Button, Card, EmptyState, Icon, Input, Page, PageHeader, Section, icons } from '@facile/muse';
 	import type { AccountView } from '$lib/account';
 	import { spaces, type SpaceSummary } from '$lib/spaces';
@@ -32,7 +33,7 @@
 <svelte:window onkeydown={focusSearch} />
 
 <Page width="xl">
-	<PageHeader title="Hello, {firstName}" description="Every app in the suite, signed in with the same account." />
+	<PageHeader title={t('home.hello', { name: firstName })} description={t('home.subtitle')} />
 
 	<div class="relative">
 		<span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-fc-fg-muted">
@@ -42,14 +43,14 @@
 			id="suite-search"
 			type="search"
 			bind:value={query}
-			placeholder="Search apps"
-			aria-label="Search apps"
+			placeholder={t('home.search')}
+			aria-label={t('home.search')}
 			class="w-full pl-10"
 		/>
 	</div>
 
 	{#if groups.length === 0}
-		<EmptyState icon={icons.search} title="No app matches" description="Nothing in the suite is called “{query}”." />
+		<EmptyState icon={icons.search} title={t('home.noMatch')} description={t('home.noMatchHint', { query })} />
 	{/if}
 
 	{#each groups as group (group.title)}
@@ -71,9 +72,9 @@
 	{/each}
 
 	{#if mySpaces.length > 0}
-		<Section title="Your spaces">
+		<Section title={t('home.spaces')}>
 			{#snippet actions()}
-				<Button variant="ghost" size="sm" href="/spaces" iconRight={icons.arrow}>Manage</Button>
+				<Button variant="ghost" size="sm" href="/spaces" iconRight={icons.arrow}>{t('home.manage')}</Button>
 			{/snippet}
 			<div class="flex flex-wrap gap-2">
 				{#each mySpaces as space (space.id)}

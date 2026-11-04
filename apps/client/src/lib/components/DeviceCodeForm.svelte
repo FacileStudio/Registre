@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { CODE_LENGTH, inspect } from '$lib/usercode';
 
 	const inputClass =
@@ -42,10 +43,8 @@
 	 * nothing. Saying "letters only, no digits" names the rule, and naming the
 	 * other tool is what stops the next five minutes being spent retyping.
 	 */
-	const SHAPE = `${CODE_LENGTH} letters, and the dash is added for you.`;
-	const STRAY =
-		'Registre codes are letters only, with no digits and no vowels, so the rest was left ' +
-		'out. A code with digits in it comes from a different tool.';
+	const SHAPE = $derived(t('device.shape', { length: CODE_LENGTH }));
+	const STRAY = $derived(t('device.stray'));
 
 	/**
 	 * stray remembers whether the last thing typed or pasted carried characters
@@ -105,11 +104,9 @@
 </script>
 
 <div class="mb-8">
-	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">Approve a sign-in</h1>
+	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">{t('device.title')}</h1>
 	<p class="mt-1.5 text-sm text-muted-foreground">
-		{prefilled
-			? 'Check this matches the code in your terminal, then continue.'
-			: 'Type the code your terminal is showing you.'}
+		{prefilled ? t('device.checkMatch') : t('device.typeCode')}
 	</p>
 </div>
 
@@ -121,7 +118,7 @@
 	{/if}
 
 	<div class="space-y-1.5">
-		<label for="user-code" class={labelClass}>Code</label>
+		<label for="user-code" class={labelClass}>{t('device.code')}</label>
 		<input
 			id="user-code"
 			name="user-code"
@@ -147,11 +144,10 @@
 	</div>
 
 	<button type="submit" disabled={!ready} aria-busy={busy} class={primaryButtonClass}>
-		{busy ? 'Checking…' : 'Continue'}
+		{busy ? t('common.checking') : t('common.continue')}
 	</button>
 </form>
 
 <p class="mt-6 text-sm text-muted-foreground">
-	Codes last a few minutes and each one works once. If yours has run out, start again in your
-	terminal.
+	{t('device.codesLast')}
 </p>

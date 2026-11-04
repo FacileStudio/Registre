@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
+	import type { MessageKey } from '$lib/i18n/en';
 	import type { DeviceOutcome } from '$lib/device';
 
 	const outlineButtonClass =
@@ -13,36 +15,18 @@
 
 	let { outcome, again }: Props = $props();
 
-	const COPY: Record<DeviceOutcome, { title: string; body: string; tone: string }> = {
-		approved: {
-			title: 'Approved',
-			body: 'Your terminal is signing in now. You can close this page.',
-			tone: 'text-fc-success'
-		},
-		denied: {
-			title: 'Denied',
-			body:
-				'Nothing was signed in, and that code is now dead. If you did not start it, ' +
-				'there is nothing else you need to do.',
-			tone: 'text-muted-foreground'
-		},
-		unusable: {
-			title: 'That code is not usable',
-			body:
-				'Codes last a few minutes and each one works once. Start again in your terminal ' +
-				'and use the new code it shows you.',
-			tone: 'text-fc-warning'
-		},
-		used: {
-			title: 'You have already answered that code',
-			body:
-				'This device approved or denied it a moment ago, and each code works once. Start ' +
-				'again in your terminal if you still need to sign in.',
-			tone: 'text-fc-info'
-		}
+	const TONES: Record<DeviceOutcome, string> = {
+		approved: 'text-fc-success',
+		denied: 'text-muted-foreground',
+		unusable: 'text-fc-warning',
+		used: 'text-fc-info'
 	};
 
-	const copy = $derived(COPY[outcome]);
+	const copy = $derived({
+		title: t(`device.outcome.${outcome}.title` as MessageKey),
+		body: t(`device.outcome.${outcome}.body` as MessageKey),
+		tone: TONES[outcome]
+	});
 </script>
 
 <div class="flex flex-col items-center gap-4 py-6 text-center" role="status">

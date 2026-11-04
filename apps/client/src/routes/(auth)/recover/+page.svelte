@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	const inputClass =
 		'flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
 		'text-foreground placeholder:text-muted-foreground focus-visible:outline-none ' +
@@ -39,27 +40,26 @@
 </script>
 
 <svelte:head>
-	<title>Reset your password — Registre</title>
+	<title>{t('recover.title')} — Facile</title>
 </svelte:head>
 
 <div class="mb-8">
 	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
-		Reset your password
+		{t('recover.title')}
 	</h1>
 	<p class="mt-1.5 text-sm text-muted-foreground">
-		Give us the address you sign in with and we will send a reset link.
+		{t('recover.subtitle')}
 	</p>
 </div>
 
 {#if sent}
 	<p role="status" class="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
-		If that address has an account, a reset link is on its way. The link expires, so use it
-		soon.
+		{t('recover.sent')}
 	</p>
 {:else}
 	<form onsubmit={submit} class="space-y-4">
 		<div class="space-y-1.5">
-			<label for="email" class={labelClass}>Email</label>
+			<label for="email" class={labelClass}>{t('common.email')}</label>
 			<input
 				id="email"
 				name="email"
@@ -74,13 +74,13 @@
 		</div>
 
 		<button type="submit" disabled={busy} aria-busy={busy} class={primaryButtonClass}>
-			{busy ? 'Sending…' : 'Send the reset link'}
+			{busy ? t('common.sending') : t('recover.send')}
 		</button>
 	</form>
 {/if}
 
 <p class="mt-6 text-center text-sm text-muted-foreground">
 	<a href="/login" class="underline underline-offset-2 transition-colors hover:text-foreground">
-		Back to sign-in
+		{t('recover.back')}
 	</a>
 </p>
