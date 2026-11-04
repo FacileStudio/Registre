@@ -352,7 +352,7 @@ skips the check with a warning so sign-up never depends on a third party. Hashin
 `WEBAUTHN_RP_ID` and exact `WEBAUTHN_ORIGINS` (defaults: the issuer's host and origin). The login
 page offers a discoverable passkey sign-in that finishes like a password login with no second
 factor owed, so it requires user verification: presence alone would let whoever holds an unlocked
-security key in. Registration prefers verification and reauthentication requires it. `/account` adds, renames and removes passkeys; the last
+security key in. Registration and reauthentication require it too. `/account` adds, renames and removes passkeys; the last
 way into an account (its only passkey when it has no password) cannot be removed, and adding or
 removing one needs a factor proven within ten minutes, either at sign-in or through
 `/api/account/reauth`. Each ceremony is a `webauthn_ceremonies` row claimed once, bound to its
@@ -416,7 +416,8 @@ and per space) and answers `202 {"status":"invited"}` whatever the address. A pe
 account is mailed in their language; an address without one is mailed "join Facile" only while
 sign-up is open, and that mail carries neither the inviter's name nor the space's, so nobody can
 mail strangers words of their choosing. One address receives at most three invitation mails a
-day and the instance sends at most two hundred an hour; past either cap the invitation is still
+day and the instance sends at most two hundred an hour, counted from a log of the mails actually
+sent (`invitation_mails`), so refreshing an invitation cannot mail past it; past either cap the invitation is still
 written and answered the same way, only the mail is skipped. Deleting a space deletes its pending
 invitations, and an invitation into a deleted space can never be accepted. The invitee sees the space and the offered role on `/spaces` and accepts or
 declines (`/api/spaces/invitations`); only acceptance writes `space_members`, so a pending

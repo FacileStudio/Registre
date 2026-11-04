@@ -194,3 +194,23 @@ func TestInvitationMailIsCappedPerRecipient(t *testing.T) {
 		t.Fatalf("%d mails reached the target, want %d", sent, MaxMailsPerRecipient)
 	}
 }
+
+// TestRefreshingAnInvitationCannotBypassTheMailCap is the reviewer's PoC:
+// re-inviting one address rewrites one row, and must not mail it each time.
+func TestRefreshingAnInvitationCannotBypassTheMailCap(t *testing.T) {
+	w := invitationWorld(t, false)
+	ctx := context.Background()
+	sent := 0
+	for i := 0; i < 10; i++ {
+		w.mails.mails = map[string]string{}
+		if err := w.svc.Invite(ctx, w.sub["owner@facile.studio"], w.spaceID, "bob@facile.studio", "member"); err != nil {
+			t.Fatal(err)
+		}
+		if w.mails.to("bob@facile.studio") != "" {
+			sent++
+		}
+	}
+	if sent != MaxMailsPerRecipient {
+		t.Fatalf("10 refreshes of one invitation sent %d mails, want %d", sent, MaxMailsPerRecipient)
+	}
+}
