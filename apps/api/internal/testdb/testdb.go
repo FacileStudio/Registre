@@ -80,13 +80,9 @@ func migrateSchema(db *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	return migrate.Run(context.Background(), migrate.Config{
-		DB: sqlDB, FS: migrations.FS, LockID: lockID(shared.SchemaName(prefix())),
-	})
-}
-
-func lockID(schema string) int64 {
 	digest := fnv.New64a()
-	_, _ = digest.Write([]byte(schema))
-	return int64(digest.Sum64())
+	_, _ = digest.Write([]byte(shared.SchemaName(prefix())))
+	return migrate.Run(context.Background(), migrate.Config{
+		DB: sqlDB, FS: migrations.FS, LockID: int64(digest.Sum64()),
+	})
 }

@@ -6,7 +6,7 @@ require (
 	github.com/FacileStudio/Journal/sdk/journal v0.0.0-20260708221941-db985ad2b1ba
 	github.com/FacileStudio/facteur v0.0.0-20260814111820-82eb01e894f9
 	github.com/FacileStudio/porte v0.5.2
-	github.com/FacileStudio/porte/directory v0.1.0
+	github.com/FacileStudio/porte/directory v0.2.0
 	github.com/FacileStudio/tronc v0.16.0
 	github.com/FacileStudio/tronc/migrate v0.1.0
 	github.com/FacileStudio/tronc/testdb v0.1.1
@@ -50,5 +50,3 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 )
-
-replace github.com/FacileStudio/porte/directory => /tmp/claude-1000/-home-yann-Code-Facile/ac491127-6d95-4741-91a9-f8eb729cac76/scratchpad/porte-forfait/directory

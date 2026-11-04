@@ -30,6 +30,7 @@ type ardoise struct {
 	mu        sync.Mutex
 	redirect  string
 	down      bool
+	catalogs  int
 	checkouts []billing.CheckoutRequest
 }
 
@@ -43,6 +44,7 @@ func (a *ardoise) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.URL.Path {
 	case "/api/catalog":
+		a.catalogs++
 		_, _ = w.Write([]byte(`{"plans":[{"key":"pro","name":"Pro","prices":[{"interval":"month","amount":1200,"currency":"eur","lookup_key":"plan_pro_month"}]}]}`))
 	case "/billing/checkout":
 		var body billing.CheckoutRequest

@@ -290,11 +290,14 @@ the route answers 404; another app: 403; bad credentials: 401). The body is
 at most 1 MiB, unknown fields refused. Each entitlement key matches `^[a-z0-9_]+\.[a-z0-9_]+$`, a
 scope holds at most 200, and each value is a JSON bool or an integer of at least -1, -1 meaning
 unlimited; anything else is 400. The push is the whole truth: every scope it leaves out loses its
-values. A revision older than the one stored answers 409 `{"error":"stale revision","current":N}`
-and changes nothing; an equal one is applied again so a retry converges. A space id registre does
+values. A push carries at most 10,000 scopes, written in batches. A revision older than the one
+stored answers 409 `{"error":"stale revision","current":N}` and changes nothing; an equal one is
+applied again so a retry converges; one more than 1,000,000 ahead is 400, so a single bad push
+cannot make every later one stale. A space id registre does
 not know is skipped and counted; a person resolves by subject, else by a verified email, and is
-skipped otherwise. Applying bumps the directory version in the same transaction, nudges the apps
-and writes an `admin_events` row. The snapshot then carries `entitlements_revision`, the last
+skipped otherwise. Applying bumps the directory version and writes the `admin_events` row in
+the same transaction, then nudges the apps. The snapshot is read in one read-only REPEATABLE
+READ transaction, so it never mixes two pushes. The snapshot then carries `entitlements_revision`, the last
 revision applied (absent until the first push, and the only signal that ends an app's fail-open),
 `entitlements` on each space, and a `people` list of `{"sub", "entitlements"}` for enabled humans
 with personal values; the last two are omitted when empty, which apps read as "use the feature
@@ -309,7 +312,8 @@ of `/api/spaces`. Registre fills the checkout from its own state: the space id a
 owner's email, and return URLs on its issuer. It calls Ardoise with `Authorization: Bearer
 BILLING_API_TOKEN`, a 5 s timeout and a 1 MiB response cap, and hands the page a URL only when its
 origin is exactly `https://checkout.stripe.com` or `https://billing.stripe.com`. Ardoise down is
-drawn as "billing unavailable" and answers 502 to a write.
+drawn as "billing unavailable" and answers 502 to a write. Registre caches the catalog for 60 s,
+and the three plan routes share a per-person budget of one request a second with a burst of 20.
 
 Reuse `porte/local/password.go`'s argon2id parameters **verbatim** — 64 MiB, three passes, two
 lanes — so password hashes stay portable in either direction.

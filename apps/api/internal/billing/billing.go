@@ -38,9 +38,10 @@ var ErrUnavailable = errors.New("billing unavailable")
 
 // Client calls Ardoise's billing API.
 type Client struct {
-	base  string
-	token string
-	http  *http.Client
+	base    string
+	token   string
+	http    *http.Client
+	catalog catalogCache
 }
 
 // New builds a client over Ardoise's base URL and the shared bearer token.
@@ -63,12 +64,6 @@ func FromConfig(cfg env.Billing, log *slog.Logger) *Client {
 		return nil
 	}
 	return New(cfg.ArdoiseURL, cfg.Token)
-}
-
-// Catalog answers the published plans, the only ones that can be bought.
-func (c *Client) Catalog(ctx context.Context) (Catalog, error) {
-	var out Catalog
-	return out, c.call(ctx, http.MethodGet, "/api/catalog", nil, &out)
 }
 
 // Space answers the plan a space is on.

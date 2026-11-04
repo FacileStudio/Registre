@@ -43,7 +43,7 @@ func TestAPushReplacesEverythingAndSkipsStrangers(t *testing.T) {
 	beta, _ := svc.Create(ctx, sub["yann@facile.studio"], "Beta")
 	before, _ := svc.Snapshot(ctx)
 
-	applied, err := svc.SetEntitlements(ctx, 5, []SpaceEntitlements{
+	applied, err := svc.SetEntitlements(ctx, "ardoise", 5, []SpaceEntitlements{
 		{ID: alpha.ID, Entitlements: values("nuage.storage_gb", "100")},
 		{ID: beta.ID, Entitlements: values("glouton.access", "true")},
 		{ID: "spc_nope", Entitlements: values("glouton.access", "true")},
@@ -80,13 +80,13 @@ func TestANarrowerPushClearsTheRest(t *testing.T) {
 	ctx := context.Background()
 	alpha, _ := svc.Create(ctx, sub["yann@facile.studio"], "Alpha")
 	beta, _ := svc.Create(ctx, sub["yann@facile.studio"], "Beta")
-	if _, err := svc.SetEntitlements(ctx, 1, []SpaceEntitlements{
+	if _, err := svc.SetEntitlements(ctx, "ardoise", 1, []SpaceEntitlements{
 		{ID: alpha.ID, Entitlements: values("nuage.storage_gb", "100")},
 		{ID: beta.ID, Entitlements: values("glouton.access", "true")},
 	}, []PersonEntitlements{{Subject: sub["yann@facile.studio"], Entitlements: values("glouton.access", "true")}}); err != nil {
 		t.Fatalf("first push: %v", err)
 	}
-	if _, err := svc.SetEntitlements(ctx, 2, []SpaceEntitlements{{ID: alpha.ID, Entitlements: values("nuage.storage_gb", "500")}}, nil); err != nil {
+	if _, err := svc.SetEntitlements(ctx, "ardoise", 2, []SpaceEntitlements{{ID: alpha.ID, Entitlements: values("nuage.storage_gb", "500")}}, nil); err != nil {
 		t.Fatalf("second push: %v", err)
 	}
 	snapshot, _ := svc.Snapshot(ctx)
@@ -105,10 +105,10 @@ func TestAStalePushChangesNothing(t *testing.T) {
 	ctx := context.Background()
 	space, _ := svc.Create(ctx, sub["yann@facile.studio"], "Alpha")
 	push := []SpaceEntitlements{{ID: space.ID, Entitlements: values("glouton.access", "true")}}
-	if _, err := svc.SetEntitlements(ctx, 18, push, nil); err != nil {
+	if _, err := svc.SetEntitlements(ctx, "ardoise", 18, push, nil); err != nil {
 		t.Fatalf("first push: %v", err)
 	}
-	_, err := svc.SetEntitlements(ctx, 17, nil, nil)
+	_, err := svc.SetEntitlements(ctx, "ardoise", 17, nil, nil)
 	var stale *StaleRevisionError
 	if !errors.As(err, &stale) || stale.Current != 18 {
 		t.Fatalf("an older push answered %v, want a stale revision carrying 18", err)
@@ -117,7 +117,7 @@ func TestAStalePushChangesNothing(t *testing.T) {
 	if len(spaceValues(snapshot)) != 1 {
 		t.Error("a refused push still cleared the stored entitlements")
 	}
-	if _, err := svc.SetEntitlements(ctx, 18, push, nil); err != nil {
+	if _, err := svc.SetEntitlements(ctx, "ardoise", 18, push, nil); err != nil {
 		t.Errorf("a retry of the current revision was refused: %v", err)
 	}
 }
@@ -130,7 +130,7 @@ func TestAnUnverifiedEmailNamesNobody(t *testing.T) {
 		Update("email_verified", false).Error; err != nil {
 		t.Fatalf("unverifying bob: %v", err)
 	}
-	applied, err := svc.SetEntitlements(context.Background(), 1, nil,
+	applied, err := svc.SetEntitlements(context.Background(), "ardoise", 1, nil,
 		[]PersonEntitlements{{Email: "bob@facile.studio", Entitlements: values("glouton.access", "true")}})
 	if err != nil || applied.SkippedPeople != 1 {
 		t.Errorf("applied = %+v, err = %v; want bob skipped", applied, err)
@@ -161,13 +161,13 @@ func TestMalformedPushesAreRefused(t *testing.T) {
 		"too many keys":     {1, tooMany},
 	}
 	for name, tc := range cases {
-		_, err := svc.SetEntitlements(context.Background(), tc.revision,
+		_, err := svc.SetEntitlements(context.Background(), "ardoise", tc.revision,
 			[]SpaceEntitlements{{ID: "spc_x", Entitlements: tc.scope}}, nil)
 		if !errors.Is(err, ErrInvalidEntitlements) {
 			t.Errorf("%s: err = %v, want ErrInvalidEntitlements", name, err)
 		}
 	}
-	if _, err := svc.SetEntitlements(context.Background(), 1, nil, []PersonEntitlements{{}}); !errors.Is(err, ErrInvalidEntitlements) {
+	if _, err := svc.SetEntitlements(context.Background(), "ardoise", 1, nil, []PersonEntitlements{{}}); !errors.Is(err, ErrInvalidEntitlements) {
 		t.Errorf("a person with neither sub nor email: err = %v", err)
 	}
 }

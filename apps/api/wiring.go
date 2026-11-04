@@ -133,7 +133,7 @@ func assemble(
 		authorizeURL: provider.AuthorizationEndpoint().Absolute(cfg.Issuer),
 	})
 	avatar.Mount(router, pictures)
-	directory.Mount(router, directory.New(register, teams, svc.log).WithWriter(svc.billing.EntitlementsWriter, audit.New(db)))
+	directory.Mount(router, directory.New(register, teams, svc.log).WithWriter(svc.billing.EntitlementsWriter))
 	docs.Mount(router)
 	client, err := web.Handler()
 	if err != nil {

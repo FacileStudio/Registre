@@ -14,6 +14,7 @@ package directory
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -60,7 +61,9 @@ func New(db *gorm.DB, picture func(string) string, nudger *Nudger, logger *slog.
 // Snapshot is every space with its enabled members and plan entitlements,
 // plus every enabled person with personal entitlements, as apps receive it.
 // Disabled humans are left out, which is what makes disabling somebody
-// remove them from every space in every app.
+// remove them from every space in every app. It reads in one read-only
+// REPEATABLE READ transaction, so the revision, the spaces and the values
+// always come from the same committed state and never straddle two pushes.
 func (s *Service) Snapshot(ctx context.Context) (wire.Snapshot, error) {
 	var out wire.Snapshot
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -79,7 +82,7 @@ func (s *Service) Snapshot(ctx context.Context) (wire.Snapshot, error) {
 			out.Spaces = append(out.Spaces, *spacesByID[id])
 		}
 		return nil
-	})
+	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {
 		return wire.Snapshot{}, fmt.Errorf("directory: read the snapshot: %w", err)
 	}
