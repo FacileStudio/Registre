@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-04
+
 ### Added
 
 - Public self-service sign-up, "Create your Facile account", behind `SIGNUP_ENABLED` (off by
