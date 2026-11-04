@@ -30,3 +30,19 @@ type SpaceMember struct {
 
 // TableName is the table this model reads.
 func (SpaceMember) TableName() string { return "space_members" }
+
+// SpaceInvitation is a pending offer of a role in a space, addressed to an
+// email. Accepting it creates the SpaceMember row; until then the person is
+// in no snapshot.
+type SpaceInvitation struct {
+	ID        string `gorm:"primaryKey"`
+	SpaceID   string
+	Email     string
+	Role      string
+	InvitedBy string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
+// TableName is the table this model reads.
+func (SpaceInvitation) TableName() string { return "space_invitations" }

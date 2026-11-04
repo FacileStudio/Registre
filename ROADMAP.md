@@ -193,6 +193,7 @@ end to end in `apps/api/modules/oidc`.
 - [x] GDPR export and deletion with a 30-day grace period and a signed `user.deleted` event
 - [x] Locale on the account and as the OIDC `locale` claim; every auth and account page and every
       mail in four languages
+- [x] Space invitations instead of adding people directly
 - [ ] **Blocked on a human:** a lawyer reviews the sixteen legal texts and fills `LEGAL_TODO.md`;
       then `legal.Draft = false` and a version bump
 - [ ] **Blocked on a human:** set `ALTCHA_HMAC_KEY` (32+ random bytes) and SMTP in Dokploy, confirm

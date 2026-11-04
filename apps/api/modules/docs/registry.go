@@ -596,7 +596,7 @@ func Reference() apiref.Config {
 						{Method: "POST", Path: "/api/spaces/", Summary: "Create a space I own", Auth: "cookie", RequestBody: SpaceName{}, ResponseBody: SpaceSummary{}},
 						{Method: "GET", Path: "/api/spaces/{spaceID}", Summary: "One space with its members", Auth: "cookie", ResponseBody: SpaceDetail{}},
 						{Method: "POST", Path: "/api/spaces/{spaceID}/rename", Summary: "Rename a space (admin or owner)", Auth: "cookie", RequestBody: SpaceName{}, ResponseBody: SpaceName{}},
-						{Method: "POST", Path: "/api/spaces/{spaceID}/members", Summary: "Add a Registre user by email (admin or owner)", Auth: "cookie", RequestBody: SpaceInvite{}, ResponseBody: map[string]any{"member": SpaceMember{}}},
+						{Method: "POST", Path: "/api/spaces/{spaceID}/members", Summary: "Invite a person by email (admin or owner); 202 whether or not they have an account, nobody joins until they accept", Auth: "cookie", RequestBody: SpaceInvite{}, ResponseBody: map[string]string{"status": "invited"}, Status: http.StatusAccepted},
 						{Method: "POST", Path: "/api/spaces/{spaceID}/members/{userID}/role", Summary: "Change a member's role", Auth: "cookie", RequestBody: SpaceRole{}, ResponseBody: map[string]any{"member": SpaceRole{}}},
 						{Method: "DELETE", Path: "/api/spaces/{spaceID}/members/{userID}", Summary: "Remove a member", Auth: "cookie", ResponseBody: map[string]bool{"ok": true}},
 						{Method: "DELETE", Path: "/api/spaces/{spaceID}", Summary: "Delete a space in every app (owner only)", Auth: "cookie", ResponseBody: map[string]bool{"ok": true}},

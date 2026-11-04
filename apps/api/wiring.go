@@ -91,7 +91,8 @@ func assemble(
 	invitationService := invites.New(db, svc.verifier)
 	deviceFlows := devices.New(db)
 	pictures := avatars.New(db, cfg.Issuer)
-	teams := spacesdir.New(db, pictures.URL, spacesdir.NewNudger(register.List, svc.log), svc.log)
+	teams := spacesdir.New(db, pictures.URL, spacesdir.NewNudger(register.List, svc.log), svc.log).
+		WithInvitations(self.invitationsFor(cfg))
 
 	storage := oidc.NewStorage(db, oidc.Services{
 		Keys: keyring, Register: register, Users: users,

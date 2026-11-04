@@ -47,6 +47,8 @@ type Service struct {
 	nudger  *Nudger
 	logger  *slog.Logger
 	ladder  spaces.Ladder
+
+	invitations Invitations
 }
 
 // New builds the service. picture names a human's stable picture URL, and

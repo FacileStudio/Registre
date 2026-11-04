@@ -57,7 +57,11 @@ func Mount(router chi.Router, s *Service) {
 		r.Post("/", s.create)
 		r.Get("/{spaceID}", s.get)
 		r.Post("/{spaceID}/rename", s.rename)
-		r.Post("/{spaceID}/members", s.addMember)
+		r.Get("/invitations", s.myInvitations)
+		r.Post("/invitations/{invitationID}/accept", s.acceptInvitation)
+		r.Post("/invitations/{invitationID}/decline", s.declineInvitation)
+		r.With(inviteBudget()...).Post("/{spaceID}/members", s.invite)
+		r.Delete("/{spaceID}/invitations/{invitationID}", s.revokeInvitation)
 		r.Post("/{spaceID}/members/{userID}/role", s.setRole)
 		r.Delete("/{spaceID}/members/{userID}", s.removeMember)
 		r.Post("/{spaceID}/leave", s.leave)
@@ -111,14 +115,18 @@ func (s *Service) answer(w http.ResponseWriter, err error, body any) {
 	status := http.StatusOK
 	switch {
 	case err == nil:
-	case errors.Is(err, directory.ErrNotFound), errors.Is(err, directory.ErrNoSuchUser):
+	case errors.Is(err, directory.ErrNotFound), errors.Is(err, directory.ErrNoSuchUser),
+		errors.Is(err, directory.ErrInvitationNotFound):
 		status = http.StatusNotFound
 	case errors.Is(err, directory.ErrForbidden):
 		status = http.StatusForbidden
 	case errors.Is(err, directory.ErrNameTaken), errors.Is(err, directory.ErrLastOwner),
 		errors.Is(err, directory.ErrAlreadyMember):
 		status = http.StatusConflict
-	case errors.Is(err, directory.ErrInvalidRole), errors.Is(err, directory.ErrInvalidName):
+	case errors.Is(err, directory.ErrTooManyInvitations):
+		status = http.StatusTooManyRequests
+	case errors.Is(err, directory.ErrInvalidRole), errors.Is(err, directory.ErrInvalidName),
+		errors.Is(err, directory.ErrInvalidEmail):
 		status = http.StatusBadRequest
 	default:
 		s.logger.Error("registre: spaces request failed", slog.Any("error", err))

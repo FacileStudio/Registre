@@ -78,6 +78,7 @@ starts with the half that does not touch human authentication.
 | **Phases in §5 are ordered by attack surface, not by value** | `client_credentials` has no interactive flow: no redirect_uri validation, no state/nonce, no session fixation, no CSRF, no recovery. It ships first because it is the half that cannot be got subtly wrong, and it happens to be the half that unblocks agent identities |
 | **Public self-service sign-up, off until the owner opens it** | Decided 2026-11-04 for the public launch. `SIGNUP_ENABLED` defaults to false so a deploy never opens it. Email verification is required, passkeys are offered first, the password fallback follows NIST SP 800-63B-4 (15 to 128 characters, no composition rules, breached-password screening), and bots pay a self-hosted ALTCHA proof of work: no Google or Cloudflare service is involved |
 | **Languages: fr, en, es, de** | The person's locale lives on their row and reaches apps as the standard OIDC `locale` claim. Every page a person meets (sign-in, sign-up, consent, legal, account, spaces, device approval) and every mail exists in all four; `?lang=xx` picks one. The operator dashboard and the plan section stay English for now |
+| **Joining a space needs the person's consent** | Decided 2026-11-04. With public sign-up, "type an address, the account is in your space" became a way to push strangers into spaces. An owner or admin now sends an invitation; membership exists only after the person accepts |
 
 ---
 
@@ -270,7 +271,7 @@ written to `admin_events`.
 
 **Shared spaces are registre's.** A space is a team, such as "Facile", that exists in every app
 with the same members at the same rank, owner > admin > member (porte's `spaces` ladder). Humans
-create spaces, add mates and change roles on `/spaces`; no app edits them. Apps pull
+create spaces, invite mates (who accept) and change roles on `/spaces`; no app edits them. Apps pull
 `GET /api/directory/snapshot`, authenticated with HTTP Basic as their own application client, and
 make their tables match it. The snapshot is the whole state, so applying it is idempotent. After
 every change registre bumps a version in the same transaction and POSTs an empty nudge to each
@@ -380,6 +381,14 @@ This is an RFC 8417 Security Event Token pushed as RFC 8935 describes. An app ve
 the JWKS exactly as it verifies a logout token, checks `aud` is its own client id, then erases
 what it holds about `sub` within thirty days. An app that ignores the body still pulls the
 snapshot, which no longer lists the person. Delivery is best-effort and logged.
+
+**Space invitations.** `POST /api/spaces/{id}/members {"email","role"}` writes a
+`space_invitations` row (fourteen days, at most fifty pending per space, rate limited per inviter
+and per space) and answers `202 {"status":"invited"}` whatever the address. A person with an
+account is mailed in their language; an address without one is mailed "join Facile" only while
+sign-up is open. The invitee sees the space and the offered role on `/spaces` and accepts or
+declines (`/api/spaces/invitations`); only acceptance writes `space_members`, so a pending
+invitation never reaches a snapshot. Admins and owners see and revoke pending invitations.
 
 Reuse `porte/local/password.go`'s argon2id parameters **verbatim** — 64 MiB, three passes, two
 lanes — so password hashes stay portable in either direction.

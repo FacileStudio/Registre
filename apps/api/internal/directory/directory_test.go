@@ -116,7 +116,7 @@ func TestDisablingSomebodyTakesThemOutOfEverySnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if _, err := svc.AddMember(ctx, sub["yann@facile.studio"], space.ID, "bob@facile.studio", "member"); err != nil {
+	if err := join(ctx, svc, joining{sub["yann@facile.studio"], space.ID, "bob@facile.studio", "member", sub["bob@facile.studio"]}); err != nil {
 		t.Fatalf("AddMember: %v", err)
 	}
 	now := time.Now()
@@ -144,7 +144,7 @@ func TestRanksGuardEveryChange(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 	for email, role := range map[string]string{"admin@facile.studio": "admin", "member@facile.studio": "member"} {
-		if _, err := svc.AddMember(ctx, owner, space.ID, email, role); err != nil {
+		if err := join(ctx, svc, joining{owner, space.ID, email, role, sub[email]}); err != nil {
 			t.Fatalf("adding %s: %v", email, err)
 		}
 	}
@@ -195,7 +195,7 @@ func TestDeletingASpaceEmptiesItInEverySnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if _, err := svc.AddMember(ctx, owner, space.ID, "admin@facile.studio", "admin"); err != nil {
+	if err := join(ctx, svc, joining{owner, space.ID, "admin@facile.studio", "admin", sub["admin@facile.studio"]}); err != nil {
 		t.Fatalf("AddMember: %v", err)
 	}
 	if err := svc.Delete(ctx, admin, space.ID); !errors.Is(err, ErrForbidden) {

@@ -56,7 +56,7 @@ func okBody() map[string]string { return map[string]string{"ok": "true"} }
 
 // signupModules documents the routes public sign-up added.
 func signupModules() []Module {
-	return []Module{signupModule(), passkeyLoginModule(), accountSelfModule(), legalModule()}
+	return []Module{signupModule(), passkeyLoginModule(), accountSelfModule(), legalModule(), invitationModule()}
 }
 
 func signupModule() Module {
@@ -98,5 +98,14 @@ func legalModule() Module {
 	return Module{Name: "legal", Description: "Versioned legal documents in fr, en, es, de", Routes: []Route{
 		{Method: "GET", Path: "/api/legal", Summary: "Every document with its current version", ResponseBody: map[string]any{"documents": []LegalDocument{}}},
 		{Method: "GET", Path: "/api/legal/{document}", Summary: "One document (cgu, cgv, privacy, legal-notice) in ?lang=", ResponseBody: LegalDocument{}},
+	}}
+}
+
+func invitationModule() Module {
+	return Module{Name: "space invitations", Description: "Pending invitations into spaces; membership exists only after acceptance", Routes: []Route{
+		{Method: "GET", Path: "/api/spaces/invitations", Summary: "Invitations addressed to me", Auth: "cookie", ResponseBody: map[string]any{"invitations": []any{}}},
+		{Method: "POST", Path: "/api/spaces/invitations/{invitationID}/accept", Summary: "Join the space at the offered role", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: SpaceSummary{}},
+		{Method: "POST", Path: "/api/spaces/invitations/{invitationID}/decline", Summary: "Decline an invitation", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]bool{"ok": true}},
+		{Method: "DELETE", Path: "/api/spaces/{spaceID}/invitations/{invitationID}", Summary: "Revoke a pending invitation (admin or owner)", Auth: "cookie", ResponseBody: map[string]bool{"ok": true}},
 	}}
 }

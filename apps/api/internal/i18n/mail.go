@@ -13,6 +13,8 @@ const (
 	MailRecovery          = "recovery.reset"
 	MailDeletionScheduled = "deletion.scheduled"
 	MailDeletionDone      = "deletion.done"
+	MailSpaceInvite       = "space.invite"
+	MailSpaceJoin         = "space.join"
 )
 
 // mailText is one mail in one language: a subject, paragraphs, and the label
@@ -56,6 +58,8 @@ func mailCatalog() map[string]map[string]mailText {
 		MailRecovery:          recoveryReset(),
 		MailDeletionScheduled: deletionScheduled(),
 		MailDeletionDone:      deletionDone(),
+		MailSpaceInvite:       spaceInvite(),
+		MailSpaceJoin:         spaceJoin(),
 	}
 }
 

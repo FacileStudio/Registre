@@ -9,6 +9,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/consent"
+	spacesdir "github.com/FacileStudio/Registre/apps/api/internal/directory"
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
 	"github.com/FacileStudio/Registre/apps/api/internal/gdpr"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
@@ -26,7 +27,7 @@ import (
 )
 
 // housekeepingEvery is how often due deletions run and expired ceremonies,
-// sign-up links, proofs are purged.
+// sign-up links, proofs and invitations are purged.
 const housekeepingEvery = time.Hour
 
 // selfServices is what public sign-up added: passkeys, consent, the sign-up
@@ -82,6 +83,11 @@ func openSignup(settings env.Signup, mail bool, log *slog.Logger) bool {
 	return false
 }
 
+// invitationsFor is how space invitations send their notices.
+func (s *selfServices) invitationsFor(cfg env.Config) spacesdir.Invitations {
+	return spacesdir.Invitations{Mailer: s.mailer, Issuer: cfg.Issuer, SignupOpen: s.flow != nil}
+}
+
 // accountSelf builds the account pages' sign-up era services, including the
 // GDPR service, and starts the hourly housekeeping.
 func accountSelf(cfg env.Config, p people) account.SelfService {
@@ -92,6 +98,7 @@ func accountSelf(cfg env.Config, p people) account.SelfService {
 	rights.Start(p.ctx, housekeepingEvery, func(ctx context.Context) {
 		cutoff := time.Now().UTC().Add(-time.Hour)
 		purge(ctx, p.log, p.self.passkeys.Purge, cutoff)
+		purge(ctx, p.log, p.teams.PurgeInvitations, cutoff)
 		if p.self.flow != nil {
 			purge(ctx, p.log, p.self.flow.Purge, cutoff)
 		}

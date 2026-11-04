@@ -27,6 +27,9 @@ type Detail struct {
 	Name    string       `json:"name"`
 	Role    string       `json:"role"`
 	Members []MemberView `json:"members"`
+
+	// Invitations are the pending ones, shown to admins and owners only.
+	Invitations []InvitationView `json:"invitations,omitempty"`
 }
 
 // MemberView is one person in a space, as the spaces page shows them.
@@ -96,7 +99,13 @@ func (s *Service) Get(ctx context.Context, userID, spaceID string) (Detail, erro
 			Picture: s.picture(row.UserID), Role: row.Role,
 		})
 	}
-	return Detail{ID: space.ID, Name: space.Name, Role: role, Members: members}, nil
+	detail := Detail{ID: space.ID, Name: space.Name, Role: role, Members: members}
+	if s.ladder.AtLeast(spaces.Role(role), spaces.Role(wire.RoleAdmin)) {
+		if detail.Invitations, err = s.pendingFor(s.db.WithContext(ctx), spaceID); err != nil {
+			return Detail{}, err
+		}
+	}
+	return detail, nil
 }
 
 // Rename changes a space's name everywhere. Admins and owners may.

@@ -2,8 +2,6 @@ package directory
 
 import (
 	"context"
-	"errors"
-	"strings"
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/schemas"
@@ -12,38 +10,6 @@ import (
 	"github.com/FacileStudio/porte/spaces"
 	"gorm.io/gorm"
 )
-
-// AddMember puts the Registre user with email into the space at role. The
-// actor must be an admin or owner and may not grant a rank above their own.
-func (s *Service) AddMember(ctx context.Context, actorID, spaceID, email, role string) (MemberView, error) {
-	if !validRole(role) {
-		return MemberView{}, ErrInvalidRole
-	}
-	var added MemberView
-	err := s.commit(ctx, func(tx *gorm.DB) error {
-		actorRole, err := s.requireRank(tx, actorID, spaceID, wire.RoleAdmin)
-		if err != nil {
-			return err
-		}
-		if !s.ladder.AtLeast(spaces.Role(actorRole), spaces.Role(role)) {
-			return ErrForbidden
-		}
-		var user schemas.User
-		err = tx.Where("lower(email) = ? AND disabled_at IS NULL", strings.ToLower(strings.TrimSpace(email))).Take(&user).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrNoSuchUser
-		}
-		if err != nil {
-			return err
-		}
-		if _, _, err := s.membership(tx, user.ID, spaceID); err == nil {
-			return ErrAlreadyMember
-		}
-		added = MemberView{UserID: user.ID, Email: user.Email, Name: user.Name, Picture: s.picture(user.ID), Role: role}
-		return tx.Create(&schemas.SpaceMember{SpaceID: spaceID, UserID: user.ID, Role: role}).Error
-	})
-	return added, err
-}
 
 // SetRole moves targetID to role. The actor must rank at or above both the
 // role taken away and the role granted, and the last owner stays an owner.
