@@ -43,19 +43,6 @@ func (s *Service) rename(w http.ResponseWriter, r *http.Request) {
 	s.answer(w, err, map[string]string{"id": spaceID, "name": body.Name})
 }
 
-// addMember invites an existing Registre user by email.
-func (s *Service) addMember(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Email string `json:"email"`
-		Role  string `json:"role"`
-	}
-	if !decode(w, r, &body) {
-		return
-	}
-	member, err := s.spaces.AddMember(r.Context(), holderID(r), chi.URLParam(r, "spaceID"), body.Email, body.Role)
-	s.answer(w, err, map[string]any{"member": member})
-}
-
 // setRole changes one member's rank.
 func (s *Service) setRole(w http.ResponseWriter, r *http.Request) {
 	var body struct {

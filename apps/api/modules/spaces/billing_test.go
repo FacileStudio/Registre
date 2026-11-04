@@ -94,11 +94,9 @@ func newWorld(t *testing.T) *world {
 	teams := directory.New(db, nil, nil, logs)
 	cookies := accounts.NewCookies(false)
 	yannID, yann := signIn(t, users, sessions, "yann@facile.studio")
-	_, bob := signIn(t, users, sessions, "bob@facile.studio")
+	bobID, bob := signIn(t, users, sessions, "bob@facile.studio")
 	space, _ := teams.Create(context.Background(), yannID, "Alpha")
-	if _, err := teams.AddMember(context.Background(), yannID, space.ID, "bob@facile.studio", "admin"); err != nil {
-		t.Fatalf("adding bob: %v", err)
-	}
+	joinAs(t, teams, yannID, space.ID, bobID)
 	fake := &ardoise{redirect: "https://checkout.stripe.com/c/pay/cs_test"}
 	server := httptest.NewServer(fake)
 	t.Cleanup(server.Close)
@@ -146,4 +144,20 @@ func serve(router chi.Router, req *http.Request) (int, map[string]any) {
 // call sends one page request through router.
 func (w *world) call(router chi.Router, method, path, cookie string, body any) (int, map[string]any) {
 	return serve(router, w.request(method, path, cookie, body))
+}
+
+// joinAs invites bob@facile.studio into spaceID as admin and accepts as
+// bobID.
+func joinAs(t *testing.T, teams *directory.Service, ownerID, spaceID, bobID string) {
+	t.Helper()
+	if err := teams.Invite(context.Background(), ownerID, spaceID, "bob@facile.studio", "admin"); err != nil {
+		t.Fatalf("inviting bob: %v", err)
+	}
+	invited, _ := teams.Invited(context.Background(), bobID)
+	if len(invited) != 1 {
+		t.Fatalf("bob has %d invitations, want 1", len(invited))
+	}
+	if _, err := teams.Accept(context.Background(), bobID, invited[0].ID); err != nil {
+		t.Fatalf("bob accepting: %v", err)
+	}
 }
