@@ -87,6 +87,11 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+// SessionLoginRequest names the auth request an existing session finishes.
+type SessionLoginRequest struct {
+	AuthRequest string `json:"auth_request" validate:"required"`
+}
+
 type LoginResponse struct {
 	RedirectURI  string `json:"redirect_uri,omitempty"`
 	SecondFactor bool   `json:"second_factor,omitempty"`
@@ -472,6 +477,19 @@ func Reference() apiref.Config {
 							Path:         "/api/login/totp",
 							Summary:      "Verify second factor challenge",
 							RequestBody:  SecondFactorRequest{},
+							ResponseBody: LoginResponse{},
+						},
+						{
+							Method:       "GET",
+							Path:         "/api/login/session",
+							Summary:      "Report whether the browser holds an account session",
+							ResponseBody: LoginResponse{},
+						},
+						{
+							Method:       "POST",
+							Path:         "/api/login/session",
+							Summary:      "Finish an auth request with the existing session (needs X-Facile-CSRF)",
+							RequestBody:  SessionLoginRequest{},
 							ResponseBody: LoginResponse{},
 						},
 						{

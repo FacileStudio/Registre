@@ -128,10 +128,11 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 		t.Fatalf("building the provider: %v", err)
 	}
 	router := chi.NewRouter()
-	Mount(router, provider)
+	sessions, cookies := accounts.New(db), accounts.NewCookies(false)
+	Mount(router, provider, Binding{Storage: storage, Sessions: sessions, Cookies: cookies})
 	login.Mount(router, login.New(users, logs).WithSecondFactor(login.SecondFactor{
-		Accounts: accounts.New(db),
-		Cookies:  accounts.NewCookies(false),
+		Accounts: sessions,
+		Cookies:  cookies,
 	}))
 	router.Get("/login", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(

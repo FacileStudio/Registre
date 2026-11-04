@@ -48,6 +48,7 @@ func (s *Storage) CreateAuthRequest(ctx context.Context, request *zoidc.AuthRequ
 		ResponseType:        string(request.ResponseType),
 		CodeChallenge:       request.CodeChallenge,
 		CodeChallengeMethod: string(request.CodeChallengeMethod),
+		BrowserHash:         browserHash(ctx),
 		ExpiresAt:           s.now().Add(authTTL),
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
@@ -97,22 +98,30 @@ func (s *Storage) AuthRequestByCode(ctx context.Context, code string) (op.AuthRe
 	return s.wrap(row)
 }
 
-// SaveAuthCode binds an issued code to the pending flow.
+// SaveAuthCode binds an issued code to the pending flow, once.
 //
 // Only the hash is stored. The code transits a redirect through the relying
 // party's browser and can therefore land in access logs on every host between
 // the two; a row of plaintext codes next to those logs would be the same
 // credential with a different filename.
+//
+// A flow that already holds a code is refused rather than overwritten. The
+// update is conditional, so two callbacks racing the same flow cannot both
+// walk away with a code, and a second callback can never mint a fresh one for
+// whoever calls last.
 func (s *Storage) SaveAuthCode(ctx context.Context, id, code string) error {
 	digest, err := codeHash(code)
 	if err != nil {
 		return fmt.Errorf("oidc: bind the code: %w", err)
 	}
-	err = s.db.WithContext(ctx).Model(&schemas.AuthRequest{}).
-		Where("id = ?", id).
-		Update("code", digest).Error
-	if err != nil {
-		return fmt.Errorf("oidc: bind the code: %w", err)
+	result := s.db.WithContext(ctx).Model(&schemas.AuthRequest{}).
+		Where("id = ? AND code = ''", id).
+		Update("code", digest)
+	if result.Error != nil {
+		return fmt.Errorf("oidc: bind the code: %w", result.Error)
+	}
+	if result.RowsAffected != 1 {
+		return zoidc.ErrAccessDenied().WithDescription("this sign-in already produced a code")
 	}
 	return nil
 }

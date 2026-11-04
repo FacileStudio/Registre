@@ -44,11 +44,12 @@ func parseCallback(location string) callbackResult {
 	return callbackResult{code: query.Get("code"), state: query.Get("state")}
 }
 
-// singleCookie is the smallest possible browser: it keeps one cookie (the
-// provider sets none today, but the helper must not assume that) and follows
-// nothing automatically, so every hop of the flow is asserted by hand.
+// singleCookie is the smallest possible browser: it keeps the latest cookie of
+// each name (the flow cookie /authorize sets and the account cookie login
+// sets) and follows nothing automatically, so every hop of the flow is
+// asserted by hand.
 type singleCookie struct {
-	cookie   *http.Cookie
+	cookies  map[string]*http.Cookie
 	lastBody *strings.Builder
 	client   *http.Client
 	noFollow bool
@@ -60,18 +61,13 @@ func (s *singleCookie) do(t *testing.T, request *http.Request) *http.Response {
 		s.lastBody = &strings.Builder{}
 	}
 	s.lastBody.Reset()
-	if s.cookie != nil {
-		request.AddCookie(s.cookie)
+	for _, cookie := range s.cookies {
+		request.AddCookie(cookie)
 	}
 	if s.client == nil {
 		s.client = &http.Client{}
 	}
-	s.client.CheckRedirect = func(*http.Request, []*http.Request) error {
-		if s.noFollow {
-			return http.ErrUseLastResponse
-		}
-		return nil
-	}
+	s.client.CheckRedirect = s.follow
 	response, err := s.client.Do(request)
 	if err != nil {
 		t.Fatalf("%s %s: %v", request.Method, request.URL, err)
@@ -82,10 +78,38 @@ func (s *singleCookie) do(t *testing.T, request *http.Request) *http.Response {
 	}
 	_ = response.Body.Close()
 	s.lastBody.Write(body)
-	for _, cookie := range response.Cookies() {
-		s.cookie = cookie
-	}
+	s.keep(response.Cookies())
 	return response
+}
+
+// follow is the redirect policy: keep what the hop set, as a browser does,
+// and send it on the next request, unless the test asked to stop.
+func (s *singleCookie) follow(next *http.Request, _ []*http.Request) error {
+	if s.noFollow {
+		return http.ErrUseLastResponse
+	}
+	if next.Response != nil {
+		s.keep(next.Response.Cookies())
+	}
+	next.Header.Del("Cookie")
+	for _, cookie := range s.cookies {
+		next.AddCookie(cookie)
+	}
+	return nil
+}
+
+// keep stores each cookie a response set and drops each one it expired.
+func (s *singleCookie) keep(cookies []*http.Cookie) {
+	if s.cookies == nil {
+		s.cookies = map[string]*http.Cookie{}
+	}
+	for _, cookie := range cookies {
+		if cookie.MaxAge < 0 {
+			delete(s.cookies, cookie.Name)
+			continue
+		}
+		s.cookies[cookie.Name] = cookie
+	}
 }
 
 func (s *singleCookie) get(t *testing.T, rawURL string) *http.Response {
@@ -115,6 +139,22 @@ func (s *singleCookie) postJSONNoFollow(t *testing.T, rawURL string, body string
 		t.Fatalf("building POST %s: %v", rawURL, err)
 	}
 	request.Header.Set("Content-Type", "application/json")
+	s.noFollow = true
+	defer func() { s.noFollow = false }()
+	return s.do(t, request)
+}
+
+// resumeSession is the login page finishing a flow with the session the
+// browser already holds: a POST with the CSRF header and the flow in the body.
+func (s *singleCookie) resumeSession(t *testing.T, issuer, authRequest string) *http.Response {
+	t.Helper()
+	request, err := http.NewRequest(http.MethodPost, issuer+"/api/login/session",
+		strings.NewReader(`{"auth_request":"`+authRequest+`"}`))
+	if err != nil {
+		t.Fatalf("building POST /api/login/session: %v", err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Facile-CSRF", "1")
 	s.noFollow = true
 	defer func() { s.noFollow = false }()
 	return s.do(t, request)

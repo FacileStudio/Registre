@@ -10,7 +10,6 @@ package oidc
 
 import (
 	"crypto/sha256"
-	"net/http"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
 
@@ -129,21 +128,29 @@ func NewProvider(storage *Storage, cfg ProviderConfig) (*op.Provider, error) {
 // work or reads something public; that one is unauthenticated and writes a row
 // carrying a low-entropy user code, so the rate at which it may be called is
 // part of RFC 8628 §5.2's arithmetic rather than a nicety.
-func Mount(router chi.Router, provider *op.Provider) {
+//
+// /authorize and its callback go through binding, which ties every browser
+// flow to the browser that started it and the session that finished it. See
+// Binding for why the library's own callback cannot be mounted bare.
+func Mount(router chi.Router, provider *op.Provider, binding Binding) {
 	budget := troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
 		Limit: DefaultDeviceStartLimit, Burst: DefaultDeviceStartBurst,
 	})
 	device := provider.DeviceAuthorizationEndpoint().Relative()
+	authorize := provider.AuthorizationEndpoint().Relative()
 	for _, path := range Paths(provider) {
-		handler := http.Handler(provider)
-		if path == oidc.DiscoveryEndpoint {
-			handler = filteredDiscovery(provider)
+		switch path {
+		case oidc.DiscoveryEndpoint:
+			router.Handle(path, filteredDiscovery(provider))
+		case device:
+			router.With(budget).Handle(path, provider)
+		case authorize:
+			router.Handle(path, binding.authorize(provider))
+		case authorize + "/callback":
+			router.Handle(path, binding.callback(provider, provider))
+		default:
+			router.Handle(path, provider)
 		}
-		if path == device {
-			router.With(budget).Handle(path, handler)
-			continue
-		}
-		router.Handle(path, handler)
 	}
 }
 
