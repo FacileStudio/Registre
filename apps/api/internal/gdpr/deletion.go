@@ -33,7 +33,7 @@ const Grace = 30 * 24 * time.Hour
 // Notifier tells the apps a person is gone. internal/logout implements it.
 type Notifier interface {
 	Fire(ctx context.Context, userID string, clientIDs []string) error
-	NotifyDeleted(ctx context.Context, userID string) error
+	DeliverDeleted(ctx context.Context, userID, clientID, uri string) error
 }
 
 // Directory bumps the shared-spaces version after memberships vanish.
@@ -72,8 +72,12 @@ func New(deps Deps, issuer string) *Service {
 }
 
 // Request schedules user's account for deletion after Grace and mails them
-// the date. Asking twice keeps the first date.
+// the date. Asking twice keeps the first date. The only owner of a space
+// others use is refused with a SoleOwnerError until they hand it over.
 func (s *Service) Request(ctx context.Context, user schemas.User) (time.Time, error) {
+	if err := refuseSoleOwner(ctx, s.DB, user.ID); err != nil {
+		return time.Time{}, err
+	}
 	row := schemas.DeletionRequest{UserID: user.ID, RequestedAt: s.now(), ExecuteAfter: s.now().Add(Grace)}
 	if err := s.DB.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
 		return time.Time{}, fmt.Errorf("gdpr: record the request: %w", err)

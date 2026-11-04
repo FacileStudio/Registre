@@ -52,8 +52,15 @@ func (s *Service) Erase(ctx context.Context, userID string) error {
 	return nil
 }
 
-// erase deletes the account and every row keyed on it that has no cascade.
+// erase hands over the spaces the account alone owns, then deletes the
+// account and every row keyed on it that has no cascade.
 func erase(tx *gorm.DB, user schemas.User) error {
+	if err := handOver(tx, user.ID); err != nil {
+		return err
+	}
+	if err := queueNotices(tx, user.ID); err != nil {
+		return err
+	}
 	statements := []struct {
 		sql  string
 		args []any
@@ -64,6 +71,7 @@ func erase(tx *gorm.DB, user schemas.User) error {
 		{"DELETE FROM access_tokens WHERE subject = ?", []any{user.ID}},
 		{"DELETE FROM signup_challenges WHERE lower(email) = lower(?)", []any{user.Email}},
 		{"DELETE FROM invite_tokens WHERE lower(email) = lower(?)", []any{user.Email}},
+		{"DELETE FROM space_invitations WHERE lower(email) = lower(?)", []any{user.Email}},
 		{"DELETE FROM users WHERE id = ?", []any{user.ID}},
 	}
 	for _, statement := range statements {
@@ -79,11 +87,11 @@ func erase(tx *gorm.DB, user schemas.User) error {
 func (s *Service) announce(ctx context.Context, user schemas.User, reached []string) {
 	if s.Notifier != nil {
 		s.warn("registre: back-channel logout after deletion", s.Notifier.Fire(ctx, user.ID, reached))
-		s.warn("registre: user.deleted notices", s.Notifier.NotifyDeleted(ctx, user.ID))
 	}
 	if s.Directory != nil {
 		s.warn("registre: directory bump after deletion", s.Directory.Touch(ctx))
 	}
+	s.DeliverNotices(ctx)
 	s.record(ctx, user.ID, "account.deleted", nil)
 	if s.Mailer != nil {
 		subject, body := i18n.Mail(i18n.MailDeletionDone, user.Locale, "", nil)
@@ -120,6 +128,8 @@ func (s *Service) Start(ctx context.Context, interval time.Duration, chores ...f
 // tick runs one housekeeping round.
 func (s *Service) tick(ctx context.Context, chores []func(context.Context)) {
 	s.RunDue(ctx)
+	s.DeliverNotices(ctx)
+	s.warn("registre: purge deletion notices", s.PurgeNotices(ctx, s.now()))
 	for _, chore := range chores {
 		chore(ctx)
 	}

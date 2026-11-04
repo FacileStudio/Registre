@@ -2,12 +2,14 @@ package account
 
 import (
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 	"unicode/utf8"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/gdpr"
 	"github.com/FacileStudio/Registre/apps/api/internal/i18n"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
@@ -96,6 +98,11 @@ func (s *Service) requestDeletion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	at, err := s.self.Rights.Request(r.Context(), user)
+	var sole *gdpr.SoleOwnerError
+	if errors.As(err, &sole) {
+		encode(w, map[string]any{"error": "sole_owner", "spaces": sole.Spaces}, http.StatusConflict)
+		return
+	}
 	if err != nil {
 		serverError(w, err)
 		return

@@ -73,6 +73,7 @@ type SelfService struct {
 	Consents *consent.Service
 	Rights   *gdpr.Service
 	Audit    *audit.Service
+	Pwned    credentials.Screen
 }
 
 // Service serves the account pages over the session, the second factor and the

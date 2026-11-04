@@ -25,10 +25,6 @@ import (
 //go:embed content/*.md
 var content embed.FS
 
-// Draft marks every text as pending legal review. Flip it in the commit that
-// lands the reviewed texts.
-const Draft = true
-
 // Document is one legal text in one language.
 type Document struct {
 	Document string `json:"document"`
@@ -56,7 +52,7 @@ func index(w http.ResponseWriter, _ *http.Request) {
 	list := []Document{}
 	for _, name := range []string{consent.CGU, consent.CGV, consent.Privacy, consent.LegalNotice} {
 		list = append(list, Document{
-			Document: name, Version: consent.Versions()[name], Draft: Draft, Required: required[name],
+			Document: name, Version: consent.Versions()[name], Draft: consent.Draft(), Required: required[name],
 		})
 	}
 	encode(w, map[string]any{"documents": list, "locales": i18n.Locales()}, http.StatusOK)
@@ -88,7 +84,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	encode(w, Document{
 		Document: name, Version: version, Locale: locale, Title: title, HTML: body,
-		Draft: Draft, Required: required,
+		Draft: consent.Draft(), Required: required,
 	}, http.StatusOK)
 }
 

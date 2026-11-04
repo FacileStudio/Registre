@@ -330,19 +330,27 @@ for an unknown one. The link's token is random, stored as SHA-256, good once for
 policy, then a passkey (registered before the account row exists, bound to the subject the
 account is created with) or a password. The account, its consent rows, its passkey and the spent
 link are one transaction, and the account is born verified (`email_verified_at`). Every route is
-limited per address, and start per email too.
+limited per address (an IPv6 address counted per /64); start is also limited to three links per
+address per hour, counted from `signup_challenges` after a valid proof of work, so garbage
+requests cannot spend a stranger's budget. A new account lands on Registre's home: sign-up does
+not complete a pending app login, because the link is opened in whatever browser reads the mail
+and completing a login named by the starter would let anyone finish somebody else's
+authorization request. Carrying the app login through will come back once auth requests are
+bound to the browser that started them.
 
 **Passwords follow NIST SP 800-63B-4.** Every path that sets one (sign-up, account page, reset,
-invitation) requires 15 to 128 characters, counted as characters, with no composition rule. A
-sign-up password is screened against Have I Been Pwned's range API: only five hex characters of
+invitation) requires 15 to 128 characters, counted as characters, with no composition rule.
+Every new password on those paths is screened against Have I Been Pwned's range API (`HIBP_ENABLED`,
+on by default): only five hex characters of
 its SHA-1 leave the process, with `Add-Padding`, a 3 s timeout and a 1 MiB cap, and an outage
 skips the check with a warning so sign-up never depends on a third party. Hashing stays
 `internal/credentials` under the argon2 ceiling.
 
 **Passkeys.** `internal/passkeys` is the WebAuthn relying party over `go-webauthn`, with
 `WEBAUTHN_RP_ID` and exact `WEBAUTHN_ORIGINS` (defaults: the issuer's host and origin). The login
-page offers a discoverable passkey sign-in (user verification preferred) that finishes like a
-password login with no second factor owed. `/account` adds, renames and removes passkeys; the last
+page offers a discoverable passkey sign-in that finishes like a password login with no second
+factor owed, so it requires user verification: presence alone would let whoever holds an unlocked
+security key in. Registration prefers verification and reauthentication requires it. `/account` adds, renames and removes passkeys; the last
 way into an account (its only passkey when it has no password) cannot be removed, and adding or
 removing one needs a factor proven within ten minutes, either at sign-in or through
 `/api/account/reauth`. Each ceremony is a `webauthn_ceremonies` row claimed once, bound to its
@@ -352,16 +360,30 @@ purpose and, where it has one, its account. TOTP stays as it was.
 versioned texts in four languages from `GET /api/legal/{document}`; versions live in
 `internal/consent`. An account must accept the current CGU and privacy policy: `identity.Complete`
 refuses a login with `ErrConsentRequired` while an acceptance is owed, and every sign-in path then
-sends the browser to `/consent`, which records the acceptance and resumes the login. Bumping a
-version is how everyone is asked again. Each acceptance is an appended `consents` row with the
-document, version, locale, time and a keyed digest of the source address.
+sends the browser to `/consent`, which records the acceptance and resumes the login. A device
+approval (`/device`) is held the same way. Bumping a version is how everyone is asked again. Each
+acceptance is an appended `consents` row with the document, version, locale, time, a keyed digest
+of the source address and whether the version was a draft.
+
+**While the texts are drafts nothing is enforced.** `consent.Draft()` is true until a lawyer has
+reviewed them; meanwhile `Outdated` answers nothing owed, so no existing person is held at the
+consent screen for unreviewed terms. Sign-up still asks, and records the acceptance with `draft`
+set; a draft acceptance never satisfies a reviewed version, so everyone is asked again once the
+reviewed texts land with a new version. Consent is checked at interactive sign-in and device
+approval only: a refresh grant keeps working until it expires (at most `REGISTRE_REFRESH_TOKEN_TTL`,
+30 days) and a token exchange follows the subject token it trades, so an app that never sends the
+person back to sign in learns of new terms at the latest a refresh lifetime later.
 
 **GDPR.** `/account` exports the person's Registre data as JSON (no hashes, seeds or keys) and
 schedules deletion after a 30-day grace period, behind a fresh factor and the address typed back;
-the person can cancel until then. The hourly job then ends every session, deletes the account and
-every row keyed on it, fires back-channel logout to the apps the sessions reached, bumps the
-directory version, and sends each enabled application with a `directory_sync_uri` a signed
-deletion event:
+the person can cancel until then. The only owner of a space other people use is refused
+(`409 sole_owner`) until they make someone else owner; if they become sole owner again during the
+grace period, erasure promotes the most senior other member (an admin first, then the earliest to
+join) rather than withhold the erasure. The job, every ten minutes, ends every session, deletes
+the account and every row keyed on it (invitations addressed to them included), fires back-channel
+logout to the apps the sessions reached, bumps the directory version, and writes one
+`deletion_notices` row per enabled application in the same transaction as the delete. Each app
+with a `directory_sync_uri` is pushed a signed deletion event:
 
 ```
 POST <directory_sync_uri>
@@ -379,14 +401,22 @@ Content-Type: application/secevent+jwt
 
 This is an RFC 8417 Security Event Token pushed as RFC 8935 describes. An app verifies it against
 the JWKS exactly as it verifies a logout token, checks `aud` is its own client id, then erases
-what it holds about `sub` within thirty days. An app that ignores the body still pulls the
-snapshot, which no longer lists the person. Delivery is best-effort and logged.
+what it holds about `sub` within thirty days. A failed push is retried after five minutes, then
+twice as long each time up to a day, twelve times at most. Every app, with or without a sync URI,
+can also list its erasures for sixty days with `GET /api/directory/deletions?since=<RFC 3339>`,
+authenticated with HTTP Basic as its own application client like the snapshot; that is how
+Casier, Sonde, Journal, Perception and any app that was down learn. An app that ignores both still
+pulls the snapshot, which no longer lists the person.
 
 **Space invitations.** `POST /api/spaces/{id}/members {"email","role"}` writes a
 `space_invitations` row (fourteen days, at most fifty pending per space, rate limited per inviter
 and per space) and answers `202 {"status":"invited"}` whatever the address. A person with an
 account is mailed in their language; an address without one is mailed "join Facile" only while
-sign-up is open. The invitee sees the space and the offered role on `/spaces` and accepts or
+sign-up is open, and that mail carries neither the inviter's name nor the space's, so nobody can
+mail strangers words of their choosing. One address receives at most three invitation mails a
+day and the instance sends at most two hundred an hour; past either cap the invitation is still
+written and answered the same way, only the mail is skipped. Deleting a space deletes its pending
+invitations, and an invitation into a deleted space can never be accepted. The invitee sees the space and the offered role on `/spaces` and accepts or
 declines (`/api/spaces/invitations`); only acceptance writes `space_members`, so a pending
 invitation never reaches a snapshot. Admins and owners see and revoke pending invitations.
 

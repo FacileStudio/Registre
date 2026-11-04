@@ -46,10 +46,9 @@ func (s *Service) challenge(w http.ResponseWriter, _ *http.Request) {
 // identical answer exists to remove.
 func (s *Service) start(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Email       string `json:"email"`
-		Altcha      string `json:"altcha"`
-		Locale      string `json:"locale"`
-		AuthRequest string `json:"auth_request"`
+		Email  string `json:"email"`
+		Altcha string `json:"altcha"`
+		Locale string `json:"locale"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		encode(w, map[string]string{"error": "invalid"}, http.StatusBadRequest)
@@ -60,7 +59,7 @@ func (s *Service) start(w http.ResponseWriter, r *http.Request) {
 		locale = i18n.FromAcceptLanguage(r.Header.Get("Accept-Language"))
 	}
 	err := s.Flow.Start(r.Context(), flow.Request{
-		Email: body.Email, Proof: body.Altcha, Locale: locale, AuthRequest: body.AuthRequest,
+		Email: body.Email, Proof: body.Altcha, Locale: locale,
 	})
 	switch {
 	case errors.Is(err, flow.ErrProof):
@@ -68,6 +67,9 @@ func (s *Service) start(w http.ResponseWriter, r *http.Request) {
 		return
 	case errors.Is(err, flow.ErrEmail):
 		encode(w, map[string]string{"error": "email"}, http.StatusBadRequest)
+		return
+	case errors.Is(err, flow.ErrThrottled):
+		encode(w, map[string]string{"error": "rate_limited"}, http.StatusTooManyRequests)
 		return
 	case err != nil:
 		s.logger.Error("registre: sign-up start failed", slog.Any("error", err))

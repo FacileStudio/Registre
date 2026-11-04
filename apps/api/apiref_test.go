@@ -15,6 +15,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/testdb"
 	"github.com/FacileStudio/Registre/apps/api/modules/docs"
 	"github.com/FacileStudio/tronc/apiref"
+	troncenv "github.com/FacileStudio/tronc/env"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -42,6 +43,7 @@ func buildTestRouter(t *testing.T) chi.Router {
 	verifier := credentials.New(2)
 
 	cfg := env.Config{
+		Core:            troncenv.Core{AppEnv: troncenv.Development},
 		Issuer:          "http://localhost:8080",
 		RotationEvery:   time.Hour,
 		PublishDelay:    time.Minute,
@@ -79,7 +81,7 @@ func TestRegistryIsComplete(t *testing.T) {
 
 func TestEveryRouteIsDocumented(t *testing.T) {
 	router := buildTestRouter(t)
-	if missing := apiref.Undocumented(router, docs.Reference()); len(missing) > 0 {
+	if missing := apiref.Undocumented(router, docs.Reference(), zitadelOP()...); len(missing) > 0 {
 		t.Errorf("routes missing from the API registry: %v", missing)
 	}
 }
@@ -107,5 +109,16 @@ func TestReferenceIsServedAtDocs(t *testing.T) {
 	}
 	if document.OpenAPI == "" || len(document.Paths) == 0 {
 		t.Fatalf("spec is empty: %+v", document)
+	}
+}
+
+// zitadelOP is where zitadel's provider handler is mounted for every HTTP
+// method at once. The protocol endpoints are documented once, under the oidc
+// module's /oauth/v2 paths; listing each method of each mount would document
+// the library's router rather than registre's API.
+func zitadelOP() []string {
+	return []string{
+		"/.well-known/openid-configuration", "/authorize", "/device_authorization", "/end_session",
+		"/keys", "/oauth/introspect", "/oauth/token", "/revoke", "/userinfo",
 	}
 }

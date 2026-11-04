@@ -3,22 +3,18 @@ package signup
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/audit"
-	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	flow "github.com/FacileStudio/Registre/apps/api/internal/signup"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
 
 // finish creates the account, opens its session, sets the account cookie
-// and answers where the browser goes: back to the app sign-up started from
-// when that login is still pending, else Registre's home.
+// and sends the browser to Registre's home.
 func (s *Service) finish(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Token      string          `json:"token"`
@@ -52,16 +48,10 @@ func (s *Service) finish(w http.ResponseWriter, r *http.Request) {
 	encode(w, map[string]string{"redirect": redirect}, http.StatusCreated)
 }
 
-// signIn opens the new account's session, as a login would.
+// signIn opens the new account's session and sets the account cookie. It
+// never completes a pending app login: see internal/signup.Request.
 func (s *Service) signIn(ctx context.Context, w http.ResponseWriter, created flow.Created) (string, error) {
-	now := time.Now().UTC()
-	clientID := ""
-	authReq, err := s.Users.AuthRequestByID(ctx, created.AuthRequest)
-	live := created.AuthRequest != "" && err == nil && authReq.ExpiresAt.After(now) && !authReq.Done()
-	if live {
-		clientID = authReq.ClientID
-	}
-	sessionID, err := s.Users.StartSession(ctx, created.User.ID, clientID, now)
+	sessionID, err := s.Users.StartSession(ctx, created.User.ID, "", time.Now().UTC())
 	if err != nil {
 		return "", err
 	}
@@ -70,17 +60,7 @@ func (s *Service) signIn(ctx context.Context, w http.ResponseWriter, created flo
 		return "", err
 	}
 	s.Cookies.Write(w, token)
-	if !live {
-		return "/", nil
-	}
-	err = s.Users.Complete(ctx, authReq.ID, created.User.ID, sessionID, now)
-	if errors.Is(err, identity.ErrInvalid) {
-		return "/", nil
-	}
-	if err != nil {
-		return "/", fmt.Errorf("signup: complete the pending login: %w", err)
-	}
-	return "/authorize/callback?id=" + authReq.ID, nil
+	return "/", nil
 }
 
 // record writes the account.email_verified and account.signup audit rows:

@@ -37,6 +37,12 @@ type fixture struct {
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
+	return newFixtureWith(t, nil)
+}
+
+// newFixtureWith builds the fixture with a consent check in front of Approve.
+func newFixtureWith(t *testing.T, consent func(context.Context, string) error) *fixture {
+	t.Helper()
 	url, ok := testdb.URL()
 	if !ok {
 		testdb.Announce()
@@ -55,7 +61,7 @@ func newFixture(t *testing.T) *fixture {
 	cookies := accounts.NewCookies(false)
 	router := chi.NewRouter()
 	Mount(router, New(Services{
-		Devices: flows, Sessions: sessions, Register: clients.New(db, verifier), Cookies: cookies,
+		Devices: flows, Sessions: sessions, Register: clients.New(db, verifier), Cookies: cookies, Consent: consent,
 	}, slog.New(slog.DiscardHandler)))
 	server := httptest.NewServer(router)
 	t.Cleanup(server.Close)

@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS consents (
     version     TEXT        NOT NULL,
     locale      TEXT        NOT NULL DEFAULT 'en',
     accepted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    ip_hash     TEXT        NOT NULL DEFAULT ''
+    ip_hash     TEXT        NOT NULL DEFAULT '',
+    draft       BOOLEAN     NOT NULL DEFAULT false
 );
 CREATE INDEX IF NOT EXISTS consents_user_document ON consents (user_id, document, accepted_at DESC);
 
@@ -67,7 +68,6 @@ CREATE TABLE IF NOT EXISTS signup_challenges (
     email           TEXT        NOT NULL,
     token_hash      TEXT        NOT NULL UNIQUE,
     locale          TEXT        NOT NULL DEFAULT 'en',
-    auth_request_id TEXT        NOT NULL DEFAULT '',
     expires_at      TIMESTAMPTZ NOT NULL,
     used_at         TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -88,8 +88,24 @@ CREATE TABLE IF NOT EXISTS deletion_requests (
 );
 CREATE INDEX IF NOT EXISTS deletion_requests_due ON deletion_requests (execute_after);
 
+-- One row per (deleted account, application). Apps with a sync URI are
+-- pushed the signed user.deleted event with retries and backoff; every app,
+-- pushed or not, can list its rows at GET /api/directory/deletions.
+CREATE TABLE IF NOT EXISTS deletion_notices (
+    id              BIGSERIAL   PRIMARY KEY,
+    client_id       TEXT        NOT NULL,
+    subject         TEXT        NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    attempts        INT         NOT NULL DEFAULT 0,
+    next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    delivered_at    TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS deletion_notices_due ON deletion_notices (next_attempt_at) WHERE delivered_at IS NULL;
+CREATE INDEX IF NOT EXISTS deletion_notices_client ON deletion_notices (client_id, created_at);
+
 -- +goose Down
 
+DROP TABLE IF EXISTS deletion_notices;
 DROP TABLE IF EXISTS deletion_requests;
 DROP TABLE IF EXISTS altcha_spent;
 DROP TABLE IF EXISTS signup_challenges;

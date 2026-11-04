@@ -17,6 +17,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
 	spacesdir "github.com/FacileStudio/Registre/apps/api/internal/directory"
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
+	"github.com/FacileStudio/Registre/apps/api/internal/gdpr"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
@@ -88,7 +89,7 @@ func assemble(
 	}
 	svc.self = self
 	users := identity.New(db, svc.verifier).WithConsent(self.consents)
-	invitationService := invites.New(db, svc.verifier)
+	invitationService := invites.New(db, svc.verifier).WithBreachCheck(self.pwned)
 	deviceFlows := devices.New(db)
 	pictures := avatars.New(db, cfg.Issuer)
 	teams := spacesdir.New(db, pictures.URL, spacesdir.NewNudger(register.List, svc.log), svc.log).
@@ -138,7 +139,10 @@ func assemble(
 		authorizeURL: provider.AuthorizationEndpoint().Absolute(cfg.Issuer), sessions: sessions, cookies: cookies,
 	})
 	avatar.Mount(router, pictures)
-	directory.Mount(router, directory.New(register, teams, svc.log).WithWriter(svc.billing.EntitlementsWriter))
+	directory.Mount(router, directory.New(register, teams, svc.log).WithWriter(svc.billing.EntitlementsWriter).
+		WithDeletions(func(ctx context.Context, clientID string, since time.Time) ([]gdpr.Deleted, error) {
+			return gdpr.DeletedFor(ctx, db, clientID, since)
+		}))
 	docs.Mount(router)
 	client, err := web.Handler()
 	if err != nil {
@@ -212,7 +216,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 	}, p.log))
 	device.Mount(router, device.New(device.Services{
 		Devices: p.deviceFlows, Sessions: p.sessions, Register: p.register, Cookies: p.cookies,
-		AuthorizeURL: p.authorizeURL, RedirectURI: p.verificationURL,
+		AuthorizeURL: p.authorizeURL, RedirectURI: p.verificationURL, Consent: p.users.ConsentOwed,
 	}, p.log))
 }
 

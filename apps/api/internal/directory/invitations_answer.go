@@ -35,6 +35,9 @@ func (s *Service) noticeFor(tx *gorm.DB, row schemas.SpaceInvitation) (invitatio
 	if name == "" {
 		name = inviter.Email
 	}
+	if capped, err := mailCapped(tx, row.Email); err != nil || capped {
+		return invitationNotice{}, err
+	}
 	vars := map[string]string{"inviter": name, "space": space.Name, "role": row.Role}
 	var invitee schemas.User
 	err := tx.Where("lower(email) = ? AND disabled_at IS NULL", row.Email).Take(&invitee).Error
@@ -47,7 +50,24 @@ func (s *Service) noticeFor(tx *gorm.DB, row schemas.SpaceInvitation) (invitatio
 	if !s.invitations.SignupOpen {
 		return invitationNotice{}, nil
 	}
-	return invitationNotice{to: row.Email, locale: inviter.Locale, kind: i18n.MailSpaceJoin, vars: vars}, nil
+	return invitationNotice{to: row.Email, locale: inviter.Locale, kind: i18n.MailSpaceJoin}, nil
+}
+
+// mailCapped reports whether email, or the instance as a whole, has had its
+// share of invitation mail. The row just written counts toward both.
+func mailCapped(tx *gorm.DB, email string) (bool, error) {
+	now := time.Now().UTC()
+	var toRecipient, overall int64
+	err := tx.Model(&schemas.SpaceInvitation{}).
+		Where("lower(email) = ? AND created_at > ?", email, now.Add(-24*time.Hour)).Count(&toRecipient).Error
+	if err != nil {
+		return false, err
+	}
+	err = tx.Model(&schemas.SpaceInvitation{}).Where("created_at > ?", now.Add(-time.Hour)).Count(&overall).Error
+	if err != nil {
+		return false, err
+	}
+	return toRecipient > MaxMailsPerRecipient || overall > MaxMailsPerHour, nil
 }
 
 // notify hands the notice to the mailer, which delivers asynchronously.
@@ -108,8 +128,9 @@ func (s *Service) Decline(ctx context.Context, userID, invitationID string) erro
 // userID's. Anyone else's invitation answers ErrInvitationNotFound.
 func (s *Service) claimInvitation(tx *gorm.DB, userID, invitationID string) (schemas.SpaceInvitation, error) {
 	var row schemas.SpaceInvitation
-	err := tx.Raw(`DELETE FROM space_invitations i USING users u
+	err := tx.Raw(`DELETE FROM space_invitations i USING users u, spaces s
 		WHERE i.id = ? AND u.id = ? AND u.disabled_at IS NULL AND lower(u.email) = lower(i.email) AND i.expires_at > ?
+		  AND s.id = i.space_id AND s.deleted_at IS NULL
 		RETURNING i.*`, invitationID, userID, time.Now().UTC()).Scan(&row).Error
 	if err != nil {
 		return row, err

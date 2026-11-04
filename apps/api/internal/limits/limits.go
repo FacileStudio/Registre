@@ -1,37 +1,27 @@
-// Package limits builds the per-address, per-email and per-account rate
-// limits Registre's public routes sit behind, over tronc's Ratelimit.
+// Package limits builds the per-address, per-session and per-key rate limits
+// Registre's public routes sit behind, over tronc's Ratelimit.
 //
 // tronc's limiter never evicts a key, which is fine for addresses behind
-// Traefik and not fine for keys an attacker chooses, such as an email typed
-// into a form. The email and account keys are therefore folded into 4096
-// buckets by a digest: memory is bounded whatever arrives, and two people who
-// share a bucket share a budget, which errs on the strict side.
+// Traefik and not fine for keys a caller chooses, such as a cookie value or
+// a space id. Those keys are folded into 4096 buckets by a digest: memory is
+// bounded whatever arrives, and two callers who share a bucket share a
+// budget, which errs on the strict side. An IPv6 address is reduced to its
+// /64, because one host usually holds a whole /64 and would otherwise get a
+// fresh budget per address.
 package limits
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
-	"io"
+	"net"
 	"net/http"
-	"strings"
 
 	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 )
 
-// peekLimit is how much of a body the email key reads. A sign-up body is far
-// smaller; a larger one keys on the empty address and is refused later.
-const peekLimit = 16 << 10
-
-// PerAddress limits each source address.
+// PerAddress limits each source address, IPv6 counted per /64.
 func PerAddress(limit float64, burst int) func(http.Handler) http.Handler {
-	return troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{Limit: limit, Burst: burst})
-}
-
-// PerEmail limits each email address named in a JSON body's "email" field.
-func PerEmail(limit float64, burst int) func(http.Handler) http.Handler {
-	return troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{Limit: limit, Burst: burst, KeyFunc: emailKey})
+	return troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{Limit: limit, Burst: burst, KeyFunc: AddressKey})
 }
 
 // PerCookie limits each holder of the named cookie, so one account's
@@ -44,27 +34,27 @@ func PerCookie(name string, limit float64, burst int) func(http.Handler) http.Ha
 			if err != nil {
 				return "cookie:none"
 			}
-			return "cookie:" + bucket(cookie.Value)
+			return "cookie:" + Bucket(cookie.Value)
 		},
 	})
 }
 
-// emailKey reads the body's email and puts the body back for the handler.
-func emailKey(r *http.Request) string {
-	raw, err := io.ReadAll(io.LimitReader(r.Body, peekLimit))
+// AddressKey is the caller's address, an IPv6 one reduced to its /64. httpx's
+// RealIP has already rewritten RemoteAddr from the trusted proxy headers.
+func AddressKey(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return "email:unreadable"
+		host = r.RemoteAddr
 	}
-	r.Body = io.NopCloser(io.MultiReader(bytes.NewReader(raw), r.Body))
-	var body struct {
-		Email string `json:"email"`
+	ip := net.ParseIP(host)
+	if ip == nil || ip.To4() != nil {
+		return "addr:" + host
 	}
-	_ = json.Unmarshal(raw, &body)
-	return "email:" + bucket(strings.ToLower(strings.TrimSpace(body.Email)))
+	return "addr6:" + ip.Mask(net.CIDRMask(64, 128)).String()
 }
 
-// bucket folds a key into one of 4096 buckets.
-func bucket(key string) string {
+// Bucket folds a caller-chosen key into one of 4096 buckets.
+func Bucket(key string) string {
 	sum := sha256.Sum256([]byte(key))
 	return hex.EncodeToString(sum[:2])[:3]
 }

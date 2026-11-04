@@ -122,6 +122,9 @@ func (s *Service) Delete(ctx context.Context, actorID, spaceID string) error {
 		if err := tx.Where("space_id = ?", spaceID).Delete(&schemas.SpaceMember{}).Error; err != nil {
 			return err
 		}
+		if err := tx.Where("space_id = ?", spaceID).Delete(&schemas.SpaceInvitation{}).Error; err != nil {
+			return err
+		}
 		return tx.Model(&schemas.Space{}).Where("id = ?", spaceID).Update("deleted_at", time.Now().UTC()).Error
 	})
 }

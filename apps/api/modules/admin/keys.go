@@ -53,6 +53,10 @@ func (s *Service) redeemInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.invites.Redeem(r.Context(), body.Token, body.Password); err != nil {
+		if errors.Is(err, credentials.ErrPasswordBreached) {
+			encode(w, map[string]string{"error": "password_breached"}, http.StatusBadRequest)
+			return
+		}
 		if errors.Is(err, invites.ErrTooShort) {
 			encode(w, map[string]any{
 				"error": "password_too_short", "minimum": credentials.MinPasswordLength,

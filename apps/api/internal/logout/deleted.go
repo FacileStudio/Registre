@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -18,35 +17,12 @@ const UserDeletedEvent = "https://schemas.facile.studio/event/user-deleted"
 // token because an app may queue it before acting.
 const deletedTTL = 10 * time.Minute
 
-// NotifyDeleted POSTs a signed Security Event Token (RFC 8417, delivered as
-// RFC 8935 push: the body is the JWT, Content-Type application/secevent+jwt)
-// to every enabled application's directory sync URI, telling it userID no
-// longer exists and that it must erase what it holds about them within 30
-// days.
-//
-// It goes to the sync URI because that is the one endpoint every syncing app
-// already exposes; an app that ignores the body still pulls the snapshot,
-// which no longer lists the person. Delivery is best-effort, like logout,
-// and every failure is logged.
-func (s *Service) NotifyDeleted(ctx context.Context, userID string) error {
-	clients, err := s.register.List(ctx)
-	if err != nil {
-		return fmt.Errorf("logout: list the apps: %w", err)
-	}
-	for _, client := range clients {
-		if client.DirectorySyncURI == "" || client.DisabledAt != nil {
-			continue
-		}
-		if err := s.deliverDeleted(ctx, userID, client.ClientID, client.DirectorySyncURI); err != nil {
-			s.logger.Warn("registre: user.deleted notice failed",
-				slog.String("client_id", client.ClientID), slog.Any("error", err))
-		}
-	}
-	return nil
-}
-
-// deliverDeleted signs and posts one notice.
-func (s *Service) deliverDeleted(ctx context.Context, userID, clientID, uri string) error {
+// DeliverDeleted signs one Security Event Token (RFC 8417) telling clientID
+// that userID no longer exists and must be erased within 30 days, and
+// pushes it to uri as RFC 8935 describes: the body is the JWT, the type
+// application/secevent+jwt. internal/gdpr persists the notice and retries a
+// failed push with backoff.
+func (s *Service) DeliverDeleted(ctx context.Context, userID, clientID, uri string) error {
 	claims, err := s.claims(userID, clientID, deletedTTL)
 	if err != nil {
 		return err

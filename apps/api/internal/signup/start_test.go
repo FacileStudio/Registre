@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"testing"
@@ -21,12 +22,13 @@ import (
 func TestStartAnswersTheSameForKnownAndUnknownAddresses(t *testing.T) {
 	w := newWorld(t, map[string]bool{})
 	ctx := context.Background()
-	if err := w.db.Create(&schemas.User{ID: "known", Email: "known@example.com", Locale: "fr"}).Error; err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 	var known, unknown []time.Duration
 	for i := 0; i < 8; i++ {
-		for _, email := range []string{"known@example.com", "stranger@example.com"} {
+		knownEmail := fmt.Sprintf("known%d@example.com", i)
+		if err := w.db.Create(&schemas.User{ID: knownEmail, Email: knownEmail, Locale: "fr"}).Error; err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+		for _, email := range []string{knownEmail, fmt.Sprintf("stranger%d@example.com", i)} {
 			proof := solve(t, w.svc)
 			started := time.Now()
 			err := w.svc.Start(ctx, Request{Email: email, Proof: proof, Locale: "en"})
@@ -34,7 +36,7 @@ func TestStartAnswersTheSameForKnownAndUnknownAddresses(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Start(%s) = %v, want nil", email, err)
 			}
-			if email == "known@example.com" {
+			if strings.HasPrefix(email, "known") {
 				known = append(known, took)
 				if !strings.Contains(w.inbox.last(t).subject, "déjà") {
 					t.Fatalf("the known address got %q, want the French already-have-an-account mail", w.inbox.last(t).subject)
@@ -48,8 +50,8 @@ func TestStartAnswersTheSameForKnownAndUnknownAddresses(t *testing.T) {
 		}
 	}
 	var rowsKnown, rowsUnknown int64
-	w.db.Model(&schemas.SignupChallenge{}).Where("email = ?", "known@example.com").Count(&rowsKnown)
-	w.db.Model(&schemas.SignupChallenge{}).Where("email = ?", "stranger@example.com").Count(&rowsUnknown)
+	w.db.Model(&schemas.SignupChallenge{}).Where("email LIKE ?", "known%").Count(&rowsKnown)
+	w.db.Model(&schemas.SignupChallenge{}).Where("email LIKE ?", "stranger%").Count(&rowsUnknown)
 	if rowsKnown != rowsUnknown {
 		t.Fatalf("rows written: known %d, unknown %d; both branches must do the same work", rowsKnown, rowsUnknown)
 	}

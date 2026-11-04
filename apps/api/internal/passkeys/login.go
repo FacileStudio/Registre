@@ -15,10 +15,12 @@ import (
 
 // BeginLogin starts a discoverable sign-in: no address is asked for, the
 // authenticator offers the passkeys it holds for this relying party, and the
-// answer names its own account through the user handle.
+// answer names its own account through the user handle. User verification is
+// required, because a passkey sign-in owes no second factor: presence alone
+// would let whoever holds an unlocked security key in.
 func (s *Service) BeginLogin(ctx context.Context) (Options, error) {
 	assertion, session, err := s.web.BeginDiscoverableLogin(
-		webauthn.WithUserVerification(protocol.VerificationPreferred))
+		webauthn.WithUserVerification(protocol.VerificationRequired))
 	if err != nil {
 		return Options{}, fmt.Errorf("passkeys: begin login: %w", err)
 	}
@@ -63,7 +65,7 @@ func (s *Service) BeginReauth(ctx context.Context, userID, email string) (Option
 		return Options{}, ErrInvalid
 	}
 	assertion, session, err := s.web.BeginLogin(holder,
-		webauthn.WithUserVerification(protocol.VerificationPreferred))
+		webauthn.WithUserVerification(protocol.VerificationRequired))
 	if err != nil {
 		return Options{}, fmt.Errorf("passkeys: begin reauthentication: %w", err)
 	}

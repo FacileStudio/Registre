@@ -4,7 +4,7 @@
 // Every route answers 404 while sign-up is off (SIGNUP_ENABLED unset, or no
 // valid ALTCHA_HMAC_KEY, or no mailer), so deploying never opens it by
 // surprise. Every route sits behind a per-address budget, and start behind a
-// per-email one as well.
+// per-email one counted after the proof of work.
 package signup
 
 import (
@@ -20,13 +20,12 @@ import (
 )
 
 // Budgets. Start costs a mail, so it gets one per address every five seconds
-// with a burst of five, and one per email every minute with a burst of
-// three. The rest share the login endpoint's arithmetic.
+// with a burst of five; the per-email budget is internal/signup's
+// MaxLinksPerHour, counted only after a valid proof of work. The rest share
+// the login endpoint's arithmetic.
 const (
 	StartLimit = 0.2
 	StartBurst = 5
-	EmailLimit = 1.0 / 60
-	EmailBurst = 3
 	StepLimit  = 5.0
 	StepBurst  = 10
 )
@@ -53,15 +52,14 @@ func New(deps Deps, logger *slog.Logger) *Service {
 
 // Limits overrides the budgets; tests use it to reach a limiter quickly.
 type Limits struct {
-	StartLimit, EmailLimit, StepLimit float64
-	StartBurst, EmailBurst, StepBurst int
+	StartLimit, StepLimit float64
+	StartBurst, StepBurst int
 }
 
 // DefaultLimits are the production budgets.
 func DefaultLimits() Limits {
 	return Limits{
-		StartLimit: StartLimit, StartBurst: StartBurst, EmailLimit: EmailLimit, EmailBurst: EmailBurst,
-		StepLimit: StepLimit, StepBurst: StepBurst,
+		StartLimit: StartLimit, StartBurst: StartBurst, StepLimit: StepLimit, StepBurst: StepBurst,
 	}
 }
 
@@ -76,8 +74,7 @@ func MountWithLimits(router chi.Router, service *Service, budget Limits) {
 	router.Route("/api/signup", func(routes chi.Router) {
 		routes.Use(service.open)
 		routes.With(steps).Get("/challenge", service.challenge)
-		routes.With(limits.PerAddress(budget.StartLimit, budget.StartBurst),
-			limits.PerEmail(budget.EmailLimit, budget.EmailBurst)).Post("/start", service.start)
+		routes.With(limits.PerAddress(budget.StartLimit, budget.StartBurst)).Post("/start", service.start)
 		routes.With(steps).Post("/verify", service.verify)
 		routes.With(steps).Post("/passkey", service.passkey)
 		routes.With(steps).Post("/finish", service.finish)
