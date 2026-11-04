@@ -6,6 +6,19 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- An auth request id is no longer enough to collect a code. Before, a signed-in human who
+  followed a link to `GET /api/login/session?auth_request=<id>` finished a flow an attacker had
+  started, and the attacker then called `/oauth/v2/authorize/callback?id=<id>` and signed in to
+  the app as that human. `/authorize/callback` now issues a code only to the browser holding both
+  the per-flow cookie `/authorize` set and the account session that finished the flow, and only
+  once per flow: a second callback is refused instead of overwriting the code
+- Finishing a flow with an existing session is `POST /api/login/session` with the
+  `X-Facile-CSRF` header and the id in the body. A GET that names `auth_request` answers 403
+- Migration `00014_auth_request_browser`. Sign-ins in flight during the deploy fail once at the
+  callback and work on retry
+
 ## [0.4.0] - 2026-11-04
 
 ### Added

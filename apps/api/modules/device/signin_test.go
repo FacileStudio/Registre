@@ -91,7 +91,7 @@ func newLoop(t *testing.T) *loop {
 		t.Fatalf("building the provider: %v", err)
 	}
 	router := chi.NewRouter()
-	oidc.Mount(router, provider)
+	oidc.Mount(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies})
 	login.Mount(router, login.New(users, logs).WithSecondFactor(login.SecondFactor{
 		Accounts: sessions, Cookies: cookies,
 	}))

@@ -125,12 +125,13 @@ func assemble(
 		},
 	})
 	health.Mount(router, health.DB(sqlDB))
-	oidc.Mount(router, provider)
+	sessions, cookies := accounts.New(db), accounts.NewCookies(!cfg.InsecureIssuer())
+	oidc.Mount(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies})
 	mountPeople(router, cfg, people{
 		ctx: ctx, db: db, users: users, invites: invitationService, register: register,
 		keyring: keyring, services: svc, root: root,
 		deviceFlows: deviceFlows, verificationURL: verificationURL, pictures: pictures, teams: teams,
-		authorizeURL: provider.AuthorizationEndpoint().Absolute(cfg.Issuer),
+		authorizeURL: provider.AuthorizationEndpoint().Absolute(cfg.Issuer), sessions: sessions, cookies: cookies,
 	})
 	avatar.Mount(router, pictures)
 	directory.Mount(router, directory.New(register, teams, svc.log).WithWriter(svc.billing.EntitlementsWriter))
@@ -155,6 +156,8 @@ type people struct {
 	deviceFlows *devices.Service
 	pictures    *avatars.Service
 	teams       *spacesdir.Service
+	sessions    *accounts.Service
+	cookies     accounts.Cookies
 	root        []byte
 	services
 
@@ -170,14 +173,11 @@ type people struct {
 // second factor, the account pages behind it, password recovery, the operator
 // dashboard, and the page a device flow is approved from.
 //
-// The second factor, the account session and the cookie policy are built once
-// here and shared by login and account on purpose. Two instances would be two
-// cookie names the day one of them is constructed with the wrong scheme, and
-// the failure would look like an intermittent logout rather than a bug.
+// The account session and cookie policy are built once in assemble and shared
+// by the callback binding, login and account: two instances would be two cookie
+// names the day one is built with the wrong scheme, a "random logout" bug.
 func mountPeople(router chi.Router, cfg env.Config, p people) {
 	factors := totp.New(p.db, p.root)
-	sessions := accounts.New(p.db)
-	cookies := accounts.NewCookies(!cfg.InsecureIssuer())
 	pending := challenges.New(p.db)
 	pending.StartPurge(p.ctx, challengeRetention, p.log)
 
@@ -186,26 +186,26 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 		WithSecondFactor(login.SecondFactor{
 			Challenges: pending,
 			Codes:      factors,
-			Accounts:   sessions,
-			Cookies:    cookies,
+			Accounts:   p.sessions,
+			Cookies:    p.cookies,
 		}))
 	account.Mount(router, account.New(account.Services{
-		Sessions: sessions, TOTP: factors, Users: p.users, Passwords: p.verifier,
-		DB: p.db, Cookies: cookies, Issuer: cfg.Issuer,
+		Sessions: p.sessions, TOTP: factors, Users: p.users, Passwords: p.verifier,
+		DB: p.db, Cookies: p.cookies, Issuer: cfg.Issuer,
 		Logout:  logout.New(p.keyring, p.register, cfg.Issuer, p.log),
 		Avatars: p.pictures,
 	}, p.log))
-	spaces.Mount(router, spaces.New(p.teams, sessions, cookies, p.log).WithBilling(billing.FromConfig(p.billing, p.log), cfg.Issuer))
+	spaces.Mount(router, spaces.New(p.teams, p.sessions, p.cookies, p.log).WithBilling(billing.FromConfig(p.billing, p.log), cfg.Issuer))
 	reset.Mount(router, reset.New(recoveryService(cfg, p), p.log))
 	admin.Mount(router, admin.New(admin.Services{
 		Register: p.register, Users: p.users, Keys: p.keyring, Invites: p.invites,
 		Logout:   logout.New(p.keyring, p.register, cfg.Issuer, p.log),
-		Sessions: sessions, Cookies: cookies,
+		Sessions: p.sessions, Cookies: p.cookies,
 		Access: access.New(p.db, clients.SelfClientID), Audit: audit.New(p.db),
 		Avatars: p.pictures, Directory: p.teams, Self: clients.SelfClientID,
 	}, p.log))
 	device.Mount(router, device.New(device.Services{
-		Devices: p.deviceFlows, Sessions: sessions, Register: p.register, Cookies: cookies,
+		Devices: p.deviceFlows, Sessions: p.sessions, Register: p.register, Cookies: p.cookies,
 		AuthorizeURL: p.authorizeURL, RedirectURI: p.verificationURL,
 	}, p.log))
 }

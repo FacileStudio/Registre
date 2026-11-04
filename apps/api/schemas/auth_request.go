@@ -31,6 +31,11 @@ type AuthRequest struct {
 	// reads SessionID to decide who to log out.
 	SessionID string
 
+	// BrowserHash is the SHA-256 of the flow cookie /authorize set on the
+	// browser that started this flow. The callback refuses any browser that
+	// cannot present it, so the request id alone never yields a code.
+	BrowserHash string
+
 	// Code is the authorization code while it is unspent. It is stored
 	// hashed-free deliberately: the code is single-use, short-lived and
 	// already an opaque random, so a second hash layer buys nothing.

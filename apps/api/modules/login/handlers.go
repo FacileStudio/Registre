@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"github.com/FacileStudio/Registre/apps/api/internal/challenges"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
@@ -258,51 +258,4 @@ func (s *Service) browserConfig(w http.ResponseWriter, _ *http.Request) {
 		body["journal"] = s.browser
 	}
 	encode(w, body, http.StatusOK)
-}
-
-func (s *Service) sessionLogin(w http.ResponseWriter, r *http.Request) {
-	if s.factor.Accounts == nil {
-		encode(w, map[string]any{"logged_in": false}, http.StatusUnauthorized)
-		return
-	}
-	token := s.factor.Cookies.Read(r)
-	if token == "" {
-		encode(w, map[string]any{"logged_in": false}, http.StatusUnauthorized)
-		return
-	}
-	user, session, err := s.factor.Accounts.Resolve(r.Context(), token)
-	if err != nil {
-		s.factor.Cookies.Clear(w)
-		encode(w, map[string]any{"logged_in": false}, http.StatusUnauthorized)
-		return
-	}
-	authRequestID := r.URL.Query().Get("auth_request")
-	if authRequestID == "" && r.Method == http.MethodPost {
-		var body struct {
-			AuthRequest string `json:"auth_request"`
-		}
-		_ = json.NewDecoder(r.Body).Decode(&body)
-		authRequestID = body.AuthRequest
-	}
-	if authRequestID != "" {
-		authReq, err := s.identity.AuthRequestByID(r.Context(), authRequestID)
-		if err != nil || !authReq.ExpiresAt.After(s.now()) || authReq.Done() {
-			encode(w, map[string]string{"error": "auth request is gone"}, http.StatusBadRequest)
-			return
-		}
-		if err := s.identity.TouchSession(r.Context(), session.ID, authReq.ClientID); err != nil {
-			s.logger.Warn("registre: touch session client", slog.Any("error", err))
-		}
-		if err := s.identity.Complete(r.Context(), authReq.ID, user.ID, session.ID, s.now()); err != nil {
-			if errors.Is(err, access.ErrNoAccess) {
-				encode(w, map[string]string{"error": "no_access"}, http.StatusForbidden)
-				return
-			}
-			encode(w, map[string]string{"error": "failed to complete auth request"}, http.StatusBadRequest)
-			return
-		}
-		encode(w, decision{Redirect: "/authorize/callback?id=" + authReq.ID}, http.StatusOK)
-		return
-	}
-	encode(w, decision{Redirect: "/"}, http.StatusOK)
 }

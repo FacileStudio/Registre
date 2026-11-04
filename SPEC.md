@@ -373,6 +373,23 @@ refusal would reach the client as `invalid_client`, which is a lie about their c
 `Authorization` header for exactly this reason: "a credential in a URL lands in access logs,
 referrers and browser history."
 
+**An auth request id is not a credential, so the callback must not treat it as one.**
+zitadel's `AuthorizeCallback` hands a code to whoever names a finished auth request. Left bare,
+that made the id a bearer: an attacker started a flow at an app, had a signed-in victim finish it
+(a link to the old `GET /api/login/session?auth_request=`), then called the callback and signed in
+to the app as the victim. Three rules close it, all enforced in `modules/oidc/binding.go` and
+`modules/login/session.go`:
+
+- **The callback answers only the browser that started and finished the flow.** `/authorize`
+  sets a per-flow HttpOnly cookie (`__Host-registre_flow_<digest>`, ten minutes) and stores its
+  SHA-256 on the auth request. The callback requires that cookie and the account session whose id
+  is `auth_requests.session_id`, or it answers `access_denied` and issues nothing.
+- **One code per flow.** `SaveAuthCode` writes only into an empty `code`; a second callback is
+  refused rather than minting a fresh code for whoever called last.
+- **Finishing a flow is a POST with the CSRF header.** `POST /api/login/session` with
+  `X-Facile-CSRF` and `{"auth_request": ...}` in the body. A GET only answers the "am I signed
+  in" probe and refuses one that names a flow.
+
 **A user code is low entropy, and the verification link puts it in a URL. Both are RFC 8628's
 design, and neither contradicts the rule above.** Eight characters a human reads off one screen
 and types into another is about 34.6 bits — §6.1's own worked example — and §5.2 requires the

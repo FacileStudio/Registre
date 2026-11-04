@@ -89,13 +89,14 @@
 
 	async function checkSession(req: string) {
 		try {
-			const url = req
-				? `/api/login/session?auth_request=${encodeURIComponent(req)}`
-				: '/api/login/session';
-			const response = await fetch(url, {
-				method: 'GET',
-				credentials: 'include'
-			});
+			const response = req
+				? await fetch('/api/login/session', {
+						method: 'POST',
+						credentials: 'include',
+						headers: { 'Content-Type': 'application/json', 'X-Facile-CSRF': '1' },
+						body: JSON.stringify({ auth_request: req })
+					})
+				: await fetch('/api/login/session', { method: 'GET', credentials: 'include' });
 			const body = await response.json().catch(() => null);
 			if (response.ok && body?.redirect) {
 				redirect(body.redirect);

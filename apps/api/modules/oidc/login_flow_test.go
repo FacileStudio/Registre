@@ -120,9 +120,9 @@ func driveSSOToCode(t *testing.T, f *fixture, jar *singleCookie, clientID, redir
 	if authReq == "" {
 		t.Fatalf("no auth_request for %s", clientID)
 	}
-	sessionRes := jar.getNoFollow(t, f.issuer+"/api/login/session?auth_request="+authReq)
+	sessionRes := jar.resumeSession(t, f.issuer, authReq)
 	if sessionRes.StatusCode != http.StatusOK {
-		t.Fatalf("GET /api/login/session = %d: %s", sessionRes.StatusCode, jar.lastBody.String())
+		t.Fatalf("POST /api/login/session = %d: %s", sessionRes.StatusCode, jar.lastBody.String())
 	}
 	var sessionAnswer struct {
 		Redirect string `json:"redirect"`

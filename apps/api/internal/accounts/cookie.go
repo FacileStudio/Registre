@@ -23,6 +23,10 @@ func NewCookies(secure bool) Cookies {
 	return Cookies{name: DevCookieName}
 }
 
+// Secure reports whether this deployment's cookies are Secure and
+// __Host- prefixed.
+func (c Cookies) Secure() bool { return c.secure }
+
 // Name is the cookie this deployment sets.
 func (c Cookies) Name() string { return c.name }
 
