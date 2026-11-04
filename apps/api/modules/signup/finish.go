@@ -14,7 +14,8 @@ import (
 )
 
 // finish creates the account, opens its session, sets the account cookie
-// and sends the browser to Registre's home.
+// and answers where the browser goes: the app login sign-up started from
+// when this browser is bound to it, else Registre's home.
 func (s *Service) finish(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Token      string          `json:"token"`
@@ -38,7 +39,7 @@ func (s *Service) finish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.record(r.Context(), created.User, body.Ceremony != "")
-	redirect, err := s.signIn(r.Context(), w, created)
+	redirect, err := s.signIn(r, w, created)
 	if err != nil {
 		s.logger.Warn("registre: a new account could not be signed in", slog.Any("error", err))
 		if redirect == "" {
@@ -48,10 +49,18 @@ func (s *Service) finish(w http.ResponseWriter, r *http.Request) {
 	encode(w, map[string]string{"redirect": redirect}, http.StatusCreated)
 }
 
-// signIn opens the new account's session and sets the account cookie. It
-// never completes a pending app login: see internal/signup.Request.
-func (s *Service) signIn(ctx context.Context, w http.ResponseWriter, created flow.Created) (string, error) {
-	sessionID, err := s.Users.StartSession(ctx, created.User.ID, "", time.Now().UTC())
+// signIn opens the new account's session and sets the account cookie, then
+// finishes the app login sign-up started from when this browser is the one
+// bound to it; anywhere else the new account lands on Registre's home.
+func (s *Service) signIn(r *http.Request, w http.ResponseWriter, created flow.Created) (string, error) {
+	ctx := r.Context()
+	now := time.Now().UTC()
+	authReq, carried := s.liveAndHeld(ctx, r, created.AuthRequest)
+	clientID := ""
+	if carried {
+		clientID = authReq.ClientID
+	}
+	sessionID, err := s.Users.StartSession(ctx, created.User.ID, clientID, now)
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +69,13 @@ func (s *Service) signIn(ctx context.Context, w http.ResponseWriter, created flo
 		return "", err
 	}
 	s.Cookies.Write(w, token)
-	return "/", nil
+	if !carried {
+		return "/", nil
+	}
+	if err := s.Users.Complete(ctx, authReq.ID, created.User.ID, sessionID, now); err != nil {
+		return "/", err
+	}
+	return "/authorize/callback?id=" + authReq.ID, nil
 }
 
 // record writes the account.email_verified and account.signup audit rows:

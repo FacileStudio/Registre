@@ -33,9 +33,14 @@ type SignupChallenge struct {
 	Email     string
 	TokenHash string
 	Locale    string
-	ExpiresAt time.Time
-	UsedAt    *time.Time
-	CreatedAt time.Time
+
+	// AuthRequestID is the app login sign-up started from, recorded only
+	// when the starting browser held that login's flow cookie. Finish
+	// completes it only for a browser holding the same cookie.
+	AuthRequestID string
+	ExpiresAt     time.Time
+	UsedAt        *time.Time
+	CreatedAt     time.Time
 }
 
 // TableName is the table this model reads.

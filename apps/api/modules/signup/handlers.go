@@ -46,9 +46,10 @@ func (s *Service) challenge(w http.ResponseWriter, _ *http.Request) {
 // identical answer exists to remove.
 func (s *Service) start(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Email  string `json:"email"`
-		Altcha string `json:"altcha"`
-		Locale string `json:"locale"`
+		Email       string `json:"email"`
+		Altcha      string `json:"altcha"`
+		Locale      string `json:"locale"`
+		AuthRequest string `json:"auth_request"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		encode(w, map[string]string{"error": "invalid"}, http.StatusBadRequest)
@@ -59,7 +60,7 @@ func (s *Service) start(w http.ResponseWriter, r *http.Request) {
 		locale = i18n.FromAcceptLanguage(r.Header.Get("Accept-Language"))
 	}
 	err := s.Flow.Start(r.Context(), flow.Request{
-		Email: body.Email, Proof: body.Altcha, Locale: locale,
+		Email: body.Email, Proof: body.Altcha, Locale: locale, AuthRequest: s.bound(r, body.AuthRequest),
 	})
 	switch {
 	case errors.Is(err, flow.ErrProof):

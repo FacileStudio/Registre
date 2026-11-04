@@ -86,18 +86,16 @@ func New(deps Deps, key, issuer string) *Service {
 	}
 }
 
-// Request is one start: the address, the proof of work and the language the
-// mail is written in.
-//
-// A pending app login is deliberately not carried through: the link is
-// opened in whatever browser reads the mail, and completing a login the
-// starter named would let anyone finish somebody else's authorization
-// request. A new account lands on Registre's home and opens the app from
-// there.
+// Request is one start: the address, the proof of work, the language the
+// mail is written in and the app login sign-up started from. The caller
+// passes AuthRequest only once it has proven the starting browser holds
+// that login's flow cookie (internal/flows); Finish checks the finishing
+// browser again, so a link opened elsewhere lands on Registre's home.
 type Request struct {
-	Email  string
-	Proof  string
-	Locale string
+	Email       string
+	Proof       string
+	Locale      string
+	AuthRequest string
 }
 
 // Start spends the proof of work, then writes one row and hands one mail to
@@ -120,7 +118,7 @@ func (s *Service) Start(ctx context.Context, in Request) error {
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("signup: read the account: %w", err)
 	}
-	token, err := s.record(ctx, email, i18n.Normalize(in.Locale), known)
+	token, err := s.record(ctx, email, i18n.Normalize(in.Locale), in.AuthRequest, known)
 	if err != nil {
 		return err
 	}
@@ -135,7 +133,7 @@ func (s *Service) Start(ctx context.Context, in Request) error {
 
 // record writes the link row. A row for a known address is spent at birth,
 // so the insert both branches pay is the same insert.
-func (s *Service) record(ctx context.Context, email, locale string, spent bool) (string, error) {
+func (s *Service) record(ctx context.Context, email, locale, authRequest string, spent bool) (string, error) {
 	token, err := ids.Secret()
 	if err != nil {
 		return "", fmt.Errorf("signup: mint the token: %w", err)
@@ -147,7 +145,7 @@ func (s *Service) record(ctx context.Context, email, locale string, spent bool) 
 	now := s.now()
 	row := schemas.SignupChallenge{
 		ID: id, Email: email, TokenHash: digest(token), Locale: locale,
-		ExpiresAt: now.Add(LinkTTL), CreatedAt: now,
+		AuthRequestID: authRequest, ExpiresAt: now.Add(LinkTTL), CreatedAt: now,
 	}
 	if spent {
 		row.UsedAt = &now

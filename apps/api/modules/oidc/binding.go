@@ -2,23 +2,15 @@ package oidc
 
 import (
 	"context"
-	"crypto/sha256"
-	"crypto/subtle"
-	"encoding/hex"
 	"net/http"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
+	"github.com/FacileStudio/Registre/apps/api/internal/flows"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 
 	zoidc "github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
 )
-
-// flowCookiePrefix names the per-flow cookie /authorize sets. Each flow gets
-// its own cookie, suffixed with part of its digest, so a browser opening three
-// apps at once holds three flows rather than the last one overwriting the
-// first two.
-const flowCookiePrefix = "registre_flow_"
 
 // Binding is what ties an auth request to one browser.
 //
@@ -37,15 +29,9 @@ type Binding struct {
 
 type flowKey struct{}
 
-// flowName is the cookie name for this deployment. A secure issuer gets the
-// __Host- prefix, so the browser refuses the cookie unless it is Secure, on
-// path "/" and domainless.
+// flowName is the cookie name for this deployment; see internal/flows.
 func (b Binding) flowName(digest string) string {
-	name := flowCookiePrefix + digest[:16]
-	if b.Cookies.Secure() {
-		return "__Host-" + name
-	}
-	return name
+	return flows.CookieName(digest, b.Cookies.Secure())
 }
 
 // authorize sets a fresh flow cookie on the browser and hands its digest to
@@ -57,7 +43,7 @@ func (b Binding) authorize(next http.Handler) http.Handler {
 			http.Error(w, "server_error", http.StatusInternalServerError)
 			return
 		}
-		digest := flowDigest(secret)
+		digest := flows.Digest(secret)
 		http.SetCookie(w, b.flowCookie(b.flowName(digest), secret, int(authTTL.Seconds())))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), flowKey{}, digest)))
 	})
@@ -106,15 +92,7 @@ func (b Binding) owns(r *http.Request, request authRequest) (string, bool) {
 	if err != nil || session.ID != row.SessionID {
 		return "", false
 	}
-	name := b.flowName(row.BrowserHash)
-	cookie, err := r.Cookie(name)
-	if err != nil {
-		return "", false
-	}
-	if subtle.ConstantTimeCompare([]byte(flowDigest(cookie.Value)), []byte(row.BrowserHash)) != 1 {
-		return "", false
-	}
-	return name, true
+	return flows.Holds(r, row.BrowserHash, b.Cookies.Secure())
 }
 
 // flowCookie is the flow cookie with the account cookie's attributes: HttpOnly,
@@ -130,13 +108,6 @@ func (b Binding) flowCookie(name, value string, maxAge int) *http.Cookie {
 		Secure:   b.Cookies.Secure(),
 		SameSite: http.SameSiteLaxMode,
 	}
-}
-
-// flowDigest is the hex SHA-256 of a flow cookie value. The value is a 256-bit
-// random, so a fast hash is enough to keep the table from holding the cookie.
-func flowDigest(secret string) string {
-	sum := sha256.Sum256([]byte(secret))
-	return hex.EncodeToString(sum[:])
 }
 
 // browserHash is the flow digest authorize stored in ctx, or empty when the

@@ -36,8 +36,11 @@
 				window.location.assign(next);
 				return;
 			}
-			const response = await fetch(`/api/login/session?auth_request=${encodeURIComponent(authRequest)}`, {
-				credentials: 'include'
+			const response = await fetch('/api/login/session', {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json', 'X-Facile-CSRF': '1' },
+				body: JSON.stringify({ auth_request: authRequest })
 			});
 			const body = await response.json().catch(() => null);
 			window.location.assign(response.ok && body?.redirect ? body.redirect : '/');

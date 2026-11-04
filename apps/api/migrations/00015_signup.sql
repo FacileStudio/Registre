@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS signup_challenges (
     email           TEXT        NOT NULL,
     token_hash      TEXT        NOT NULL UNIQUE,
     locale          TEXT        NOT NULL DEFAULT 'en',
+    auth_request_id TEXT        NOT NULL DEFAULT '',
     expires_at      TIMESTAMPTZ NOT NULL,
     used_at         TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()

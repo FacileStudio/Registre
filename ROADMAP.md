@@ -200,8 +200,6 @@ end to end in `apps/api/modules/oidc`.
       `WEBAUTHN_RP_ID=sso.facile.studio` (it can never change without orphaning every passkey),
       then flip `SIGNUP_ENABLED=true`
 - [ ] Apps consume the `user.deleted` event on their sync URI (porte/directory) and erase within 30 days
-- [ ] Carry a pending app login through sign-up once auth requests are bound to the browser that
-      started them (fix/bind-auth-request); until then a new account lands on Registre's home
 - [ ] Adopt muse v0.10's `SignInWithFacile` and `AuthScreen` on the login and sign-up pages
 - [ ] Translate the operator dashboard, the space plan section (billing) and the suite catalog's app descriptions (English or French today)
 

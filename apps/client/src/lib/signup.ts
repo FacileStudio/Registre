@@ -62,8 +62,8 @@ export interface FinishForm {
 }
 
 export const signup = {
-	start: (email: string, altcha: string) =>
-		post<{ status: string }>('/api/signup/start', { email, altcha, locale: locale() }),
+	start: (email: string, altcha: string, authRequest: string) =>
+		post<{ status: string }>('/api/signup/start', { email, altcha, locale: locale(), auth_request: authRequest }),
 	verify: (token: string) => post<Pending>('/api/signup/verify', { token }),
 	passkey: (token: string) => post<Options>('/api/signup/passkey', { token }),
 	finish: (form: FinishForm) => post<{ redirect: string }>('/api/signup/finish', form)

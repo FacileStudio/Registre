@@ -332,11 +332,13 @@ account is created with) or a password. The account, its consent rows, its passk
 link are one transaction, and the account is born verified (`email_verified_at`). Every route is
 limited per address (an IPv6 address counted per /64); start is also limited to three links per
 address per hour, counted from `signup_challenges` after a valid proof of work, so garbage
-requests cannot spend a stranger's budget. A new account lands on Registre's home: sign-up does
-not complete a pending app login, because the link is opened in whatever browser reads the mail
-and completing a login named by the starter would let anyone finish somebody else's
-authorization request. Carrying the app login through will come back once auth requests are
-bound to the browser that started them.
+requests cannot spend a stranger's budget. Sign-up started from an app carries that app's login through only for the
+browser that started it: `start` records the `auth_request` only when the browser presents the
+flow cookie whose digest is that request's `browser_hash` (migration 00014, `internal/flows`),
+and `finish` completes it only when the finishing browser presents the same cookie. The
+callback then hands the code to that browser alone. A link opened in another browser, or a start
+naming an auth request this browser did not open, lands on Registre's home with nothing
+completed.
 
 **Passwords follow NIST SP 800-63B-4.** Every path that sets one (sign-up, account page, reset,
 invitation) requires 15 to 128 characters, counted as characters, with no composition rule.
