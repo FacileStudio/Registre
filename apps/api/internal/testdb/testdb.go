@@ -13,7 +13,9 @@ package testdb
 
 import (
 	"context"
+	"fmt"
 	"hash/fnv"
+	"os"
 
 	"github.com/FacileStudio/Registre/apps/api/migrations"
 
@@ -53,7 +55,18 @@ func Open(url string) (*gorm.DB, error) { return shared.Open(url, config()) }
 func Truncate(db *gorm.DB) error { return shared.Truncate(db, config()) }
 
 func config() shared.Config {
-	return shared.Config{Prefix: Prefix, Migrate: migrateSchema}
+	return shared.Config{Prefix: prefix(), Migrate: migrateSchema}
+}
+
+// prefix is Prefix plus a digest of the package directory the test binary
+// runs in. tronc names the schema after the binary, and internal/directory
+// and modules/directory both build directory.test: sharing one schema, each
+// truncated the other's rows mid-test whenever go test ran them in parallel.
+func prefix() string {
+	dir, _ := os.Getwd()
+	digest := fnv.New32a()
+	_, _ = digest.Write([]byte(dir))
+	return fmt.Sprintf("%s_%08x", Prefix, digest.Sum32())
 }
 
 // migrateSchema brings a freshly created schema up to date with the same
@@ -68,7 +81,7 @@ func migrateSchema(db *gorm.DB) error {
 		return err
 	}
 	return migrate.Run(context.Background(), migrate.Config{
-		DB: sqlDB, FS: migrations.FS, LockID: lockID(shared.SchemaName(Prefix)),
+		DB: sqlDB, FS: migrations.FS, LockID: lockID(shared.SchemaName(prefix())),
 	})
 }
 
