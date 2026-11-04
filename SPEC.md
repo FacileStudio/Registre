@@ -76,6 +76,8 @@ starts with the half that does not touch human authentication.
 | **Fresh identities, not seeded from Authentik UUIDs** | The alternative preserves `sub` and makes cutover a Traefik change, fully reversible. Rejected deliberately: carrying Authentik's UUIDs forever carries its legacy in the data. At this scale — three humans plus service accounts, every database under our control — the remap is a handful of statements. The price is that cutover is **not reversible**, which is why §9 is mostly verification |
 | **Authentik stays up until phase 4 completes** | Both issuers can run at once. There is no moment where the suite has only an unproven IdP |
 | **Phases in §5 are ordered by attack surface, not by value** | `client_credentials` has no interactive flow: no redirect_uri validation, no state/nonce, no session fixation, no CSRF, no recovery. It ships first because it is the half that cannot be got subtly wrong, and it happens to be the half that unblocks agent identities |
+| **Public self-service sign-up, off until the owner opens it** | Decided 2026-11-04 for the public launch. `SIGNUP_ENABLED` defaults to false so a deploy never opens it. Email verification is required, passkeys are offered first, the password fallback follows NIST SP 800-63B-4 (15 to 128 characters, no composition rules, breached-password screening), and bots pay a self-hosted ALTCHA proof of work: no Google or Cloudflare service is involved |
+| **Languages: fr, en, es, de** | The person's locale lives on their row and reaches apps as the standard OIDC `locale` claim. Every page a person meets (sign-in, sign-up, consent, legal, account, spaces, device approval) and every mail exists in all four; `?lang=xx` picks one. The operator dashboard and the plan section stay English for now |
 
 ---
 
@@ -315,6 +317,70 @@ origin is exactly `https://checkout.stripe.com` or `https://billing.stripe.com`.
 drawn as "billing unavailable" and answers 502 to a write. Registre caches the catalog for 60 s,
 and the three plan routes share a per-person budget of one request a second with a burst of 20.
 
+**Anyone may create a Facile account, when the owner allows it.** With `SIGNUP_ENABLED` on,
+`/signup` takes an address and an ALTCHA proof of work. `POST /api/signup/start` verifies the
+solution with the official `altcha-lib-go` in constant time, insists on a signed expiry no further
+than ten minutes out, and records the challenge in `altcha_spent` so a solution is spent once. It
+then answers `202 {"status":"sent"}` whether or not the address has an account, writing one
+`signup_challenges` row either way (born spent for a known address) and handing one mail to the
+asynchronous sender: "you already have an account, sign in instead" for a known address, a link
+for an unknown one. The link's token is random, stored as SHA-256, good once for thirty minutes.
+`/signup/finish` takes a name, a language and the acceptance of the current CGU and privacy
+policy, then a passkey (registered before the account row exists, bound to the subject the
+account is created with) or a password. The account, its consent rows, its passkey and the spent
+link are one transaction, and the account is born verified (`email_verified_at`). Every route is
+limited per address, and start per email too.
+
+**Passwords follow NIST SP 800-63B-4.** Every path that sets one (sign-up, account page, reset,
+invitation) requires 15 to 128 characters, counted as characters, with no composition rule. A
+sign-up password is screened against Have I Been Pwned's range API: only five hex characters of
+its SHA-1 leave the process, with `Add-Padding`, a 3 s timeout and a 1 MiB cap, and an outage
+skips the check with a warning so sign-up never depends on a third party. Hashing stays
+`internal/credentials` under the argon2 ceiling.
+
+**Passkeys.** `internal/passkeys` is the WebAuthn relying party over `go-webauthn`, with
+`WEBAUTHN_RP_ID` and exact `WEBAUTHN_ORIGINS` (defaults: the issuer's host and origin). The login
+page offers a discoverable passkey sign-in (user verification preferred) that finishes like a
+password login with no second factor owed. `/account` adds, renames and removes passkeys; the last
+way into an account (its only passkey when it has no password) cannot be removed, and adding or
+removing one needs a factor proven within ten minutes, either at sign-in or through
+`/api/account/reauth`. Each ceremony is a `webauthn_ceremonies` row claimed once, bound to its
+purpose and, where it has one, its account. TOTP stays as it was.
+
+**Legal documents and consent.** `/legal/{cgu,cgv,privacy,legal-notice}?lang=xx` serves the
+versioned texts in four languages from `GET /api/legal/{document}`; versions live in
+`internal/consent`. An account must accept the current CGU and privacy policy: `identity.Complete`
+refuses a login with `ErrConsentRequired` while an acceptance is owed, and every sign-in path then
+sends the browser to `/consent`, which records the acceptance and resumes the login. Bumping a
+version is how everyone is asked again. Each acceptance is an appended `consents` row with the
+document, version, locale, time and a keyed digest of the source address.
+
+**GDPR.** `/account` exports the person's Registre data as JSON (no hashes, seeds or keys) and
+schedules deletion after a 30-day grace period, behind a fresh factor and the address typed back;
+the person can cancel until then. The hourly job then ends every session, deletes the account and
+every row keyed on it, fires back-channel logout to the apps the sessions reached, bumps the
+directory version, and sends each enabled application with a `directory_sync_uri` a signed
+deletion event:
+
+```
+POST <directory_sync_uri>
+Content-Type: application/secevent+jwt
+
+<JWT, RS256, typ secevent+jwt, signed with the key in the issuer's JWKS>
+{
+  "iss": "https://sso.facile.studio",
+  "aud": ["<the app's client_id>"],
+  "iat": 1762300000, "exp": 1762300600, "jti": "<random>",
+  "sub": "<the deleted person's subject>",
+  "events": { "https://schemas.facile.studio/event/user-deleted": { "erase_within_days": 30 } }
+}
+```
+
+This is an RFC 8417 Security Event Token pushed as RFC 8935 describes. An app verifies it against
+the JWKS exactly as it verifies a logout token, checks `aud` is its own client id, then erases
+what it holds about `sub` within thirty days. An app that ignores the body still pulls the
+snapshot, which no longer lists the person. Delivery is best-effort and logged.
+
 Reuse `porte/local/password.go`'s argon2id parameters **verbatim** — 64 MiB, three passes, two
 lanes — so password hashes stay portable in either direction.
 
@@ -465,6 +531,8 @@ Cut over one app by changing `OIDC_ISSUER`, soak it, then the rest. Authentik go
    the password through the normal login path under the argon2 ceiling. Implementation lands
    with self-service signup in phase 3's admin slice; until then every account is operator-
    minted via `registre user-create`, which marks the address verified by construction.
+   **Self-service sign-up landed 2026-11-04** (§6): accounts are created only after the emailed
+   link answers, so they are verified too.
 2. **What happens to Authentik's two expression policies?** The avatar policy and the settings
    authorization policy in `authentik-config` are not part of the OIDC contract. Reimplement,
    or drop and accept the behaviour change. Decide before phase 3's admin UI.

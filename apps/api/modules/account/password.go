@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
 
@@ -33,7 +34,7 @@ func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
 		refuse(w)
 		return
 	}
-	if len(body.NewPassword) < MinPasswordLength {
+	if credentials.CheckLength(body.NewPassword) != nil {
 		encode(w, map[string]any{
 			"error": "the new password is too short", "minimum": MinPasswordLength,
 		}, http.StatusBadRequest)

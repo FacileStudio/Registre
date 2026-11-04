@@ -30,6 +30,7 @@ var ErrInvalid = errors.New("identity: invalid credentials")
 type Service struct {
 	db       *gorm.DB
 	verifier *credentials.Verifier
+	consents ConsentChecker
 }
 
 // New builds the service over db, hashing and verifying through verifier.

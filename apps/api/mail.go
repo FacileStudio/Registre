@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"log/slog"
+	"os"
 	"time"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/env"
 	"github.com/FacileStudio/Registre/apps/api/internal/recovery"
 
 	mailer "github.com/FacileStudio/facteur"
@@ -53,4 +55,24 @@ func deliver(sender *mailer.Mailer, log *slog.Logger, to, subject, html string) 
 	if err != nil {
 		log.Error("registre: failed to deliver a recovery mail", slog.Any("error", err))
 	}
+}
+
+// recoveryService builds password recovery, or returns nil when this instance
+// has no mailer.
+//
+// nil is a supported state rather than a boot failure. Recovery is the only
+// feature in registre that depends on something outside it, and an instance
+// whose operators mint every account by hand has no use for it. The routes
+// still mount and still answer identically, so the absence is not something a
+// caller can detect.
+func recoveryService(cfg env.Config, p people) *recovery.Service {
+	smtp := mailer.FromEnv(os.Getenv)
+	outbound, configured := outboundMail(smtp, p.log)
+	if !configured {
+		p.log.Warn("registre: SMTP is not configured, password recovery will accept " +
+			"requests and send nothing; set SMTP_HOST and SMTP_FROM to turn it on")
+		return nil
+	}
+	p.log.Info("registre: password recovery is on", slog.String("smtp_host", smtp.Host))
+	return recovery.New(p.db, p.verifier, outbound, cfg.Issuer)
 }

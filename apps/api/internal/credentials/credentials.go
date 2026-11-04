@@ -37,9 +37,13 @@ import (
 // account page demanded twelve, which made the emailed link the way around
 // the stricter form. A floor that one path undercuts is the floor.
 //
+// It is fifteen because NIST SP 800-63B-4 §3.1.1.2 asks for fifteen when the
+// password is the only factor, and one floor for every account is simpler
+// than one that moves when a second factor is enrolled or removed.
+//
 // Break-glass keeps a higher one of its own, for a reason that does not
 // generalise: that password is chosen under pressure and opens every app.
-const MinPasswordLength = 12
+const MinPasswordLength = 15
 
 // DefaultConcurrency is how many verifications run at once when the
 // configuration says nothing: one per core.

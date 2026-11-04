@@ -14,6 +14,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"github.com/FacileStudio/Registre/apps/api/internal/challenges"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
+	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
@@ -40,6 +41,8 @@ type Service struct {
 	now      func() time.Time
 	browser  map[string]any
 	factor   SecondFactor
+	passkeys *passkeys.Service
+	signup   bool
 }
 
 // New builds the login service over identity.
@@ -84,6 +87,8 @@ func MountWithLimits(router chi.Router, service *Service, limit float64, burst i
 	})
 	router.With(budget).Post("/api/login", service.jsonSubmit)
 	router.With(budget).Post("/api/login/totp", service.jsonSecondFactor)
+	router.With(budget).Post("/api/login/passkey/begin", service.beginPasskey)
+	router.With(budget).Post("/api/login/passkey/finish", service.finishPasskey)
 	router.Get("/api/login/session", service.sessionLogin)
 	router.Post("/api/login/session", service.sessionLogin)
 	router.Get("/api/config", service.browserConfig)
@@ -165,13 +170,9 @@ func encode(w http.ResponseWriter, body any, status int) {
 func (s *Service) authenticate(
 	ctx context.Context, w http.ResponseWriter, id, email, password string,
 ) (decision, error) {
-	var authReq *schemas.AuthRequest
-	if id != "" {
-		req, err := s.identity.AuthRequestByID(ctx, id)
-		if err != nil || !req.ExpiresAt.After(s.now()) || req.Done() {
-			return decision{}, errAuthRequestGone
-		}
-		authReq = &req
+	authReq, err := s.pendingRequest(ctx, id)
+	if err != nil {
+		return decision{}, err
 	}
 	user, err := s.identity.Verify(ctx, email, password)
 	if err != nil {
@@ -187,18 +188,7 @@ func (s *Service) authenticate(
 		}
 		return decision{Challenge: token}, nil
 	}
-	if authReq != nil {
-		redirect, err := s.complete(ctx, w, user.ID, *authReq)
-		if err != nil {
-			return decision{}, err
-		}
-		return decision{Redirect: redirect}, nil
-	}
-	redirect, err := s.completeDirect(ctx, w, user.ID)
-	if err != nil {
-		return decision{}, err
-	}
-	return decision{Redirect: redirect}, nil
+	return s.finish(ctx, w, user.ID, authReq)
 }
 
 func (s *Service) completeDirect(
@@ -211,6 +201,9 @@ func (s *Service) completeDirect(
 	if err := s.writeAccountCookie(ctx, w, sessionID); err != nil {
 		return "", err
 	}
+	if errors.Is(s.identity.ConsentOwed(ctx, userID), identity.ErrConsentRequired) {
+		return ConsentPath, nil
+	}
 	return "/", nil
 }
 
@@ -221,11 +214,16 @@ func (s *Service) complete(
 	if err != nil {
 		return "", fmt.Errorf("identity: start the session: %w", err)
 	}
-	if err := s.identity.Complete(ctx, authReq.ID, userID, sessionID, s.now()); err != nil {
-		return "", fmt.Errorf("identity: complete the login: %w", err)
+	completed := s.identity.Complete(ctx, authReq.ID, userID, sessionID, s.now())
+	owesConsent := errors.Is(completed, identity.ErrConsentRequired)
+	if completed != nil && !owesConsent {
+		return "", fmt.Errorf("identity: complete the login: %w", completed)
 	}
 	if err := s.writeAccountCookie(ctx, w, sessionID); err != nil {
 		return "", err
+	}
+	if owesConsent {
+		return consentURL(authReq.ID), nil
 	}
 	return "/authorize/callback?id=" + authReq.ID, nil
 }
@@ -253,7 +251,7 @@ var errAuthRequestGone = errors.New("login: auth request is gone")
 // see: today that is only the browser Journal pair, which is the public,
 // origin-locked kind of key rather than a secret.
 func (s *Service) browserConfig(w http.ResponseWriter, _ *http.Request) {
-	body := map[string]any{}
+	body := map[string]any{"signup": s.signup, "passkeys": s.passkeys != nil}
 	if s.browser != nil {
 		body["journal"] = s.browser
 	}

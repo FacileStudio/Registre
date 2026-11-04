@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log/slog"
-	"os"
 	"strings"
 	"time"
 
@@ -22,7 +21,6 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
-	"github.com/FacileStudio/Registre/apps/api/internal/recovery"
 	"github.com/FacileStudio/Registre/apps/api/internal/seed"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
 	"github.com/FacileStudio/Registre/apps/api/internal/web"
@@ -37,7 +35,6 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/modules/reset"
 	"github.com/FacileStudio/Registre/apps/api/modules/spaces"
 
-	mailer "github.com/FacileStudio/facteur"
 	"github.com/FacileStudio/tronc/health"
 	"github.com/FacileStudio/tronc/httpx"
 	troncmiddleware "github.com/FacileStudio/tronc/middleware"
@@ -51,6 +48,7 @@ type services struct {
 	verifier *credentials.Verifier
 	log      *slog.Logger
 	billing  env.Billing
+	self     *selfServices
 }
 
 // assemble wires the process's services into routes. The dependencies travel
@@ -84,7 +82,12 @@ func assemble(
 	if err := register.EnsureSelf(ctx, verificationURL); err != nil {
 		return nil, err
 	}
-	users := identity.New(db, svc.verifier)
+	self, err := buildSelf(db, root, cfg, svc)
+	if err != nil {
+		return nil, err
+	}
+	svc.self = self
+	users := identity.New(db, svc.verifier).WithConsent(self.consents)
 	invitationService := invites.New(db, svc.verifier)
 	deviceFlows := devices.New(db)
 	pictures := avatars.New(db, cfg.Issuer)
@@ -183,6 +186,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 
 	login.Mount(router, login.New(p.users, p.log).
 		WithBrowserConfig(cfg.JournalBrowserURL, cfg.JournalBrowserKey).
+		WithPasskeys(p.self.passkeys).WithSignup(p.self.flow != nil).
 		WithSecondFactor(login.SecondFactor{
 			Challenges: pending,
 			Codes:      factors,
@@ -193,8 +197,9 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 		Sessions: p.sessions, TOTP: factors, Users: p.users, Passwords: p.verifier,
 		DB: p.db, Cookies: p.cookies, Issuer: cfg.Issuer,
 		Logout:  logout.New(p.keyring, p.register, cfg.Issuer, p.log),
-		Avatars: p.pictures,
+		Avatars: p.pictures, Self: accountSelf(cfg, p),
 	}, p.log))
+	mountSignup(router, p, p.sessions, p.cookies)
 	spaces.Mount(router, spaces.New(p.teams, p.sessions, p.cookies, p.log).WithBilling(billing.FromConfig(p.billing, p.log), cfg.Issuer))
 	reset.Mount(router, reset.New(recoveryService(cfg, p), p.log))
 	admin.Mount(router, admin.New(admin.Services{
@@ -215,26 +220,6 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 // proven, which is not a fact worth keeping once the flow it belonged to is
 // over, and the table would otherwise grow with every second-factor login.
 const challengeRetention = time.Hour
-
-// recoveryService builds password recovery, or returns nil when this instance
-// has no mailer.
-//
-// nil is a supported state rather than a boot failure. Recovery is the only
-// feature in registre that depends on something outside it, and an instance
-// whose operators mint every account by hand has no use for it. The routes
-// still mount and still answer identically, so the absence is not something a
-// caller can detect.
-func recoveryService(cfg env.Config, p people) *recovery.Service {
-	smtp := mailer.FromEnv(os.Getenv)
-	outbound, configured := outboundMail(smtp, p.log)
-	if !configured {
-		p.log.Warn("registre: SMTP is not configured, password recovery will accept " +
-			"requests and send nothing; set SMTP_HOST and SMTP_FROM to turn it on")
-		return nil
-	}
-	p.log.Info("registre: password recovery is on", slog.String("smtp_host", smtp.Host))
-	return recovery.New(p.db, p.verifier, outbound, cfg.Issuer)
-}
 
 // applySeed brings the register up to the file, when one is configured.
 func applySeed(ctx context.Context, register *clients.Service, path string, log *slog.Logger) error {

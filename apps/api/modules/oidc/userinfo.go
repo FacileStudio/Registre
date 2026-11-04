@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/i18n"
+
 	zoidc "github.com/zitadel/oidc/v3/pkg/oidc"
+	"golang.org/x/text/language"
 	"gorm.io/gorm"
 )
 
@@ -66,6 +69,7 @@ func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *zoidc.User
 	userinfo.EmailVerified = zoidc.Bool(user.EmailVerified)
 	userinfo.Name = user.Name
 	userinfo.Picture = s.pictureFor(user.ID)
+	userinfo.Locale = localeOf(user.Locale)
 	return nil
 }
 
@@ -127,7 +131,7 @@ func (s *Storage) SetUserinfoFromScopes(
 // userinfo. found is false for an unknown subject, which is a machine
 // principal and has no profile to emit.
 //
-// picture rides with profile, as OIDC Core §5.4 places it. It is the stable
+// picture and locale ride with profile, as OIDC Core §5.4 places them. It is the stable
 // per-human URL apps store and render, so emitting it here is the whole of how
 // a picture reaches every app in the suite.
 func (s *Storage) fillProfile(
@@ -152,6 +156,7 @@ func (s *Storage) fillProfile(
 	if wantsProfile {
 		userinfo.Name = user.Name
 		userinfo.Picture = s.pictureFor(user.ID)
+		userinfo.Locale = localeOf(user.Locale)
 	}
 	return true, nil
 }
@@ -163,4 +168,10 @@ func (s *Storage) pictureFor(userID string) string {
 		return ""
 	}
 	return s.svc.Avatars.URL(userID)
+}
+
+// localeOf is the standard locale claim for a stored locale: one of fr, en,
+// es, de, as a BCP 47 language tag, English when the row holds nothing.
+func localeOf(stored string) *zoidc.Locale {
+	return zoidc.NewLocale(language.Make(i18n.Normalize(stored)))
 }

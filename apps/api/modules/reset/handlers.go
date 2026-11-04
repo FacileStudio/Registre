@@ -55,7 +55,7 @@ func (s *Service) redeem(w http.ResponseWriter, r *http.Request) {
 		encode(w, map[string]string{"error": "invalid"}, http.StatusBadRequest)
 		return
 	}
-	if len(body.Password) < MinPasswordLength {
+	if credentials.CheckLength(body.Password) != nil {
 		encode(w, map[string]string{"error": "password_too_short"}, http.StatusBadRequest)
 		return
 	}

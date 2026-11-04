@@ -13,10 +13,16 @@ type User struct {
 	Admin        bool
 
 	// EmailVerified records whether registre has reason to believe the
-	// address is the user's. Every account today is minted by an operator,
-	// who attests the address by creating it; self-service signup, when it
-	// arrives, sets this false until an address challenge answers.
-	EmailVerified bool
+	// address is the user's. An operator attests the address by creating the
+	// account; self-service sign-up creates the row only after the emailed
+	// link answers, so every row it writes is verified too.
+	// EmailVerifiedAt is when that proof happened.
+	EmailVerified   bool
+	EmailVerifiedAt *time.Time
+
+	// Locale is one of fr, en, es, de. It is the person's language on every
+	// Registre page and mail, and reaches apps as the OIDC locale claim.
+	Locale string `gorm:"default:en"`
 
 	// TOTPSecret is the RFC 6238 seed, sealed under the process root key
 	// beside the nonce that sealed it. It is sealed rather than hashed

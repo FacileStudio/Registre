@@ -20,10 +20,15 @@ import (
 	"log/slog"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
+	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
+	"github.com/FacileStudio/Registre/apps/api/internal/consent"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
+	"github.com/FacileStudio/Registre/apps/api/internal/gdpr"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
+	"github.com/FacileStudio/Registre/apps/api/internal/limits"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
+	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
 
 	"github.com/go-chi/chi/v5"
@@ -56,6 +61,18 @@ type Services struct {
 	// change ends every session the account holds, and an app holding its
 	// own cookie learns that only if registre says so.
 	Logout *logout.Service
+
+	// Self is the sign-up era's half: passkeys, consent, export and
+	// deletion. A zero value turns those routes into 404s.
+	Self SelfService
+}
+
+// SelfService bundles what the passkey, consent and GDPR routes need.
+type SelfService struct {
+	Passkeys *passkeys.Service
+	Consents *consent.Service
+	Rights   *gdpr.Service
+	Audit    *audit.Service
 }
 
 // Service serves the account pages over the session, the second factor and the
@@ -70,6 +87,7 @@ type Service struct {
 	issuer    string
 	notifier  *logout.Service
 	avatars   *avatars.Service
+	self      SelfService
 	logger    *slog.Logger
 }
 
@@ -78,7 +96,7 @@ func New(deps Services, logger *slog.Logger) *Service {
 	return &Service{
 		sessions: deps.Sessions, totp: deps.TOTP, users: deps.Users,
 		passwords: deps.Passwords, db: deps.DB, cookies: deps.Cookies,
-		issuer: deps.Issuer, notifier: deps.Logout, avatars: deps.Avatars, logger: logger,
+		issuer: deps.Issuer, notifier: deps.Logout, avatars: deps.Avatars, self: deps.Self, logger: logger,
 	}
 }
 
@@ -106,6 +124,37 @@ func Mount(router chi.Router, service *Service) {
 			private.Post("/totp/confirm", service.confirmTOTP)
 			private.Post("/totp/disable", service.disableTOTP)
 			private.Post("/totp/recovery-codes", service.regenerateRecoveryCodes)
+			mountSelf(private, service)
 		})
 	})
+}
+
+// SelfLimit and SelfBurst are the per-address and per-session budget of the
+// passkey, reauthentication, consent and GDPR routes.
+const (
+	SelfLimit = 2.0
+	SelfBurst = 20
+)
+
+// mountSelf registers the passkey, reauthentication, profile, consent,
+// export and deletion routes behind a per-address and a per-session budget.
+// Adding or removing a passkey and requesting deletion also need a factor
+// proven within accounts.ReauthWindow.
+func mountSelf(private chi.Router, service *Service) {
+	budget := chi.Chain(limits.PerAddress(SelfLimit, SelfBurst),
+		limits.PerCookie(service.cookies.Name(), SelfLimit, SelfBurst))
+	routes := private.With(budget...)
+	routes.Post("/profile", service.updateProfile)
+	routes.Post("/consent", service.acceptConsent)
+	routes.Post("/reauth", service.reauthPassword)
+	routes.Post("/reauth/passkey", service.beginReauthPasskey)
+	routes.Post("/reauth/passkey/finish", service.finishReauthPasskey)
+	routes.Get("/passkeys", service.listPasskeys)
+	routes.Post("/passkeys/begin", service.beginPasskey)
+	routes.Post("/passkeys/finish", service.finishPasskey)
+	routes.Patch("/passkeys/{id}", service.renamePasskey)
+	routes.Delete("/passkeys/{id}", service.removePasskey)
+	routes.Get("/export", service.export)
+	routes.Post("/deletion", service.requestDeletion)
+	routes.Delete("/deletion", service.cancelDeletion)
 }
