@@ -207,3 +207,20 @@ func loadProductionSeed(t *testing.T) File {
 	}
 	return file
 }
+
+func TestTheProductionSeedLetsCourrierReachBulle(t *testing.T) {
+	file := loadProductionSeed(t)
+	for _, app := range file.Applications {
+		if app.ClientID != "tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0" {
+			continue
+		}
+		want := []ExchangeGrant{{Audience: "bulle", Scopes: []string{"bulle.read", "bulle.write"}}}
+		if !slices.EqualFunc(app.TokenExchange, want, func(a, b ExchangeGrant) bool {
+			return a.Audience == b.Audience && slices.Equal(a.Scopes, b.Scopes)
+		}) {
+			t.Errorf("courrier exchanges %+v, want %+v", app.TokenExchange, want)
+		}
+		return
+	}
+	t.Fatal("no courrier client in the production seed")
+}

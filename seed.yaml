@@ -100,6 +100,9 @@ applications:
     redirect_uris:
       - https://courrier.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    token_exchange:
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   - client_id: 6FkN7WYS9xtKNMJMdKRtBWPLfLoS35EWELHIjgkf
     name: Plume
