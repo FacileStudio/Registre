@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-04
+
+### Added
+
+- Glouton can exchange a user's token for Bulle (`bulle.read`, `bulle.write`) so Bulle writes mail inside Glouton
+
 ## [0.2.0] - 2026-11-03
 
 ### Added
