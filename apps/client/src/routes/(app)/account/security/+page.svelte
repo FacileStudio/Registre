@@ -8,6 +8,8 @@
 	import RegenerateCodesModal from '$lib/components/RegenerateCodesModal.svelte';
 	import TotpEnrolModal from '$lib/components/TotpEnrolModal.svelte';
 	import TwoStepSection from '$lib/components/TwoStepSection.svelte';
+	import PasskeysSection from '$lib/components/PasskeysSection.svelte';
+	import { t } from '$lib/i18n/i18n.svelte';
 	import {
 		account,
 		accountError,
@@ -53,7 +55,7 @@
 		event.preventDefault();
 		if (savingPassword) return;
 		if (next !== confirm) {
-			passwordError = 'The new passwords do not match.';
+			passwordError = t('password.mismatch');
 			return;
 		}
 		savingPassword = true;
@@ -63,9 +65,9 @@
 			current = '';
 			next = '';
 			confirm = '';
-			toast.success('Your password is changed.');
+			toast.success(t('password.changed'));
 		} catch (cause) {
-			passwordError = accountError(cause, 'Could not change your password.');
+			passwordError = accountError(cause, t('common.failed'));
 		} finally {
 			savingPassword = false;
 		}
@@ -79,7 +81,7 @@
 		try {
 			enrolment = await account.beginTOTP();
 		} catch (cause) {
-			enrolError = accountError(cause, 'Could not start the enrolment.');
+			enrolError = accountError(cause, t('totp.startFailed'));
 		}
 	}
 
@@ -95,9 +97,9 @@
 			enrolCode = '';
 			showCodes(result.recovery_codes);
 			await ctx.refresh();
-			toast.success('Two-step sign-in is on.');
+			toast.success(t('totp.isOn'));
 		} catch (cause) {
-			enrolError = accountError(cause, 'That code is not valid.');
+			enrolError = accountError(cause, t('login.codeRefused'));
 		} finally {
 			enrolBusy = false;
 		}
@@ -121,7 +123,7 @@
 			showCodes(result.recovery_codes);
 			await ctx.refresh();
 		} catch (cause) {
-			regenError = accountError(cause, 'Could not issue new codes.');
+			regenError = accountError(cause, t('common.failed'));
 		} finally {
 			regenBusy = false;
 		}
@@ -145,9 +147,9 @@
 			offPassword = '';
 			offCode = '';
 			await ctx.refresh();
-			toast.warning('Two-step sign-in is off. Your password is the only thing guarding the account.');
+			toast.warning(t('totp.isOff'));
 		} catch (cause) {
-			offError = accountError(cause, 'Could not turn it off.');
+			offError = accountError(cause, t('common.failed'));
 		} finally {
 			offBusy = false;
 		}
@@ -173,11 +175,16 @@
 			await navigator.clipboard.writeText(codes.join('\n'));
 			copied = true;
 		} catch {
-			toast.danger('Could not reach the clipboard. Select the codes and copy them by hand.');
+			toast.danger(t('totp.noClipboard'));
 		}
 	}
 </script>
 
+{#if ctx.me}
+	<PasskeysSection me={ctx.me} onchange={ctx.refresh} />
+{/if}
+
+{#if ctx.me?.has_password}
 <PasswordSection
 	minLength={MIN_PASSWORD}
 	saving={savingPassword}
@@ -187,6 +194,7 @@
 	bind:confirm
 	onSubmit={changePassword}
 />
+{/if}
 
 <TwoStepSection
 	{enrolled}

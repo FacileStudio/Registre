@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
+	import type { MessageKey } from '$lib/i18n/en';
 	import { Avatar, Badge, ConfirmModal, Icon, IconButton, Select, Table, icons, toast } from '@facile/muse';
 	import { accountError } from '$lib/account';
 	import {
@@ -40,9 +42,9 @@
 		busy = member.user_id;
 		try {
 			await spaces.setRole(space.id, member.user_id, role);
-			toast.success(`${member.name || member.email} is now ${role}.`);
+			toast.success(t('spaces.roleChanged', { name: member.name || member.email, role: t(`role.${role}` as MessageKey) }));
 		} catch (cause) {
-			toast.danger(accountError(cause, 'Could not change the role.'));
+			toast.danger(accountError(cause, t('common.failed')));
 		} finally {
 			await onchange();
 			busy = '';
@@ -56,9 +58,9 @@
 		busy = target.user_id;
 		try {
 			await spaces.removeMember(space.id, target.user_id);
-			toast.success(`${target.name || target.email} was removed from ${space.name}.`);
+			toast.success(t('spaces.removed', { name: target.name || target.email, space: space.name }));
 		} catch (cause) {
-			toast.danger(accountError(cause, 'Could not remove the member.'));
+			toast.danger(accountError(cause, t('common.failed')));
 		} finally {
 			removeTarget = null;
 			await onchange();
@@ -70,9 +72,9 @@
 <Table>
 	<thead>
 		<tr>
-			<th scope="col">Member</th>
-			<th scope="col">Role</th>
-			<th scope="col"><span class="sr-only">Actions</span></th>
+			<th scope="col">{t('spaces.member')}</th>
+			<th scope="col">{t('spaces.role')}</th>
+			<th scope="col"><span class="sr-only">{t('spaces.actions')}</span></th>
 		</tr>
 	</thead>
 	<tbody>
@@ -95,25 +97,25 @@
 				<td>
 					{#if editable(member)}
 						<Select
-							aria-label="Role of {member.name || member.email}"
+							aria-label={t('spaces.roleOf', { name: member.name || member.email })}
 							class="min-w-28"
 							value={member.role}
 							disabled={busy !== ''}
 							onchange={(event) => setRole(member, event.currentTarget.value as Role)}
 						>
 							{#each grantable as role (role)}
-								<option value={role}>{role}</option>
+								<option value={role}>{t(`role.${role}` as MessageKey)}</option>
 							{/each}
 						</Select>
 					{:else}
-						<Badge tone={ROLE_TONE[member.role]}>{member.role}</Badge>
+						<Badge tone={ROLE_TONE[member.role]}>{t(`role.${member.role}` as MessageKey)}</Badge>
 					{/if}
 				</td>
 				<td class="text-right">
 					{#if editable(member)}
 						<IconButton
 							variant="ghost"
-							aria-label="Remove {member.name || member.email}"
+							aria-label={t('spaces.removeName', { name: member.name || member.email })}
 							disabled={busy !== ''}
 							onclick={() => {
 								removeTarget = member;
@@ -132,10 +134,10 @@
 <ConfirmModal
 	bind:open={removeOpen}
 	tone="danger"
-	title="Remove {removeTarget?.name || removeTarget?.email || ''}?"
-	description="They lose access to {space.name} in every Facile app within a few seconds."
-	confirmLabel="Remove"
-	cancelLabel="Keep"
+	title={t('spaces.removeTitle', { name: removeTarget?.name || removeTarget?.email || '' })}
+	description={t('spaces.removeBody', { space: space.name })}
+	confirmLabel={t('passkeys.remove')}
+	cancelLabel={t('common.keep')}
 	onConfirm={remove}
 	onCancel={() => (removeTarget = null)}
 />

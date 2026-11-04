@@ -32,6 +32,9 @@
  * every code handed to the calls below has already been through that module.
  */
 
+import { locale, t } from '$lib/i18n/i18n.svelte';
+import type { MessageKey } from '$lib/i18n/en';
+
 /**
  * DeviceScope is one permission the waiting client asked for, already resolved
  * to something a human can weigh.
@@ -99,20 +102,20 @@ export function outcomeOf(cause: unknown): DeviceOutcome | null {
  * address the login endpoint's budget — so a human behind a shared address is
  * the one who will meet that limit without having earned it.
  */
-export const RETRY = 'Registre could not answer just now. Try again.';
-export const THROTTLED = 'Too many attempts from this network. Wait a moment, then try again.';
+const RETRY = 'device.retry';
+const THROTTLED = 'device.throttled';
 
 /**
  * SCOPE_LABELS says what a scope buys the app that asked for it. A consent
  * screen that prints `offline_access` at a human has not obtained consent, it
  * has obtained a click.
  */
-const SCOPE_LABELS: Record<string, string> = {
-	openid: 'Confirm who you are',
-	profile: 'Your name',
-	email: 'Your email address',
-	roles: 'What you are allowed to do in each Facile app',
-	offline_access: 'Stay signed in after you close the terminal'
+const SCOPE_LABELS: Record<string, MessageKey> = {
+	openid: 'device.scope.openid',
+	profile: 'device.scope.profile',
+	email: 'device.scope.email',
+	roles: 'device.scope.roles',
+	offline_access: 'device.scope.offline'
 };
 
 /**
@@ -121,7 +124,7 @@ const SCOPE_LABELS: Record<string, string> = {
  * permission the page cannot describe is still a permission being granted.
  */
 export function describeScopes(scopes: string[]): DeviceScope[] {
-	return scopes.map((name) => ({ name, label: SCOPE_LABELS[name] ?? name }));
+	return scopes.map((name) => ({ name, label: SCOPE_LABELS[name] ? t(SCOPE_LABELS[name]) : name }));
 }
 
 /**
@@ -133,7 +136,7 @@ export function describeScopes(scopes: string[]): DeviceScope[] {
 export function expiresAtLabel(expiresAt: string): string {
 	const at = new Date(expiresAt);
 	if (Number.isNaN(at.getTime())) return '';
-	return at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+	return at.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 /** STASH_KEY is where a typed code waits while its owner goes to sign in. */
@@ -172,7 +175,7 @@ export function unstash(): string {
  */
 function refusal(status: number): DeviceError {
 	if (status === 404) return new DeviceError(status, '', 'unusable');
-	return new DeviceError(status, status === 429 ? THROTTLED : RETRY, null);
+	return new DeviceError(status, t(status === 429 ? THROTTLED : RETRY), null);
 }
 
 /** send performs one verification call and refuses in one shape. */
@@ -181,7 +184,7 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
 	try {
 		response = await fetch(path, { ...init, credentials: 'include' });
 	} catch {
-		throw new DeviceError(0, RETRY, null);
+		throw new DeviceError(0, t(RETRY), null);
 	}
 	const parsed = await response.json().catch(() => null);
 	if (!response.ok) throw refusal(response.status);

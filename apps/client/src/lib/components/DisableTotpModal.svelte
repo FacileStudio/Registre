@@ -4,6 +4,7 @@
 	makes the call.
 -->
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { Alert, Button, Field, Input, Modal, icons } from '@facile/muse';
 
 	let {
@@ -25,18 +26,15 @@
 	} = $props();
 </script>
 
-<Modal bind:open title="Turn off two-step sign-in" showClose size="sm">
+<Modal bind:open title={t('totp.offLabel')} showClose size="sm">
 	<form class="flex flex-col gap-4" onsubmit={onSubmit}>
-		<Alert tone="danger" title="Your password becomes the only guard">
-			Anyone who learns your password can sign in to every app in the suite. Turning it off costs
-			what turning it on cost: your password and one live code.
-		</Alert>
+		<Alert tone="danger" title={t('totp.onlyGuard')}>{t('totp.onlyGuardBody')}</Alert>
 		<div aria-live="polite">
 			{#if error}
 				<Alert tone="danger" title={error} />
 			{/if}
 		</div>
-		<Field label="Your password">
+		<Field label={t('password.yours')}>
 			<Input
 				type="password"
 				autocomplete="current-password"
@@ -45,7 +43,7 @@
 				bind:value={password}
 			/>
 		</Field>
-		<Field label="Six-digit code" helper="A recovery code works here too.">
+		<Field label={t('login.code')} helper={t('totp.recoveryWorks')}>
 			<Input
 				inputmode="numeric"
 				autocomplete="one-time-code"
@@ -63,7 +61,7 @@
 				disabled={busy}
 				onclick={onCancel}
 			>
-				Keep it on
+				{t('totp.keepOn')}
 			</Button>
 			<Button
 				type="submit"
@@ -72,7 +70,7 @@
 				class="w-full sm:w-auto"
 				disabled={busy || password.length === 0 || code.trim().length === 0}
 			>
-				{busy ? 'Turning off…' : 'Turn off'}
+				{busy ? t('common.saving') : t('totp.turnOff')}
 			</Button>
 		</div>
 	</form>

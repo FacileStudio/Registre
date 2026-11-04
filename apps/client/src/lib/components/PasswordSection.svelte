@@ -4,6 +4,7 @@
 	actually changes the password.
 -->
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { Alert, Button, Field, Input, SettingsSection, icons } from '@facile/muse';
 
 	let {
@@ -29,8 +30,8 @@
 </script>
 
 <SettingsSection
-	title="Password"
-	description="Changing it here changes it for every app in the suite."
+	title={t('common.password')}
+	description={t('password.sectionHint')}
 >
 	<form class="flex flex-col gap-4" onsubmit={onSubmit}>
 		<div aria-live="polite">
@@ -38,7 +39,7 @@
 				<Alert tone="danger" title={error} />
 			{/if}
 		</div>
-		<Field label="Current password">
+		<Field label={t('password.current')}>
 			<Input
 				type="password"
 				autocomplete="current-password"
@@ -48,9 +49,9 @@
 			/>
 		</Field>
 		<Field
-			label="New password"
-			helper="At least {minLength} characters."
-			error={tooShort ? `At least ${minLength} characters.` : undefined}
+			label={t('password.new')}
+			helper={t('password.rule', { min: minLength })}
+			error={tooShort ? t('password.tooShort', { min: minLength }) : undefined}
 		>
 			<Input
 				type="password"
@@ -62,8 +63,8 @@
 			/>
 		</Field>
 		<Field
-			label="Confirm new password"
-			error={mismatch ? 'The passwords do not match.' : undefined}
+			label={t('password.confirm')}
+			error={mismatch ? t('password.mismatch') : undefined}
 		>
 			<Input
 				type="password"
@@ -79,7 +80,7 @@
 				icon={icons.shield}
 				disabled={saving || tooShort || mismatch || current.length === 0}
 			>
-				{saving ? 'Saving…' : 'Change password'}
+				{saving ? t('common.saving') : t('password.change')}
 			</Button>
 		</div>
 	</form>

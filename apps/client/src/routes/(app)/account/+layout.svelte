@@ -23,6 +23,7 @@
 		type ShellSession,
 		type AccountView
 	} from '$lib/account';
+	import { t } from '$lib/i18n/i18n.svelte';
 
 	let { children } = $props();
 
@@ -42,7 +43,7 @@
 				signedOut = true;
 				me = null;
 			} else {
-				error = accountError(cause, 'Could not load your account.');
+				error = accountError(cause, t('account.loadFailed'));
 			}
 		} finally {
 			loading = false;
@@ -65,22 +66,29 @@
 		}
 	});
 
-	const sections = [
-		{ id: 'profile', label: 'Profile', icon: icons.userCircle, href: '/account' },
-		{ id: 'security', label: 'Security', icon: icons.shield, href: '/account/security' }
-	];
+	const sections = $derived([
+		{ id: 'profile', label: t('account.tab.profile'), icon: icons.userCircle, href: '/account' },
+		{ id: 'security', label: t('account.tab.security'), icon: icons.shield, href: '/account/security' },
+		{ id: 'privacy', label: t('account.tab.privacy'), icon: icons.download, href: '/account/privacy' }
+	]);
 
-	const active = $derived(page.url.pathname.startsWith('/account/security') ? 'security' : 'profile');
+	const active = $derived(
+		page.url.pathname.startsWith('/account/security')
+			? 'security'
+			: page.url.pathname.startsWith('/account/privacy')
+				? 'privacy'
+				: 'profile'
+	);
 </script>
 
 <svelte:head>
-	<title>Your account — Registre</title>
+	<title>{t('account.title')} — Facile</title>
 </svelte:head>
 
 <Page width="lg">
 	<PageHeader
-		title="Your account"
-		description="Your sign-in details for every app in the Facile Suite."
+		title={t('account.title')}
+		description={t('account.subtitle')}
 	/>
 
 	{#if loading}
@@ -91,15 +99,17 @@
 	{:else if signedOut}
 		<EmptyState
 			icon={icons.userCircle}
-			title="You are not signed in"
-			description="Registre only knows you through the app that sent you here. Open a Facile app, sign in there, and come back."
-		/>
+			title={t('account.signedOut')}
+			description={t('account.signedOutHint')}
+		>
+			<a href="/login" class="text-fc-sm font-medium text-fc-fg underline underline-offset-2">{t('login.title')}</a>
+		</EmptyState>
 	{:else if error}
-		<Alert tone="danger" title="Could not load your account">{error}</Alert>
+		<Alert tone="danger" title={t('account.loadFailed')}>{error}</Alert>
 	{:else}
 		<Stack>
 			<div class="flex flex-col gap-4">
-				<Tabs items={sections} value={active} label="Account sections" />
+				<Tabs items={sections} value={active} label={t('account.sections')} />
 				<Divider />
 			</div>
 

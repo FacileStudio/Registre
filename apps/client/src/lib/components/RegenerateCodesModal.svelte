@@ -4,6 +4,7 @@
 	call and shows the new set.
 -->
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { Alert, Button, Field, Input, Modal, icons } from '@facile/muse';
 
 	let {
@@ -23,17 +24,15 @@
 	} = $props();
 </script>
 
-<Modal bind:open title="Issue new recovery codes" showClose size="sm">
+<Modal bind:open title={t('totp.issueTitle')} showClose size="sm">
 	<form class="flex flex-col gap-4" onsubmit={onSubmit}>
-		<Alert tone="warning" title="The codes you have now stop working">
-			Issuing a new set replaces every remaining code.
-		</Alert>
+		<Alert tone="warning" title={t('totp.oldStop')}>{t('totp.oldStopBody')}</Alert>
 		<div aria-live="polite">
 			{#if error}
 				<Alert tone="danger" title={error} />
 			{/if}
 		</div>
-		<Field label="Your password" helper="Asked for because a new set invalidates the old one.">
+		<Field label={t('password.yours')} helper={t('totp.issuePasswordHint')}>
 			<Input
 				type="password"
 				autocomplete="current-password"
@@ -50,7 +49,7 @@
 				disabled={busy}
 				onclick={onCancel}
 			>
-				Cancel
+				{t('common.cancel')}
 			</Button>
 			<Button
 				type="submit"
@@ -58,7 +57,7 @@
 				class="w-full sm:w-auto"
 				disabled={busy || password.length === 0}
 			>
-				{busy ? 'Issuing…' : 'Issue new codes'}
+				{busy ? t('common.saving') : t('totp.issue')}
 			</Button>
 		</div>
 	</form>

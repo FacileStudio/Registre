@@ -41,6 +41,25 @@ export interface SpaceDetail {
 	name: string;
 	role: Role;
 	members: SpaceMember[];
+	invitations?: PendingInvitation[];
+}
+
+/** PendingInvitation is an invitation the space's admins can see and revoke. */
+export interface PendingInvitation {
+	id: string;
+	email: string;
+	role: Role;
+	expires_at: string;
+}
+
+/** MyInvitation is an invitation addressed to me. */
+export interface MyInvitation {
+	id: string;
+	space_id: string;
+	space_name: string;
+	role: Role;
+	invited_by: string;
+	expires_at: string;
 }
 
 const base = (id: string) => `/api/spaces/${encodeURIComponent(id)}`;
@@ -52,8 +71,14 @@ export const spaces = {
 	create: (name: string) => request<SpaceSummary>('/api/spaces', { name }),
 	get: (id: string) => request<SpaceDetail>(base(id)),
 	rename: (id: string, name: string) => request<{ id: string; name: string }>(`${base(id)}/rename`, { name }),
-	addMember: (id: string, email: string, role: Role) =>
-		request<{ member: SpaceMember }>(`${base(id)}/members`, { email, role }),
+	invite: (id: string, email: string, role: Role) => request<{ status: string }>(`${base(id)}/members`, { email, role }),
+	revokeInvitation: (id: string, invitationID: string) =>
+		send<{ ok: boolean }>(`${base(id)}/invitations/${encodeURIComponent(invitationID)}`, 'DELETE'),
+	invitations: () => request<{ invitations: MyInvitation[] }>('/api/spaces/invitations'),
+	accept: (invitationID: string) =>
+		request<SpaceSummary>(`/api/spaces/invitations/${encodeURIComponent(invitationID)}/accept`, {}),
+	decline: (invitationID: string) =>
+		request<{ ok: boolean }>(`/api/spaces/invitations/${encodeURIComponent(invitationID)}/decline`, {}),
 	setRole: (id: string, userID: string, role: Role) =>
 		request<{ member: SpaceMember }>(`${memberPath(id, userID)}/role`, { role }),
 	removeMember: (id: string, userID: string) => send<{ ok: boolean }>(memberPath(id, userID), 'DELETE'),

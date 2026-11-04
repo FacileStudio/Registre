@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
+	import type { MessageKey } from '$lib/i18n/en';
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -50,7 +52,7 @@
 			error = '';
 		} catch (cause) {
 			missing = cause instanceof AccountError && (cause.status === 404 || cause.status === 401);
-			error = accountError(cause, 'Could not load the space.');
+			error = accountError(cause, t('spaces.loadOneFailed'));
 		} finally {
 			loading = false;
 		}
@@ -63,10 +65,10 @@
 		renaming = true;
 		try {
 			const saved = await spaces.rename(space.id, name.trim());
-			toast.success(`Renamed to ${saved.name}.`);
+			toast.success(t('spaces.renamed', { name: saved.name }));
 			await load();
 		} catch (cause) {
-			toast.danger(accountError(cause, 'Could not rename the space.'));
+			toast.danger(accountError(cause, t('common.failed')));
 		} finally {
 			renaming = false;
 		}
@@ -80,7 +82,7 @@
 			toast.success(`${space.name} is deleted in every app.`);
 			await goto('/spaces');
 		} catch (cause) {
-			toast.danger(accountError(cause, 'Could not delete the space.'));
+			toast.danger(accountError(cause, t('common.failed')));
 		}
 	}
 
@@ -89,16 +91,16 @@
 		if (!space) return;
 		try {
 			await spaces.leave(space.id);
-			toast.success(`You left ${space.name}.`);
+			toast.success(t('spaces.left', { name: space.name }));
 			await goto('/spaces');
 		} catch (cause) {
-			toast.danger(accountError(cause, 'Could not leave the space.'));
+			toast.danger(accountError(cause, t('common.failed')));
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>{space?.name ?? 'Space'} — Registre</title>
+	<title>{space?.name ?? t('spaces.space')} — Facile</title>
 </svelte:head>
 
 <Page width="lg">
@@ -110,24 +112,24 @@
 	{:else if missing}
 		<EmptyState
 			icon={icons.space}
-			title="No such space"
-			description="It does not exist, or you are not one of its members."
+			title={t('spaces.noSuch')}
+			description={t('spaces.noSuchHint')}
 		>
-			<Button variant="outline" href="/spaces">Your spaces</Button>
+			<Button variant="outline" href="/spaces">{t('home.spaces')}</Button>
 		</EmptyState>
 	{:else if error || !space}
-		<Alert tone="danger" title="Could not load the space">{error}</Alert>
+		<Alert tone="danger" title={t('spaces.loadOneFailed')}>{error}</Alert>
 	{:else}
 		<PageHeader
 			title={space.name}
-			description="You are {space.role}. Changes here reach every Facile app within seconds."
-			back={{ href: '/spaces', label: 'Spaces' }}
+			description={t('spaces.youAre', { role: t(`role.${space.role}` as MessageKey) })}
+			back={{ href: '/spaces', label: t('nav.spaces') }}
 		/>
 
 		{#if manager}
-			<SettingsSection title="Name" description="Unique across the suite.">
+			<SettingsSection title={t('spaces.name')} description={t('spaces.unique')}>
 				<form class="flex flex-col gap-3 sm:flex-row" onsubmit={rename}>
-					<Input aria-label="Space name" required maxlength={80} disabled={renaming} bind:value={name} class="flex-1" />
+					<Input aria-label={t('spaces.name')} required maxlength={80} disabled={renaming} bind:value={name} class="flex-1" />
 					<Button
 						type="submit"
 						variant="outline"
@@ -135,13 +137,13 @@
 						class="w-full sm:w-auto"
 						disabled={renaming || !name.trim() || name.trim() === space.name}
 					>
-						{renaming ? 'Saving…' : 'Rename'}
+						{renaming ? t('common.saving') : t('passkeys.rename')}
 					</Button>
 				</form>
 			</SettingsSection>
 		{/if}
 
-		<SettingsSection title="Members" description="Owners and admins add people and set their roles.">
+		<SettingsSection title={t('spaces.membersTitle')} description={t('spaces.membersHint')}>
 			<SpaceMembers {space} myEmail={shell.me?.email ?? ''} onchange={load} />
 			{#if manager}
 				<div class="mt-4">
@@ -152,19 +154,19 @@
 
 		<SpacePlan spaceID={space.id} />
 
-		<SettingsSection title="Leave">
-			<SettingsRow label="Leave {space.name}" description="You lose access in every app. The last owner cannot leave.">
-				<Button variant="outline" icon={icons.logout} onclick={() => (leaveOpen = true)}>Leave</Button>
+		<SettingsSection title={t('spaces.leave')}>
+			<SettingsRow label={t('spaces.leaveName', { name: space.name })} description={t('spaces.leaveHint')}>
+				<Button variant="outline" icon={icons.logout} onclick={() => (leaveOpen = true)}>{t('spaces.leave')}</Button>
 			</SettingsRow>
 		</SettingsSection>
 
 		{#if space.role === 'owner'}
-			<SettingsSection title="Delete">
+			<SettingsSection title={t('spaces.delete')}>
 				<SettingsRow
-					label="Delete {space.name}"
-					description="Removes the space and everyone in it from every Facile app. Files, events and tasks inside the apps are kept."
+					label={t('spaces.deleteName', { name: space.name })}
+					description={t('spaces.deleteHint')}
 				>
-					<Button variant="danger" icon={icons.remove} onclick={() => (deleteOpen = true)}>Delete</Button>
+					<Button variant="danger" icon={icons.remove} onclick={() => (deleteOpen = true)}>{t('spaces.delete')}</Button>
 				</SettingsRow>
 			</SettingsSection>
 		{/if}
@@ -174,19 +176,19 @@
 <ConfirmModal
 	bind:open={leaveOpen}
 	tone="danger"
-	title="Leave {space?.name ?? ''}?"
-	description="You stop seeing it in every Facile app. Someone with admin or above has to add you back."
-	confirmLabel="Leave"
-	cancelLabel="Stay"
+	title={t('spaces.leaveTitle', { name: space?.name ?? '' })}
+	description={t('spaces.leaveBody')}
+	confirmLabel={t('spaces.leave')}
+	cancelLabel={t('spaces.stay')}
 	onConfirm={leave}
 />
 
 <ConfirmModal
 	bind:open={deleteOpen}
 	tone="danger"
-	title="Delete {space?.name ?? ''}?"
-	description="Everyone loses this space in every Facile app within seconds. This cannot be undone here."
-	confirmLabel="Delete"
-	cancelLabel="Keep"
+	title={t('spaces.deleteTitle', { name: space?.name ?? '' })}
+	description={t('spaces.deleteBody')}
+	confirmLabel={t('spaces.delete')}
+	cancelLabel={t('common.keep')}
 	onConfirm={destroy}
 />

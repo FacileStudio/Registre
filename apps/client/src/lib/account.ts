@@ -19,6 +19,26 @@ export interface AccountView {
 	totp_enrolled: boolean;
 	recovery_codes_remaining: number;
 	picture: string;
+	locale: string;
+	has_password: boolean;
+	passkeys: number;
+	deletion_scheduled_for: string | null;
+	consent_owed: string[];
+}
+
+/** PasskeyView is one passkey as /api/account/passkeys lists it. */
+export interface PasskeyView {
+	id: string;
+	name: string;
+	created_at: string;
+	last_used_at: string | null;
+	synced: boolean;
+}
+
+/** CeremonyOptions are WebAuthn options plus the bearer to send back. */
+export interface CeremonyOptions {
+	ceremony: string;
+	publicKey: Record<string, unknown>;
 }
 
 /** TOTPEnrolment is the material needed to add the factor to an authenticator. */
@@ -102,7 +122,22 @@ export const account = {
 	logout: () => request<unknown>('/api/account/logout', {}),
 	setPicture: (image: Blob) =>
 		send<{ picture: string }>('/api/account/avatar', 'PUT', image, image.type || 'image/png'),
-	removePicture: () => send<{ picture: string }>('/api/account/avatar', 'DELETE')
+	removePicture: () => send<{ picture: string }>('/api/account/avatar', 'DELETE'),
+	updateProfile: (name: string, locale: string) => request<unknown>('/api/account/profile', { name, locale }),
+	reauthPassword: (password: string, code: string) => request<unknown>('/api/account/reauth', { password, code }),
+	beginReauthPasskey: () => request<CeremonyOptions>('/api/account/reauth/passkey', {}),
+	finishReauthPasskey: (ceremony: string, credential: unknown) =>
+		request<unknown>('/api/account/reauth/passkey/finish', { ceremony, credential }),
+	passkeys: () => request<{ passkeys: PasskeyView[] }>('/api/account/passkeys'),
+	beginPasskey: () => request<CeremonyOptions>('/api/account/passkeys/begin', {}),
+	finishPasskey: (ceremony: string, credential: unknown, name: string) =>
+		request<PasskeyView>('/api/account/passkeys/finish', { ceremony, credential, name }),
+	renamePasskey: (id: string, name: string) =>
+		send<unknown>(`/api/account/passkeys/${encodeURIComponent(id)}`, 'PATCH', JSON.stringify({ name }), 'application/json'),
+	removePasskey: (id: string) => send<unknown>(`/api/account/passkeys/${encodeURIComponent(id)}`, 'DELETE'),
+	requestDeletion: (confirm_email: string) =>
+		request<{ deletion_scheduled_for: string }>('/api/account/deletion', { confirm_email }),
+	cancelDeletion: () => send<unknown>('/api/account/deletion', 'DELETE')
 };
 
 /**

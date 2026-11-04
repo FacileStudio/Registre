@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { Avatar, Button, SettingsRow, SettingsSection, icons, toast } from '@facile/muse';
 	import { account, accountError, type AccountView } from '$lib/account';
 	import { squarePicture } from '$lib/picture';
@@ -35,22 +36,22 @@
 		if (!file) return;
 		run(
 			async () => account.setPicture(await squarePicture(file)),
-			'Picture updated. Apps show it the next time you sign in to them.',
-			'Could not use that picture.'
+			t('picture.updated'),
+			t('picture.unusable')
 		);
 	}
 
 	/** remove clears the account's picture. */
 	function remove() {
-		run(() => account.removePicture(), 'Picture removed.', 'Could not remove the picture.');
+		run(() => account.removePicture(), t('picture.removed'), t('picture.removeFailed'));
 	}
 </script>
 
 <SettingsSection
-	title="Picture"
-	description="One picture for every app in the suite. Each app picks it up the next time you sign in to it."
+	title={t('picture.title')}
+	description={t('picture.description')}
 >
-	<SettingsRow label="Profile picture" description="PNG, JPEG or GIF. It is cropped to a square.">
+	<SettingsRow label={t('picture.label')} description={t('picture.hint')}>
 		<div class="flex items-center gap-3">
 			<Avatar src={me.picture || undefined} name={me.name || me.email} size="lg" />
 			<input
@@ -63,10 +64,10 @@
 				onchange={upload}
 			/>
 			<Button variant="outline" icon={icons.upload} disabled={busy} onclick={() => picker?.click()}>
-				{me.picture ? 'Change' : 'Upload'}
+				{me.picture ? t('picture.change') : t('picture.upload')}
 			</Button>
 			{#if me.picture}
-				<Button variant="ghost" icon={icons.remove} disabled={busy} onclick={remove}>Remove</Button>
+				<Button variant="ghost" icon={icons.remove} disabled={busy} onclick={remove}>{t('passkeys.remove')}</Button>
 			{/if}
 		</div>
 	</SettingsRow>

@@ -19,6 +19,9 @@
 	} from '@facile/muse';
 	import { accountError, isUnauthorized } from '$lib/account';
 	import { ROLE_TONE, spaces, type SpaceSummary } from '$lib/spaces';
+	import SpaceInvitations from '$lib/components/SpaceInvitations.svelte';
+	import { t } from '$lib/i18n/i18n.svelte';
+	import type { MessageKey } from '$lib/i18n/en';
 
 	let list = $state<SpaceSummary[]>([]);
 	let loading = $state(true);
@@ -40,7 +43,7 @@
 			error = '';
 		} catch (cause) {
 			signedOut = isUnauthorized(cause);
-			error = accountError(cause, 'Could not load your spaces.');
+			error = accountError(cause, t('spaces.loadFailed'));
 		} finally {
 			loading = false;
 		}
@@ -54,26 +57,26 @@
 		createError = '';
 		try {
 			const space = await spaces.create(name.trim());
-			toast.success(`${space.name} is ready. Add the people who share it.`);
+			toast.success(t('spaces.created', { name: space.name }));
 			await goto(`/spaces/${encodeURIComponent(space.id)}`);
 		} catch (cause) {
-			createError = accountError(cause, 'Could not create the space.');
+			createError = accountError(cause, t('common.failed'));
 		} finally {
 			creating = false;
 		}
 	}
 
-	const plural = (count: number) => (count === 1 ? '1 member' : `${count} members`);
+	const plural = (count: number) => (count === 1 ? t('spaces.oneMember') : t('spaces.members', { count }));
 </script>
 
 <svelte:head>
-	<title>Spaces — Registre</title>
+	<title>{t('nav.spaces')} — Facile</title>
 </svelte:head>
 
 <Page width="lg">
 	<PageHeader
-		title="Spaces"
-		description="A space and its members here are the same in every Facile app, so you set them up once."
+		title={t('nav.spaces')}
+		description={t('spaces.description')}
 	/>
 
 	{#if loading}
@@ -84,18 +87,20 @@
 	{:else if signedOut}
 		<EmptyState
 			icon={icons.userCircle}
-			title="You are not signed in"
-			description="Open a Facile app, sign in there, and come back to manage your spaces."
+			title={t('account.signedOut')}
+			description={t('spaces.signedOutHint')}
 		/>
 	{:else if error}
-		<Alert tone="danger" title="Could not load your spaces">{error}</Alert>
+		<Alert tone="danger" title={t('spaces.loadFailed')}>{error}</Alert>
 	{:else}
-		<Section title="Your spaces">
+		<SpaceInvitations onchange={load} />
+
+		<Section title={t('home.spaces')}>
 			{#if list.length === 0}
 				<EmptyState
 					icon={icons.space}
-					title="No spaces yet"
-					description="Create one below and add your team. It appears in every app at once."
+					title={t('spaces.none')}
+					description={t('spaces.noneHint')}
 				/>
 			{:else}
 				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 [&>*]:min-w-0">
@@ -109,7 +114,7 @@
 									<div class="truncate text-fc-sm font-semibold text-fc-fg">{space.name}</div>
 									<div class="text-fc-xs text-fc-fg-muted">{plural(space.member_count)}</div>
 								</div>
-								<Badge tone={ROLE_TONE[space.role]}>{space.role}</Badge>
+								<Badge tone={ROLE_TONE[space.role]}>{t(`role.${space.role}` as MessageKey)}</Badge>
 							</div>
 						</Card>
 					{/each}
@@ -117,13 +122,13 @@
 			{/if}
 		</Section>
 
-		<Section title="New space" description="You become its owner. Names are unique across the suite.">
+		<Section title={t('spaces.new')} description={t('spaces.newHint')}>
 			<form class="flex flex-col gap-3 sm:flex-row sm:items-end" onsubmit={create}>
-				<Field label="Name" class="flex-1">
-					<Input required maxlength={80} disabled={creating} bind:value={name} placeholder="Design team" />
+				<Field label={t('spaces.name')} class="flex-1">
+					<Input required maxlength={80} disabled={creating} bind:value={name} placeholder={t('spaces.namePlaceholder')} />
 				</Field>
 				<Button type="submit" icon={icons.plus} class="w-full sm:w-auto" disabled={creating || !name.trim()}>
-					{creating ? 'Creating…' : 'Create space'}
+					{creating ? t('common.saving') : t('spaces.create')}
 				</Button>
 			</form>
 			<div aria-live="polite" class="mt-3">

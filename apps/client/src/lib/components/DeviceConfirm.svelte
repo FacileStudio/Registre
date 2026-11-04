@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { describeScopes, expiresAtLabel, type DeviceRequestView } from '$lib/device';
 
 	const choiceClass =
@@ -23,9 +24,9 @@
 </script>
 
 <div class="mb-8">
-	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">Is this you?</h1>
+	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">{t('device.isThisYou')}</h1>
 	<p class="mt-1.5 text-sm text-muted-foreground">
-		Approve this only if you started it yourself, just now.
+		{t('device.onlyIfYou')}
 	</p>
 </div>
 
@@ -37,29 +38,29 @@
 
 <div class="space-y-3 rounded-md border border-border bg-muted p-4">
 	<div class="space-y-1">
-		<span class="block text-xs text-muted-foreground">Signing in to</span>
+		<span class="block text-xs text-muted-foreground">{t('device.signingInTo')}</span>
 		<span class="block truncate text-base font-semibold text-foreground">
 			{request.client_name}
 		</span>
 	</div>
 
 	<div class="flex items-baseline justify-between gap-3 border-t border-border pt-3">
-		<span class="text-xs text-muted-foreground">Code</span>
+		<span class="text-xs text-muted-foreground">{t('device.code')}</span>
 		<span class="font-mono text-sm tracking-widest text-foreground">{code}</span>
 	</div>
 
 	{#if deadline}
 		<div class="flex items-baseline justify-between gap-3">
-			<span class="text-xs text-muted-foreground">Runs out at</span>
+			<span class="text-xs text-muted-foreground">{t('device.runsOut')}</span>
 			<span class="text-sm text-foreground">{deadline}</span>
 		</div>
 	{/if}
 </div>
 
 <div class="mt-6 space-y-2">
-	<p class="text-sm font-medium text-foreground">It is asking to</p>
+	<p class="text-sm font-medium text-foreground">{t('device.asking')}</p>
 	{#if scopes.length === 0}
-		<p class="text-sm text-muted-foreground">Sign you in, and nothing more.</p>
+		<p class="text-sm text-muted-foreground">{t('device.nothingMore')}</p>
 	{:else}
 		<ul class="space-y-2">
 			{#each scopes as scope (scope.name)}
@@ -74,14 +75,13 @@
 
 <div class="mt-8 flex gap-3">
 	<button type="button" disabled={busy} aria-busy={busy} onclick={deny} class={denyClass}>
-		Deny
+		{t('device.deny')}
 	</button>
 	<button type="button" disabled={busy} aria-busy={busy} onclick={approve} class={approveClass}>
-		Approve
+		{t('device.approve')}
 	</button>
 </div>
 
 <p class="mt-6 text-sm text-muted-foreground">
-	If you did not start this, deny it. Either way your password is never shared with the app that
-	asked.
+	{t('device.footer')}
 </p>

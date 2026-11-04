@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { MobileNav, PageTransition, SideBar, Spinner, Topbar, icons } from '@facile/muse';
 	import { account, SESSION_CONTEXT, type AccountView, type ShellSession } from '$lib/account';
+	import { isLocale, pinnedByURL, setLocale, t } from '$lib/i18n/i18n.svelte';
 
 	let { children } = $props();
 
@@ -20,7 +21,10 @@
 	function loadMe() {
 		account
 			.me()
-			.then((view) => (me = view))
+			.then((view) => {
+				me = view;
+				if (isLocale(view.locale) && !pinnedByURL()) setLocale(view.locale);
+			})
 			.catch(() => (me = null))
 			.finally(() => (loaded = true));
 	}
@@ -47,9 +51,9 @@
 	});
 
 	const links = $derived([
-		{ label: 'Apps', href: '/', icon: icons.home },
-		...(me ? [{ label: 'Spaces', href: '/spaces', icon: icons.space }] : []),
-		...(me?.admin ? [{ label: 'Administration', href: '/admin', icon: icons.shield }] : [])
+		{ label: t('nav.apps'), href: '/', icon: icons.home },
+		...(me ? [{ label: t('nav.spaces'), href: '/spaces', icon: icons.space }] : []),
+		...(me?.admin ? [{ label: t('nav.admin'), href: '/admin', icon: icons.shield }] : [])
 	]);
 
 	const navPages = $derived(
@@ -59,7 +63,7 @@
 		}))
 	);
 	const onAccount = $derived(page.url.pathname.startsWith('/account'));
-	const user = $derived.by(() => ({ name: me?.name || me?.email || 'Account', avatar: me?.picture || undefined }));
+	const user = $derived.by(() => ({ name: me?.name || me?.email || t('nav.account'), avatar: me?.picture || undefined }));
 	/*
 	 * The shell transitions between sections, never within one. Keying on the
 	 * full path remounted /admin's layout on every tab switch, which flashed
@@ -82,7 +86,7 @@
 		<div class="hidden h-full shrink-0 p-3 md:block">
 			<SideBar
 				icon={icons.shield}
-				title="Registre"
+				title="Facile"
 				bind:collapsed
 				pages={navPages}
 				{user}
@@ -96,7 +100,7 @@
 		     sideways, and `overscroll-contain` because <main> is the only scroller. -->
 		<main bind:this={scroller} class="min-w-0 flex-1 overflow-auto overscroll-contain pb-28 md:pb-0">
 			<Topbar class="md:hidden">
-				<span class="text-fc-md font-semibold text-fc-fg">Registre</span>
+				<span class="text-fc-md font-semibold text-fc-fg">Facile</span>
 			</Topbar>
 
 			<PageTransition key={routeKey}>

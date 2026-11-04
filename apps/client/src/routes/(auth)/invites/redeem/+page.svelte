@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n.svelte';
 	import { MIN_PASSWORD } from '$lib/policy';
 
 	const inputClass =
@@ -23,14 +24,14 @@
 		token = new URLSearchParams(window.location.search).get('token') ?? '';
 	});
 
-	const tooShort = $derived(password.length > 0 && password.length < MIN_PASSWORD);
+	const tooShort = $derived(password.length > 0 && [...password].length < MIN_PASSWORD);
 	const mismatch = $derived(confirm.length > 0 && confirm !== password);
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 		if (busy) return;
 		if (password !== confirm) {
-			error = 'The passwords do not match.';
+			error = t('password.mismatch');
 			return;
 		}
 		busy = true;
@@ -42,12 +43,12 @@
 				body: JSON.stringify({ token, password })
 			});
 			if (!response.ok) {
-				error = 'This invitation is not valid, or it has already been used.';
+				error = t('invite.used');
 				return;
 			}
 			done = true;
 		} catch {
-			error = 'Something went wrong. Try again.';
+			error = t('common.failed');
 		} finally {
 			busy = false;
 		}
@@ -55,21 +56,21 @@
 </script>
 
 <svelte:head>
-	<title>Set your password — Registre</title>
+	<title>{t('invite.title')} — Facile</title>
 </svelte:head>
 
 <div class="mb-8">
 	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
-		Set your password
+		{t('invite.title')}
 	</h1>
 	<p class="mt-1.5 text-sm text-muted-foreground">
-		Your invitation from the Registre operator. Choose a password for your account.
+		{t('invite.subtitle')}
 	</p>
 </div>
 
 {#if done}
 	<p role="status" class="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
-		Your password is set. You can now sign in from any Facile app.
+		{t('invite.done')}
 	</p>
 {:else}
 	<form onsubmit={submit} class="space-y-4">
@@ -80,7 +81,7 @@
 		{/if}
 
 		<div class="space-y-1.5">
-			<label for="token" class={labelClass}>Invitation token</label>
+			<label for="token" class={labelClass}>{t('invite.token')}</label>
 			<input
 				id="token"
 				name="token"
@@ -95,12 +96,12 @@
 				class="{inputClass} font-mono"
 			/>
 			<p id="token-hint" class="text-xs text-muted-foreground">
-				Filled in from the link you followed.
+				{t('invite.tokenHint')}
 			</p>
 		</div>
 
 		<div class="space-y-1.5">
-			<label for="password" class={labelClass}>New password</label>
+			<label for="password" class={labelClass}>{t('password.new')}</label>
 			<input
 				id="password"
 				name="password"
@@ -119,12 +120,12 @@
 				id="password-hint"
 				class="text-xs {tooShort ? 'text-destructive' : 'text-muted-foreground'}"
 			>
-				At least {MIN_PASSWORD} characters.
+				{t('password.rule', { min: MIN_PASSWORD })}
 			</p>
 		</div>
 
 		<div class="space-y-1.5">
-			<label for="confirm-password" class={labelClass}>Confirm password</label>
+			<label for="confirm-password" class={labelClass}>{t('password.confirm')}</label>
 			<input
 				id="confirm-password"
 				name="confirm-password"
@@ -140,7 +141,7 @@
 			/>
 			{#if mismatch}
 				<p id="confirm-password-error" class="text-sm text-destructive">
-					The passwords do not match.
+					{t('password.mismatch')}
 				</p>
 			{/if}
 		</div>
@@ -151,7 +152,7 @@
 			aria-busy={busy}
 			class={primaryButtonClass}
 		>
-			{busy ? 'Setting…' : 'Set password'}
+			{busy ? t('common.saving') : t('reset.submit')}
 		</button>
 	</form>
 {/if}
