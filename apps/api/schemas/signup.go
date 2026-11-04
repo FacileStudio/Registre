@@ -16,6 +16,10 @@ type Consent struct {
 	// IPHash is a keyed digest of the address the acceptance came from:
 	// enough to match two acceptances to one network, not enough to name it.
 	IPHash string
+
+	// Draft is set when the accepted version was a draft pending legal
+	// review. Such an acceptance never satisfies a reviewed version.
+	Draft bool
 }
 
 // TableName is the table this model reads.
@@ -25,14 +29,13 @@ func (Consent) TableName() string { return "consents" }
 // is stored. A row written for an address that already has an account is
 // born spent, so both branches of a sign-up do the same database work.
 type SignupChallenge struct {
-	ID            string `gorm:"primaryKey"`
-	Email         string
-	TokenHash     string
-	Locale        string
-	AuthRequestID string
-	ExpiresAt     time.Time
-	UsedAt        *time.Time
-	CreatedAt     time.Time
+	ID        string `gorm:"primaryKey"`
+	Email     string
+	TokenHash string
+	Locale    string
+	ExpiresAt time.Time
+	UsedAt    *time.Time
+	CreatedAt time.Time
 }
 
 // TableName is the table this model reads.

@@ -3,6 +3,7 @@ package signup
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -89,7 +90,7 @@ func TestPasswordRulesFollowNIST(t *testing.T) {
 		string(make([]rune, 129)): credentials.ErrPasswordTooLong,
 	}
 	for password, want := range cases {
-		in := form(linkFor(t, w, "nist@example.com"))
+		in := form(linkFor(t, w, fmt.Sprintf("nist%d@example.com", len([]rune(password)))))
 		in.Password = password
 		if _, err := w.svc.Finish(ctx, in); !errors.Is(err, want) {
 			t.Errorf("password %q = %v, want %v", password, err, want)
@@ -163,5 +164,17 @@ func TestAPasskeySignupCreatesAPasskeyOnlyAccount(t *testing.T) {
 	assertion, _ := device.Get(login.PublicKey)
 	if id, err := w.svc.Passkeys.FinishLogin(ctx, login.Ceremony, assertion); err != nil || id != created.User.ID {
 		t.Fatalf("signing in with the new passkey = %q, %v", id, err)
+	}
+}
+
+// TestALinkBudgetIsPerAddress refuses a fourth link in an hour.
+func TestALinkBudgetIsPerAddress(t *testing.T) {
+	w := newWorld(t, map[string]bool{})
+	for i := 0; i < MaxLinksPerHour; i++ {
+		linkFor(t, w, "busy@example.com")
+	}
+	err := w.svc.Start(context.Background(), Request{Email: "busy@example.com", Proof: solve(t, w.svc)})
+	if !errors.Is(err, ErrThrottled) {
+		t.Fatalf("a fourth link = %v, want ErrThrottled", err)
 	}
 }

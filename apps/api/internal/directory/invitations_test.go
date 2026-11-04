@@ -12,14 +12,16 @@ import (
 )
 
 type outbox struct {
-	mu    sync.Mutex
-	mails map[string]string
+	mu     sync.Mutex
+	mails  map[string]string
+	bodies map[string]string
 }
 
-func (o *outbox) Send(_ context.Context, to, subject, _ string) error {
+func (o *outbox) Send(_ context.Context, to, subject, body string) error {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	o.mails[to] = subject
+	o.bodies[to] = body
 	return nil
 }
 
@@ -40,7 +42,7 @@ type invites struct {
 func invitationWorld(t *testing.T, signupOpen bool) invites {
 	t.Helper()
 	svc, _, sub := fixture(t, "owner@facile.studio", "bob@facile.studio", "eve@facile.studio")
-	mails := &outbox{mails: map[string]string{}}
+	mails := &outbox{mails: map[string]string{}, bodies: map[string]string{}}
 	svc.WithInvitations(Invitations{Mailer: mails, Issuer: "https://sso.example.com", SignupOpen: signupOpen})
 	space, err := svc.Create(context.Background(), sub["owner@facile.studio"], "Facile")
 	if err != nil {
@@ -98,6 +100,9 @@ func TestUnknownAddressesGetTheSameAnswer(t *testing.T) {
 		if open && !strings.Contains(got, "Facile") {
 			t.Fatalf("sign-up open: the stranger got %q, want the join-Facile mail", got)
 		}
+		if body := mails.bodies["stranger@example.com"]; open && (strings.Contains(body, "owner@facile.studio") || strings.Contains(body, "&#34;Facile&#34;")) {
+			t.Fatalf("the join mail carries the sender's words: %s", body)
+		}
 		if !open && got != "" {
 			t.Fatalf("sign-up closed: the stranger got %q, want nothing", got)
 		}
@@ -138,5 +143,54 @@ func TestInvitationsAreBoundedRevocableAndExpire(t *testing.T) {
 		Update("expires_at", time.Now().Add(-time.Second))
 	if mine, _ := svc.Invited(ctx, sub["bob@facile.studio"]); len(mine) != 0 {
 		t.Fatalf("an expired invitation is still offered: %+v", mine)
+	}
+}
+
+// TestAnInvitationDiesWithItsSpace is the reviewer's PoC: accepting an
+// invitation into a deleted space must not create a membership.
+func TestAnInvitationDiesWithItsSpace(t *testing.T) {
+	w := invitationWorld(t, false)
+	ctx := context.Background()
+	if err := w.svc.Invite(ctx, w.sub["owner@facile.studio"], w.spaceID, "bob@facile.studio", "admin"); err != nil {
+		t.Fatal(err)
+	}
+	var inv schemas.SpaceInvitation
+	w.svc.db.Where("space_id = ?", w.spaceID).Take(&inv)
+	if err := w.svc.Delete(ctx, w.sub["owner@facile.studio"], w.spaceID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.svc.Accept(ctx, w.sub["bob@facile.studio"], inv.ID); !errors.Is(err, ErrInvitationNotFound) {
+		t.Fatalf("accepting into a deleted space = %v, want ErrInvitationNotFound", err)
+	}
+	var members int64
+	w.svc.db.Model(&schemas.SpaceMember{}).Where("space_id = ?", w.spaceID).Count(&members)
+	if members > 0 {
+		t.Fatalf("bob joined a deleted space: %d member rows", members)
+	}
+}
+
+// TestInvitationMailIsCappedPerRecipient writes every invitation but mails
+// one address at most MaxMailsPerRecipient times a day, and never puts the
+// sender's words in a mail to a stranger.
+func TestInvitationMailIsCappedPerRecipient(t *testing.T) {
+	w := invitationWorld(t, true)
+	ctx := context.Background()
+	owner := w.sub["owner@facile.studio"]
+	sent := 0
+	for i := 0; i <= MaxMailsPerRecipient; i++ {
+		space, err := w.svc.Create(ctx, owner, "Spam "+string(rune('A'+i)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		delete(w.mails.mails, "target@example.com")
+		if err := w.svc.Invite(ctx, owner, space.ID, "target@example.com", "member"); err != nil {
+			t.Fatalf("invite %d: %v", i, err)
+		}
+		if w.mails.to("target@example.com") != "" {
+			sent++
+		}
+	}
+	if sent != MaxMailsPerRecipient {
+		t.Fatalf("%d mails reached the target, want %d", sent, MaxMailsPerRecipient)
 	}
 }

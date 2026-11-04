@@ -40,7 +40,14 @@ const DefaultTTL = 72 * time.Hour
 type Service struct {
 	db       *gorm.DB
 	verifier *credentials.Verifier
+	screen   credentials.Screen
 	now      func() time.Time
+}
+
+// WithBreachCheck screens redeemed passwords against known breaches.
+func (s *Service) WithBreachCheck(screen credentials.Screen) *Service {
+	s.screen = screen
+	return s
 }
 
 // New builds the service over db, hashing through verifier.
@@ -122,6 +129,9 @@ func (s *Service) Redeem(ctx context.Context, token, password string) error {
 	}
 	if credentials.CheckLength(password) != nil {
 		return ErrTooShort
+	}
+	if err := credentials.CheckNew(ctx, s.screen, password); err != nil {
+		return err
 	}
 	now := s.now()
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

@@ -26,6 +26,7 @@
 package device
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
@@ -65,6 +66,12 @@ type Services struct {
 	// out of request parts.
 	AuthorizeURL string
 	RedirectURI  string
+
+	// Consent answers identity.ErrConsentRequired while the human owes an
+	// acceptance of the current legal documents. A device approval is a
+	// sign-in, so it is held exactly where a browser sign-in is. Nil skips
+	// the check.
+	Consent func(ctx context.Context, userID string) error
 }
 
 // Service serves the verification page over the device flows and the session
@@ -76,6 +83,7 @@ type Service struct {
 	authorizeURL string
 	redirectURI  string
 	logger       *slog.Logger
+	consent      func(ctx context.Context, userID string) error
 }
 
 // New builds the verification service.
@@ -86,6 +94,7 @@ func New(deps Services, logger *slog.Logger) *Service {
 		guard:        accounts.NewGuard(deps.Sessions, deps.Cookies),
 		authorizeURL: deps.AuthorizeURL,
 		redirectURI:  deps.RedirectURI,
+		consent:      deps.Consent,
 		logger:       logger,
 	}
 }

@@ -68,7 +68,14 @@ type Service struct {
 	verifier *credentials.Verifier
 	mailer   Mailer
 	issuer   string
+	screen   credentials.Screen
 	now      func() time.Time
+}
+
+// WithBreachCheck screens new passwords against known breaches.
+func (s *Service) WithBreachCheck(screen credentials.Screen) *Service {
+	s.screen = screen
+	return s
 }
 
 // New builds the service over db, hashing through verifier, mailing through
@@ -147,6 +154,9 @@ func (s *Service) Redeem(ctx context.Context, token, password string) error {
 	now := s.now()
 	if notFound || token == "" || !row.Redeemable(now) {
 		return ErrInvalid
+	}
+	if err := credentials.CheckNew(ctx, s.screen, password); err != nil {
+		return err
 	}
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return redeem(tx, row, hashed, now)

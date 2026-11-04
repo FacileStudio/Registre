@@ -179,3 +179,18 @@ func TestReauthenticationIsBoundToItsAccount(t *testing.T) {
 		t.Fatalf("FinishReauth: %v", err)
 	}
 }
+
+// TestSignInRequiresUserVerification refuses an assertion proving presence
+// only: a passkey sign-in owes no second factor, so it must verify the person.
+func TestSignInRequiresUserVerification(t *testing.T) {
+	svc, db := open(t)
+	user(t, db, "alice", "")
+	device := passkeytest.New(rpID, origin)
+	register(t, svc, device, "alice")
+	device.SkipVerification = true
+	options, _ := svc.BeginLogin(context.Background())
+	answer, _ := device.Get(options.PublicKey)
+	if _, err := svc.FinishLogin(context.Background(), options.Ceremony, answer); !errors.Is(err, passkeys.ErrInvalid) {
+		t.Fatalf("an unverified assertion = %v, want ErrInvalid", err)
+	}
+}

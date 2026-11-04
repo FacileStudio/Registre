@@ -33,6 +33,10 @@ type Authenticator struct {
 	RPID   string
 	Origin string
 
+	// SkipVerification answers assertions with user presence only, as a
+	// security key without a PIN would.
+	SkipVerification bool
+
 	key          *ecdsa.PrivateKey
 	credentialID []byte
 	userHandle   []byte
@@ -86,7 +90,11 @@ func (a *Authenticator) Get(publicKey any) (json.RawMessage, error) {
 	}
 	a.counter++
 	client := a.clientData("webauthn.get", opts.Challenge)
-	data := a.header(flagUserPresent | flagUserVerified)
+	flags := byte(flagUserPresent | flagUserVerified)
+	if a.SkipVerification {
+		flags = flagUserPresent
+	}
+	data := a.header(flags)
 	digest := sha256.Sum256(client)
 	signed := sha256.Sum256(append(append([]byte{}, data...), digest[:]...))
 	signature, err := ecdsa.SignASN1(rand.Reader, a.key, signed[:])

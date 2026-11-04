@@ -1,6 +1,7 @@
 package credentials
 
 import (
+	"context"
 	"errors"
 	"unicode/utf8"
 )
@@ -18,6 +19,27 @@ var (
 	ErrPasswordTooShort = errors.New("credentials: password too short")
 	ErrPasswordTooLong  = errors.New("credentials: password too long")
 )
+
+// ErrPasswordBreached is a new password found in a known breach.
+var ErrPasswordBreached = errors.New("credentials: password appears in a known breach")
+
+// Screen answers whether a password appears in a known breach.
+// internal/pwned implements it; a nil Screen screens nothing.
+type Screen interface {
+	Breached(ctx context.Context, password string) bool
+}
+
+// CheckNew applies the length policy, then the breach screen, to a password
+// about to be stored.
+func CheckNew(ctx context.Context, screen Screen, password string) error {
+	if err := CheckLength(password); err != nil {
+		return err
+	}
+	if screen != nil && screen.Breached(ctx, password) {
+		return ErrPasswordBreached
+	}
+	return nil
+}
 
 // CheckLength applies the length floor and ceiling, counted in characters
 // rather than bytes so a password in any script gets the same budget.

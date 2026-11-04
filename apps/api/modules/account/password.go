@@ -40,6 +40,10 @@ func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
 		}, http.StatusBadRequest)
 		return
 	}
+	if credentials.CheckNew(r.Context(), s.self.Pwned, body.NewPassword) != nil {
+		encode(w, map[string]string{"error": "password_breached"}, http.StatusBadRequest)
+		return
+	}
 	if err := s.storePassword(r.Context(), user.ID, body.NewPassword); err != nil {
 		serverError(w, err)
 		return

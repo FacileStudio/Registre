@@ -10,6 +10,7 @@ import (
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
+	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 )
 
 // pendingView is what the page shows before anybody approves anything: which
@@ -56,6 +57,12 @@ func (s *Service) approve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, session := accounts.Holder(r.Context())
+	if s.consent != nil {
+		if err := s.consent(r.Context(), user.ID); err != nil {
+			s.refuse(w, err)
+			return
+		}
+	}
 	err := s.devices.Approve(r.Context(), code, devices.Approval{
 		UserID: user.ID, AMR: []string{"pwd"}, AuthTime: session.CreatedAt,
 	})
@@ -108,6 +115,10 @@ func (s *Service) refuse(w http.ResponseWriter, err error) {
 	}
 	if errors.Is(err, access.ErrNoAccess) {
 		encode(w, map[string]string{"error": "no_access"}, http.StatusForbidden)
+		return
+	}
+	if errors.Is(err, identity.ErrConsentRequired) {
+		encode(w, map[string]string{"error": "consent_required"}, http.StatusForbidden)
 		return
 	}
 	s.logger.Error("registre: device verification failed", slog.Any("error", err))

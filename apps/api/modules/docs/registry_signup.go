@@ -18,10 +18,9 @@ type PasskeyOptions struct {
 
 // SignupStart is the first sign-up step.
 type SignupStart struct {
-	Email       string `json:"email" validate:"required"`
-	Altcha      string `json:"altcha" validate:"required"`
-	Locale      string `json:"locale,omitempty"`
-	AuthRequest string `json:"auth_request,omitempty"`
+	Email  string `json:"email" validate:"required"`
+	Altcha string `json:"altcha" validate:"required"`
+	Locale string `json:"locale,omitempty"`
 }
 
 // SignupFinish creates the account behind a live link.
@@ -56,7 +55,7 @@ func okBody() map[string]string { return map[string]string{"ok": "true"} }
 
 // signupModules documents the routes public sign-up added.
 func signupModules() []Module {
-	return []Module{signupModule(), passkeyLoginModule(), accountSelfModule(), legalModule(), invitationModule()}
+	return []Module{signupModule(), passkeyLoginModule(), accountSelfModule(), legalModule(), invitationModule(), deletionsModule(), operatorModule()}
 }
 
 func signupModule() Module {
@@ -107,5 +106,33 @@ func invitationModule() Module {
 		{Method: "POST", Path: "/api/spaces/invitations/{invitationID}/accept", Summary: "Join the space at the offered role", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: SpaceSummary{}},
 		{Method: "POST", Path: "/api/spaces/invitations/{invitationID}/decline", Summary: "Decline an invitation", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]bool{"ok": true}},
 		{Method: "DELETE", Path: "/api/spaces/{spaceID}/invitations/{invitationID}", Summary: "Revoke a pending invitation (admin or owner)", Auth: "cookie", ResponseBody: map[string]bool{"ok": true}},
+	}}
+}
+
+func deletionsModule() Module {
+	return Module{Name: "deletions", Description: "Accounts erased in the last 60 days, for the calling app (HTTP Basic, application clients)", Routes: []Route{
+		{Method: "GET", Path: "/api/directory/deletions", Summary: "Subjects erased since ?since= (RFC 3339); apps erase them within 30 days", Auth: "basic", ResponseBody: map[string]any{"deleted": []map[string]string{{"sub": "", "deleted_at": ""}}}},
+	}}
+}
+
+// operatorModule documents dashboard and session routes the registry had
+// never listed, so the coverage test can hold every route to account.
+func operatorModule() Module {
+	client, user := "/api/admin/clients/{clientID}", "/api/admin/users/{userID}"
+	body := map[string]any{}
+	return Module{Name: "operator", Description: "Dashboard client and user management, and the live-session login", Routes: []Route{
+		{Method: "GET", Path: "/api/login/session", Summary: "Resume a sign-in from the account cookie", Auth: "cookie", ResponseBody: LoginResponse{}},
+		{Method: "POST", Path: "/api/login/session", Summary: "Resume a sign-in from the account cookie", Auth: "cookie", RequestBody: body, ResponseBody: LoginResponse{}},
+		{Method: "GET", Path: client, Summary: "One client", Auth: "cookie", ResponseBody: body},
+		{Method: "PUT", Path: client, Summary: "Replace a client's declaration", Auth: "cookie", RequestBody: body, ResponseBody: body},
+		{Method: "DELETE", Path: client, Summary: "Delete a client", Auth: "cookie", ResponseBody: body},
+		{Method: "POST", Path: client + "/disable", Summary: "Disable a client", Auth: "cookie", RequestBody: body, ResponseBody: body},
+		{Method: "POST", Path: client + "/enable", Summary: "Enable a client", Auth: "cookie", RequestBody: body, ResponseBody: body},
+		{Method: "POST", Path: client + "/update", Summary: "Update a client", Auth: "cookie", RequestBody: body, ResponseBody: body},
+		{Method: "PUT", Path: user, Summary: "Update a user", Auth: "cookie", RequestBody: body, ResponseBody: body},
+		{Method: "DELETE", Path: user, Summary: "Delete a user", Auth: "cookie", ResponseBody: body},
+		{Method: "POST", Path: user + "/enable", Summary: "Enable a user", Auth: "cookie", RequestBody: body, ResponseBody: body},
+		{Method: "POST", Path: user + "/password", Summary: "Set a user's password", Auth: "cookie", RequestBody: body, ResponseBody: body},
+		{Method: "POST", Path: user + "/update", Summary: "Update a user", Auth: "cookie", RequestBody: body, ResponseBody: body},
 	}}
 }

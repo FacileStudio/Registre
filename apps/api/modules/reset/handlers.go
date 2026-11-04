@@ -64,6 +64,10 @@ func (s *Service) redeem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := s.resets.Redeem(r.Context(), body.Token, body.Password)
+	if errors.Is(err, credentials.ErrPasswordBreached) {
+		encode(w, map[string]string{"error": "password_breached"}, http.StatusBadRequest)
+		return
+	}
 	if errors.Is(err, recovery.ErrInvalid) {
 		encode(w, map[string]string{"error": "invalid"}, http.StatusUnauthorized)
 		return

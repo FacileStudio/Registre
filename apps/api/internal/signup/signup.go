@@ -46,6 +46,16 @@ const LinkTTL = 30 * time.Minute
 // the string alone, so refusing it says nothing about who has an account.
 var ErrEmail = errors.New("signup: not an email address")
 
+// ErrThrottled is an address that already received MaxLinksPerHour mails in
+// the last hour. It is counted from signup_challenges, which both branches
+// write, so it says nothing about whether the address has an account, and
+// only after a valid proof of work, so nobody can spend a stranger's budget
+// with garbage requests.
+var ErrThrottled = errors.New("signup: too many links for this address")
+
+// MaxLinksPerHour is how many sign-up mails one address receives per hour.
+const MaxLinksPerHour = 3
+
 // ErrInvalid is an unknown, expired or spent link, under one name.
 var ErrInvalid = errors.New("signup: invalid or expired link")
 
@@ -76,14 +86,18 @@ func New(deps Deps, key, issuer string) *Service {
 	}
 }
 
-// Request is one start: the address, the proof of work, the language the
-// mail is written in and, when sign-up began from an app, the pending login
-// to finish once the account exists.
+// Request is one start: the address, the proof of work and the language the
+// mail is written in.
+//
+// A pending app login is deliberately not carried through: the link is
+// opened in whatever browser reads the mail, and completing a login the
+// starter named would let anyone finish somebody else's authorization
+// request. A new account lands on Registre's home and opens the app from
+// there.
 type Request struct {
-	Email       string
-	Proof       string
-	Locale      string
-	AuthRequest string
+	Email  string
+	Proof  string
+	Locale string
 }
 
 // Start spends the proof of work, then writes one row and hands one mail to
@@ -97,13 +111,16 @@ func (s *Service) Start(ctx context.Context, in Request) error {
 	if !ok {
 		return ErrEmail
 	}
+	if err := s.underBudget(ctx, email); err != nil {
+		return err
+	}
 	var existing schemas.User
 	err := s.DB.WithContext(ctx).Where("lower(email) = ?", email).Take(&existing).Error
 	known := err == nil
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("signup: read the account: %w", err)
 	}
-	token, err := s.record(ctx, email, i18n.Normalize(in.Locale), in.AuthRequest, known)
+	token, err := s.record(ctx, email, i18n.Normalize(in.Locale), known)
 	if err != nil {
 		return err
 	}
@@ -118,7 +135,7 @@ func (s *Service) Start(ctx context.Context, in Request) error {
 
 // record writes the link row. A row for a known address is spent at birth,
 // so the insert both branches pay is the same insert.
-func (s *Service) record(ctx context.Context, email, locale, authRequest string, spent bool) (string, error) {
+func (s *Service) record(ctx context.Context, email, locale string, spent bool) (string, error) {
 	token, err := ids.Secret()
 	if err != nil {
 		return "", fmt.Errorf("signup: mint the token: %w", err)
@@ -130,7 +147,7 @@ func (s *Service) record(ctx context.Context, email, locale, authRequest string,
 	now := s.now()
 	row := schemas.SignupChallenge{
 		ID: id, Email: email, TokenHash: digest(token), Locale: locale,
-		AuthRequestID: authRequest, ExpiresAt: now.Add(LinkTTL), CreatedAt: now,
+		ExpiresAt: now.Add(LinkTTL), CreatedAt: now,
 	}
 	if spent {
 		row.UsedAt = &now
@@ -139,6 +156,21 @@ func (s *Service) record(ctx context.Context, email, locale, authRequest string,
 		return "", fmt.Errorf("signup: record the link: %w", err)
 	}
 	return token, nil
+}
+
+// underBudget refuses an address that received MaxLinksPerHour links in the
+// last hour.
+func (s *Service) underBudget(ctx context.Context, email string) error {
+	var recent int64
+	err := s.DB.WithContext(ctx).Model(&schemas.SignupChallenge{}).
+		Where("lower(email) = ? AND created_at > ?", email, s.now().Add(-time.Hour)).Count(&recent).Error
+	if err != nil {
+		return fmt.Errorf("signup: count recent links: %w", err)
+	}
+	if recent >= MaxLinksPerHour {
+		return ErrThrottled
+	}
+	return nil
 }
 
 // Pending is what a live link says about the account it will create.

@@ -18,6 +18,15 @@ import (
 // InvitationTTL is how long an invitation into a space stays acceptable.
 const InvitationTTL = 14 * 24 * time.Hour
 
+// MaxMailsPerRecipient caps the invitation mails one address receives in a
+// day, whoever sends them, and MaxMailsPerHour the invitation mails the whole
+// instance sends in an hour. Past either cap the invitation is still written
+// and answered the same way; only the mail is skipped.
+const (
+	MaxMailsPerRecipient = 3
+	MaxMailsPerHour      = 200
+)
+
 // MaxPendingPerSpace caps the invitations one space may have outstanding, so
 // a space cannot be used to mail thousands of strangers.
 const MaxPendingPerSpace = 50

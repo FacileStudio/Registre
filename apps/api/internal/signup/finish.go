@@ -41,10 +41,9 @@ type Account struct {
 	Credential json.RawMessage
 }
 
-// Created is the new account and the pending app login, if any, to finish.
+// Created is the new account.
 type Created struct {
-	User        schemas.User
-	AuthRequest string
+	User schemas.User
 }
 
 // BeginPasskey starts registering the passkey the account will be created
@@ -82,7 +81,7 @@ func (s *Service) Finish(ctx context.Context, in Account) (Created, error) {
 			return err
 		}
 		user.Email = row.Email
-		created = Created{User: user, AuthRequest: row.AuthRequestID}
+		created = Created{User: user}
 		return s.create(ctx, tx, &created.User, registered, in)
 	})
 	if err != nil {

@@ -30,6 +30,8 @@ type Service struct {
 	spaces   *spaces.Service
 	logger   *slog.Logger
 	writer   string
+
+	deletionsFor DeletionLister
 }
 
 // New builds the module over the register and the spaces service.
@@ -42,6 +44,7 @@ func Mount(router chi.Router, s *Service) {
 	router.Get("/api/directory/snapshot", s.snapshot)
 	router.Post("/api/directory/import", s.importSpaces)
 	router.Put("/api/directory/entitlements", s.setEntitlements)
+	router.Get("/api/directory/deletions", s.deletions)
 }
 
 // snapshot answers every shared space with its members.

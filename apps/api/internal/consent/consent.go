@@ -42,6 +42,14 @@ func Versions() map[string]string {
 	}
 }
 
+// Draft reports whether the texts are drafts pending legal review. While it
+// is true nobody is held at the consent screen: asking every existing person
+// to accept unreviewed terms would bind them to a text nobody has checked.
+// Acceptances given anyway (at sign-up) are recorded with draft set, and are
+// asked again once the reviewed versions land. Flip it, and bump Versions, in
+// the commit that lands the reviewed texts.
+func Draft() bool { return true }
+
 // Required answers the documents a person must accept to hold an account.
 // The CGV bind only a paying customer and are accepted at checkout; the
 // legal notice is information, not an agreement.
@@ -49,16 +57,17 @@ func Required() []string { return []string{CGU, Privacy} }
 
 // Service records and checks acceptances.
 type Service struct {
-	db  *gorm.DB
-	key []byte
-	now func() time.Time
+	db    *gorm.DB
+	key   []byte
+	now   func() time.Time
+	draft func() bool
 }
 
 // New builds the service. key is what source addresses are digested under,
 // so the stored digest cannot be reversed by hashing all four billion IPv4
 // addresses.
 func New(db *gorm.DB, key []byte) *Service {
-	return &Service{db: db, key: key, now: func() time.Time { return time.Now().UTC() }}
+	return &Service{db: db, key: key, now: func() time.Time { return time.Now().UTC() }, draft: Draft}
 }
 
 // Record appends an acceptance of the current version of every required
@@ -72,7 +81,7 @@ func (s *Service) Record(ctx context.Context, tx *gorm.DB, userID, locale, ip st
 	for _, document := range Required() {
 		rows = append(rows, schemas.Consent{
 			UserID: userID, Document: document, Version: versions[document],
-			Locale: locale, AcceptedAt: s.now(), IPHash: s.digest(ip),
+			Locale: locale, AcceptedAt: s.now(), IPHash: s.digest(ip), Draft: s.draft(),
 		})
 	}
 	if err := tx.WithContext(ctx).Create(&rows).Error; err != nil {
@@ -82,8 +91,12 @@ func (s *Service) Record(ctx context.Context, tx *gorm.DB, userID, locale, ip st
 }
 
 // Outdated answers the required documents whose current version userID has
-// not accepted. Empty means nothing is owed.
+// not accepted. Empty means nothing is owed, which is always the answer
+// while the texts are drafts: only a reviewed version can be required.
 func (s *Service) Outdated(ctx context.Context, userID string) ([]string, error) {
+	if s.draft() {
+		return nil, nil
+	}
 	var accepted []schemas.Consent
 	err := s.db.WithContext(ctx).
 		Where("user_id = ? AND document IN ?", userID, Required()).
@@ -94,7 +107,7 @@ func (s *Service) Outdated(ctx context.Context, userID string) ([]string, error)
 	have := map[string]bool{}
 	versions := Versions()
 	for _, row := range accepted {
-		if row.Version == versions[row.Document] {
+		if row.Version == versions[row.Document] && !row.Draft {
 			have[row.Document] = true
 		}
 	}
@@ -127,4 +140,13 @@ func (s *Service) digest(ip string) string {
 	mac := hmac.New(sha256.New, s.key)
 	_, _ = mac.Write([]byte("consent-ip:" + ip))
 	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// Enforcing answers a copy of s that requires the current versions as if
+// they were reviewed. Tests use it to exercise the consent screen before the
+// texts are final.
+func (s *Service) Enforcing() *Service {
+	copied := *s
+	copied.draft = func() bool { return false }
+	return &copied
 }

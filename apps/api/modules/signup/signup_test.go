@@ -2,7 +2,9 @@ package signup
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -10,6 +12,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/consent"
@@ -110,31 +113,77 @@ func TestStartAnswersKnownAndUnknownIdentically(t *testing.T) {
 	}
 }
 
-// TestStartIsLimitedPerEmailAndPerAddress.
-func TestStartIsLimitedPerEmailAndPerAddress(t *testing.T) {
+// TestGarbageProofsNeverSpendAStrangersBudget is the reviewer's lockout PoC:
+// requests with a bad proof must not count against the address they name.
+func TestGarbageProofsNeverSpendAStrangersBudget(t *testing.T) {
 	budget := DefaultLimits()
-	budget.EmailLimit, budget.EmailBurst = 0.0001, 1
+	budget.StartBurst = 100
 	router := open(t, budget)
-	start := func(email string) int {
-		status, _ := call(t, router, http.MethodPost, "/api/signup/start", `{"email":"`+email+`","altcha":"x"}`)
-		return status
+	for i := 0; i < 10; i++ {
+		if status, _ := call(t, router, http.MethodPost, "/api/signup/start", `{"email":"victim@example.com","altcha":"garbage"}`); status != http.StatusBadRequest {
+			t.Fatalf("a garbage proof = %d, want 400", status)
+		}
 	}
-	if status := start("a@example.com"); status != http.StatusBadRequest {
-		t.Fatalf("first start = %d, want 400 for the bad proof", status)
+	status, _ := call(t, router, http.MethodPost, "/api/signup/start",
+		`{"email":"victim@example.com","altcha":"`+proof(t, router)+`"}`)
+	if status != http.StatusAccepted {
+		t.Fatalf("the victim with a valid proof after garbage starts = %d, want 202", status)
 	}
-	if status := start("A@example.com "); status != http.StatusTooManyRequests {
-		t.Fatalf("second start for the same address = %d, want 429", status)
-	}
-	if status := start("b@example.com"); status != http.StatusBadRequest {
-		t.Fatalf("another address = %d, want 400", status)
-	}
+}
 
-	budget = DefaultLimits()
+// TestStartIsLimitedPerEmailAfterTheProof caps the links one address gets.
+func TestStartIsLimitedPerEmailAfterTheProof(t *testing.T) {
+	budget := DefaultLimits()
+	budget.StartBurst = 100
+	router := open(t, budget)
+	for i := 0; i < flow.MaxLinksPerHour; i++ {
+		status, _ := call(t, router, http.MethodPost, "/api/signup/start", `{"email":"a@example.com","altcha":"`+proof(t, router)+`"}`)
+		if status != http.StatusAccepted {
+			t.Fatalf("start %d = %d, want 202", i+1, status)
+		}
+	}
+	status, _ := call(t, router, http.MethodPost, "/api/signup/start", `{"email":"A@example.com","altcha":"`+proof(t, router)+`"}`)
+	if status != http.StatusTooManyRequests {
+		t.Fatalf("one link too many = %d, want 429", status)
+	}
+}
+
+// TestStartIsLimitedPerAddress.
+func TestStartIsLimitedPerAddress(t *testing.T) {
+	budget := DefaultLimits()
 	budget.StartLimit, budget.StartBurst = 0.0001, 2
-	router = open(t, budget)
-	start("c@example.com")
-	start("d@example.com")
-	if status := start("e@example.com"); status != http.StatusTooManyRequests {
+	router := open(t, budget)
+	for _, email := range []string{"c@example.com", "d@example.com"} {
+		call(t, router, http.MethodPost, "/api/signup/start", `{"email":"`+email+`","altcha":"x"}`)
+	}
+	if status, _ := call(t, router, http.MethodPost, "/api/signup/start", `{"email":"e@example.com","altcha":"x"}`); status != http.StatusTooManyRequests {
 		t.Fatalf("third start from one address = %d, want 429", status)
+	}
+}
+
+// TestSignupNeverCompletesAPendingLogin is the reviewer's PoC: a starter
+// naming somebody else's authorization request must not get it completed by
+// whoever finishes the link.
+func TestSignupNeverCompletesAPendingLogin(t *testing.T) {
+	router := open(t, DefaultLimits())
+	url, _ := testdb.URL()
+	db, _ := testdb.Open(url)
+	db.Create(&schemas.AuthRequest{ID: "attacker-R", ClientID: "app", RedirectURI: "https://app/cb", ExpiresAt: time.Now().Add(10 * time.Minute)})
+	status, _ := call(t, router, http.MethodPost, "/api/signup/start",
+		`{"email":"victim@example.com","altcha":"`+proof(t, router)+`","auth_request":"attacker-R"}`)
+	if status != http.StatusAccepted {
+		t.Fatalf("start = %d", status)
+	}
+	sum := sha256.Sum256([]byte("victim-token"))
+	db.Model(&schemas.SignupChallenge{}).Where("email = ?", "victim@example.com").Update("token_hash", hex.EncodeToString(sum[:]))
+	status, body := call(t, router, http.MethodPost, "/api/signup/finish",
+		`{"token":"victim-token","name":"Victim","locale":"en","accept_terms":true,"password":"correct horse battery staple zz"}`)
+	if status != http.StatusCreated || strings.Contains(body, "attacker-R") {
+		t.Fatalf("finish = %d %s, want 201 to Registre's home", status, body)
+	}
+	var pending schemas.AuthRequest
+	db.Where("id = ?", "attacker-R").Take(&pending)
+	if pending.UserID != nil {
+		t.Fatalf("the attacker's auth request was completed for %s", *pending.UserID)
 	}
 }

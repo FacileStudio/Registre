@@ -2,6 +2,7 @@ package gdpr
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"sync"
@@ -21,6 +22,7 @@ type spy struct {
 	deleted []string
 	touched int
 	mails   []string
+	failing bool
 }
 
 func (s *spy) Fire(_ context.Context, userID string, clients []string) error {
@@ -30,10 +32,13 @@ func (s *spy) Fire(_ context.Context, userID string, clients []string) error {
 	return nil
 }
 
-func (s *spy) NotifyDeleted(_ context.Context, userID string) error {
+func (s *spy) DeliverDeleted(_ context.Context, userID, clientID, _ string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.deleted = append(s.deleted, userID)
+	if s.failing {
+		return errors.New("app down")
+	}
+	s.deleted = append(s.deleted, userID+"@"+clientID)
 	return nil
 }
 
@@ -125,7 +130,7 @@ func TestDeletionWaitsCanBeCancelledAndThenRuns(t *testing.T) {
 	if users != 0 || sessions != 0 {
 		t.Fatalf("after erasure: %d users, %d sessions remain", users, sessions)
 	}
-	if len(effects.logouts) != 1 || len(effects.deleted) != 1 || effects.touched != 1 {
+	if len(effects.logouts) != 1 || effects.touched != 1 {
 		t.Fatalf("side effects: %+v", effects)
 	}
 	var actions []string

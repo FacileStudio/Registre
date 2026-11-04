@@ -26,9 +26,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// housekeepingEvery is how often due deletions run and expired ceremonies,
-// sign-up links, proofs and invitations are purged.
-const housekeepingEvery = time.Hour
+// housekeepingEvery is how often due deletions run, deletion notices are
+// retried, and expired ceremonies, sign-up links, proofs and invitations are purged.
+const housekeepingEvery = 10 * time.Minute
 
 // selfServices is what public sign-up added: passkeys, consent, the sign-up
 // flow (nil while sign-up is closed) and the mailer they share.
@@ -38,6 +38,7 @@ type selfServices struct {
 	flow     *signup.Service
 	audit    *audit.Service
 	mailer   recovery.Mailer
+	pwned    *pwned.Checker
 }
 
 // buildSelf builds the sign-up era's services. Sign-up stays closed unless
@@ -54,15 +55,14 @@ func buildSelf(db *gorm.DB, root []byte, cfg env.Config, svc services) (*selfSer
 	}
 	out := &selfServices{passkeys: keys, consents: consent.New(db, root), audit: audit.New(db)}
 	out.mailer, _ = outboundMail(mailer.FromEnv(os.Getenv), svc.log)
+	if settings.BreachCheck {
+		out.pwned = pwned.New(svc.log)
+	}
 	if !openSignup(settings, out.mailer != nil, svc.log) {
 		return out, nil
 	}
-	var breach *pwned.Checker
-	if settings.BreachCheck {
-		breach = pwned.New(svc.log)
-	}
 	out.flow = signup.New(signup.Deps{
-		DB: db, Verifier: svc.verifier, Consents: out.consents, Passkeys: keys, Pwned: breach, Mailer: out.mailer,
+		DB: db, Verifier: svc.verifier, Consents: out.consents, Passkeys: keys, Pwned: out.pwned, Mailer: out.mailer,
 	}, settings.AltchaKey, cfg.Issuer)
 	return out, nil
 }
@@ -103,7 +103,9 @@ func accountSelf(cfg env.Config, p people) account.SelfService {
 			purge(ctx, p.log, p.self.flow.Purge, cutoff)
 		}
 	})
-	return account.SelfService{Passkeys: p.self.passkeys, Consents: p.self.consents, Rights: rights, Audit: p.self.audit}
+	return account.SelfService{
+		Passkeys: p.self.passkeys, Consents: p.self.consents, Rights: rights, Audit: p.self.audit, Pwned: p.self.pwned,
+	}
 }
 
 // purge runs one purge and logs a failure.

@@ -3,6 +3,8 @@ package spaces
 import (
 	"net/http"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/limits"
+
 	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 	"github.com/go-chi/chi/v5"
 )
@@ -23,7 +25,7 @@ func inviteBudget() []func(http.Handler) http.Handler {
 		}),
 		troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
 			Limit: InviteLimit, Burst: InviteBurst,
-			KeyFunc: func(r *http.Request) string { return "space:" + chi.URLParam(r, "spaceID") },
+			KeyFunc: func(r *http.Request) string { return "space:" + limits.Bucket(chi.URLParam(r, "spaceID")) },
 		}),
 	}
 }

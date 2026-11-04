@@ -74,5 +74,5 @@ func recoveryService(cfg env.Config, p people) *recovery.Service {
 		return nil
 	}
 	p.log.Info("registre: password recovery is on", slog.String("smtp_host", smtp.Host))
-	return recovery.New(p.db, p.verifier, outbound, cfg.Issuer)
+	return recovery.New(p.db, p.verifier, outbound, cfg.Issuer).WithBreachCheck(p.self.pwned)
 }
