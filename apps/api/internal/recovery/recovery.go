@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
+	"github.com/FacileStudio/Registre/apps/api/internal/i18n"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
@@ -41,7 +42,8 @@ var ErrInvalid = errors.New("recovery: invalid or expired reset")
 // is a credential sitting in an inbox.
 const DefaultTTL = time.Hour
 
-// Subject is the subject line of the reset mail.
+// Subject is the English subject line of the reset mail; the mail itself is
+// sent in the account's locale through internal/i18n.
 const Subject = "Reset your password"
 
 // Mailer is the transport seam, kept to one method so a test needs no SMTP
@@ -116,7 +118,8 @@ func (s *Service) Request(ctx context.Context, email string) error {
 	if err := s.db.WithContext(ctx).Create(&reset).Error; err != nil {
 		return fmt.Errorf("recovery: record the reset: %w", err)
 	}
-	return s.mailer.Send(ctx, row.Email, Subject, s.body(token))
+	subject, body := i18n.Mail(i18n.MailRecovery, row.Locale, s.link(token), nil)
+	return s.mailer.Send(ctx, row.Email, subject, body)
 }
 
 // Redeem sets a new password behind a valid, unspent, unexpired token.
@@ -224,15 +227,11 @@ func setPassword(tx *gorm.DB, userID, hashed string, now time.Time) error {
 	return nil
 }
 
-// body renders the mail. The link is the whole message: a reset mail that
-// says anything about the account it belongs to says it to whoever reads the
-// inbox.
-func (s *Service) body(token string) string {
-	link := s.issuer + "/recover/reset?token=" + url.QueryEscape(token)
-	return `<p>Someone asked to reset the password on this address. ` +
-		`If it was not you, ignore this mail.</p>` +
-		`<p><a href="` + link + `">Choose a new password</a></p>` +
-		`<p>The link stops working in one hour.</p>`
+// link is the reset URL the mail carries, in the account's own language. The
+// link is the whole message: a reset mail that says anything about the
+// account it belongs to says it to whoever reads the inbox.
+func (s *Service) link(token string) string {
+	return s.issuer + "/recover/reset?token=" + url.QueryEscape(token)
 }
 
 func newID() string {

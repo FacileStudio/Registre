@@ -63,6 +63,17 @@ turns on the plan section of the spaces pages.
 | `ARDOISE_BILLING_URL` | unset | Ardoise's API base. `https` outside development |
 | `BILLING_API_TOKEN` | unset | Bearer for Ardoise, 32+ characters, server side only |
 
+Public sign-up ("Create your Facile account") is off unless the owner turns it on. It also needs
+SMTP, because every account starts with an emailed link.
+
+| Variable | Default | What it decides |
+|---|---|---|
+| `SIGNUP_ENABLED` | `false` | Opens `/signup` and `/api/signup/*`. Off: every sign-up route answers 404 |
+| `ALTCHA_HMAC_KEY` | unset | Signs the proof-of-work challenges. 32+ bytes or sign-up stays off. Server side only |
+| `WEBAUTHN_RP_ID` | issuer host | The passkey relying party ID. Changing it orphans every registered passkey |
+| `WEBAUTHN_ORIGINS` | issuer origin | Comma-separated exact origins passkeys may answer from, on the RP ID's domain, `https` |
+| `HIBP_ENABLED` | `true` | Screens new passwords against Have I Been Pwned (5-character SHA-1 prefix only, 3 s timeout, skipped on outage) |
+
 `OIDC_ISSUER` stays `https://sso.facile.studio` for every consuming app — the hostname was
 deliberately made product-neutral so registre could move in behind it without any app changing a
 variable.

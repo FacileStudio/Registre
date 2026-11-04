@@ -31,6 +31,10 @@ type Session struct {
 	// table where most rows never carry a cookie, not correctness.
 	TokenHash *string `gorm:"uniqueIndex"`
 
+	// ReauthenticatedAt is the last time the holder proved a factor again
+	// inside this session, which sensitive account changes require.
+	ReauthenticatedAt *time.Time
+
 	CreatedAt time.Time
 	EndedAt   *time.Time
 }

@@ -78,7 +78,7 @@ func TestATokenIsSingleUse(t *testing.T) {
 	ctx := context.Background()
 
 	token, _ := svc.Issue(ctx, "once@example.com", "operator")
-	if err := svc.Redeem(ctx, token, "first password"); err != nil {
+	if err := svc.Redeem(ctx, token, "the first password"); err != nil {
 		t.Fatalf("first redemption: %v", err)
 	}
 	if err := svc.Redeem(ctx, token, "second password"); !errors.Is(err, ErrInvalid) {

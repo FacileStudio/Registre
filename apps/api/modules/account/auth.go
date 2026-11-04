@@ -27,6 +27,7 @@ type meView struct {
 	TOTPEnrolled           bool   `json:"totp_enrolled"`
 	RecoveryCodesRemaining int    `json:"recovery_codes_remaining"`
 	Picture                string `json:"picture"`
+	selfView
 }
 
 // me answers who the cookie belongs to and where their second factor stands.
@@ -44,10 +45,15 @@ func (s *Service) me(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
+	extra, err := s.selfFor(r.Context(), user)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
 	encode(w, meView{
 		Email: user.Email, Name: user.Name, Admin: user.Admin,
 		TOTPEnrolled: user.TOTPEnrolled(), RecoveryCodesRemaining: remaining,
-		Picture: picture,
+		Picture: picture, selfView: extra,
 	}, http.StatusOK)
 }
 

@@ -7,11 +7,9 @@ package login
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net/http"
 
-	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 )
 
@@ -71,13 +69,5 @@ func (s *Service) resume(ctx context.Context, w http.ResponseWriter, authRequest
 	if err := s.identity.TouchSession(ctx, sessionID, authReq.ClientID); err != nil {
 		s.logger.Warn("registre: touch session client", slog.Any("error", err))
 	}
-	if err := s.identity.Complete(ctx, authReq.ID, userID, sessionID, s.now()); err != nil {
-		if errors.Is(err, access.ErrNoAccess) {
-			encode(w, map[string]string{"error": "no_access"}, http.StatusForbidden)
-			return
-		}
-		encode(w, map[string]string{"error": "failed to complete auth request"}, http.StatusBadRequest)
-		return
-	}
-	encode(w, decision{Redirect: "/authorize/callback?id=" + authReq.ID}, http.StatusOK)
+	answerCompletion(w, s.identity.Complete(ctx, authReq.ID, userID, sessionID, s.now()), authReq.ID)
 }

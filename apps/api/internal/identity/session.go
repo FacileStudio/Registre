@@ -42,6 +42,9 @@ func (s *Service) Complete(ctx context.Context, id, userID, sessionID string, at
 	if err := access.New(s.db, "").Require(ctx, clientID, userID); err != nil {
 		return err
 	}
+	if err := s.requireConsent(ctx, userID); err != nil {
+		return err
+	}
 	result := s.db.WithContext(ctx).Model(&schemas.AuthRequest{}).
 		Where("id = ? AND user_id IS NULL AND expires_at > ?", id, at).
 		Updates(map[string]any{"user_id": userID, "authenticated_at": at, "session_id": sessionID})

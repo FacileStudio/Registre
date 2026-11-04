@@ -159,9 +159,8 @@ end to end in `apps/api/modules/oidc`.
       `POST /api/login/totp` through `internal/challenges`, which holds the "password was right"
       state server-side rather than handing it to the browser, with a five-attempt budget per
       challenge
-- [ ] WebAuthn. Deferred with a reason: it needs a fixed origin to bind to and a credential store
-      of its own, and TOTP plus recovery codes already closes the phase 3 exit. Doing both at once
-      would have shipped neither well
+- [x] WebAuthn — shipped 2026-11-04 with public sign-up: discoverable passkey sign-in, passkey
+      management on `/account`, bound to `WEBAUTHN_RP_ID` and exact `WEBAUTHN_ORIGINS`
 - [x] Account recovery over `facteur`, with no enumeration and equal timing — shipped 2026-08-24.
       `internal/recovery` pays the argon2 cost on both paths and `modules/reset` answers the same
       status and the same body for a known and an unknown address, including on its own internal
@@ -185,6 +184,23 @@ end to end in `apps/api/modules/oidc`.
       `identity.Complete`, device approval, refresh and token exchange through
       `internal/access`; `admin_events` written by every dashboard mutation. The dashboard gained
       pictures, status filters, last sign-in, user and app detail pages and an Activity tab.
+
+## Public launch — sign-up (v0.5.0)
+
+- [x] Public self-service sign-up behind `SIGNUP_ENABLED` (off by default), ALTCHA, emailed link,
+      passkey or NIST password, consent to the versioned CGU and privacy policy (SPEC §6)
+- [x] Legal pages in fr, en, es, de at `/legal/<doc>?lang=xx`, consent asked again on a version bump
+- [x] GDPR export and deletion with a 30-day grace period and a signed `user.deleted` event
+- [x] Locale on the account and as the OIDC `locale` claim; every auth and account page and every
+      mail in four languages
+- [ ] **Blocked on a human:** a lawyer reviews the sixteen legal texts and fills `LEGAL_TODO.md`;
+      then `legal.Draft = false` and a version bump
+- [ ] **Blocked on a human:** set `ALTCHA_HMAC_KEY` (32+ random bytes) and SMTP in Dokploy, confirm
+      `WEBAUTHN_RP_ID=sso.facile.studio` (it can never change without orphaning every passkey),
+      then flip `SIGNUP_ENABLED=true`
+- [ ] Apps consume the `user.deleted` event on their sync URI (porte/directory) and erase within 30 days
+- [ ] Adopt muse v0.10's `SignInWithFacile` and `AuthScreen` on the login and sign-up pages
+- [ ] Translate the operator dashboard, the space plan section (billing) and the suite catalog's app descriptions (English or French today)
 
 ## Phase 4 — migration and cutover
 

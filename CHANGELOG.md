@@ -36,6 +36,32 @@ All notable changes to Registre are recorded here. The format follows
   and a `BILLING_API_TOKEN` of at least 32 characters; hidden otherwise. The catalog is cached
   60 s and the plan routes are rate limited per person
 - Migration `00013_entitlements`
+- Public self-service sign-up, "Create your Facile account", behind `SIGNUP_ENABLED` (off by
+  default): an address plus an ALTCHA proof of work (verified with `altcha-lib-go`, single use,
+  10 minutes), the same "check your inbox" answer and timing for known and unknown addresses (a
+  known one is mailed "sign in instead"), a 30-minute single-use link stored as SHA-256, then
+  name, language, acceptance of the CGU and privacy policy, and a passkey or a password
+- Passwords follow NIST SP 800-63B-4 everywhere: 15 to 128 characters, no composition rules, and
+  new sign-up passwords screened against Have I Been Pwned's range API (5-character prefix,
+  padding, 3 s timeout, skipped with a warning on outage)
+- Passkeys (go-webauthn): discoverable passkey sign-in on the login page, and add, rename and
+  remove on `/account`; the last way into an account cannot be removed, and adding or removing
+  needs a factor proven in the last 10 minutes (`/api/account/reauth`)
+- Legal pages at `/legal/{cgu,cgv,privacy,legal-notice}?lang=xx` in fr, en, es and de, served
+  from `/api/legal`; drafts pending legal review. Bumping a version asks for consent again at the
+  next sign-in (`/consent`)
+- GDPR on `/account`: a JSON export of the person's Registre data, and deletion after a 30-day
+  grace period they can cancel, then back-channel logout and a signed `user.deleted` event to
+  every app's sync URI (SPEC §6)
+- The person's language (fr, en, es, de) is stored on the account, chosen from Accept-Language at
+  sign-up, editable on `/account`, used for every mail, and emitted as the OIDC `locale` claim
+- Rate limits per address, per email and per session on every new route; audit rows for sign-up,
+  verification, consent, passkeys and deletion
+- Migrations `00015_signup` (backfills every existing account as verified)
+
+### Changed
+
+- The password floor is 15 characters on every path (account page, reset, invitation)
 
 ## [0.3.0] - 2026-11-04
 

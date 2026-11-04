@@ -118,7 +118,7 @@ func TestResetRefusesAnUnknownToken(t *testing.T) {
 	srv, _, _ := server(t)
 
 	status, _ := post(t, srv, "/api/recover/reset",
-		`{"token":"0000000000000000","password":"a new password"}`)
+		`{"token":"0000000000000000","password":"a brand new password"}`)
 	if status != http.StatusUnauthorized {
 		t.Errorf("status %d, want 401", status)
 	}

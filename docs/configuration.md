@@ -181,3 +181,21 @@ intercept it. Remove that call and the provider's refusals silently revert to sl
 format, at slog's own level, outside Journal.
 
 Emitting to `antenne` is a separate question and still open — SPEC §10 question 5.
+
+## Sign-up, passkeys and legal documents
+
+| Variable | Default | What it decides |
+|---|---|---|
+| `SIGNUP_ENABLED` | `false` | Opens public sign-up. Deploying never opens it by surprise: the owner sets it |
+| `ALTCHA_HMAC_KEY` | unset | HMAC key the ALTCHA proof-of-work challenges are signed under. Shorter than 32 bytes counts as absent and keeps sign-up off, with an error in the boot log |
+| `WEBAUTHN_RP_ID` | the issuer's host | WebAuthn relying party ID. Every passkey is bound to it, so changing it later orphans them all |
+| `WEBAUTHN_ORIGINS` | the issuer's origin | Comma-separated origins allowed in a passkey answer. Each must be `https` (http only in development), a bare scheme://host, on the RP ID's domain; anything else refuses boot |
+| `HIBP_ENABLED` | `true` | Breached-password screening for new passwords through the k-anonymity range API |
+
+Sign-up serves only when `SIGNUP_ENABLED` is true, the key is long enough and SMTP is configured;
+the boot log names which condition is missing. Passkey sign-in, passkey management, consent, the
+legal pages and GDPR export and deletion work whether or not sign-up is open.
+
+The legal texts live in `apps/api/modules/legal/content/<document>.<lang>.md` and their versions in
+`apps/api/internal/consent`. Changing a version is how everyone is asked to accept again at their
+next sign-in. The texts are drafts; `LEGAL_TODO.md` lists what a lawyer must fill in.

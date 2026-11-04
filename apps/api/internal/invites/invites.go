@@ -120,7 +120,7 @@ func (s *Service) Redeem(ctx context.Context, token, password string) error {
 	if notFound || row.RedeemedAt != nil || !row.ExpiresAt.After(s.now()) {
 		return ErrInvalid
 	}
-	if len(password) < credentials.MinPasswordLength {
+	if credentials.CheckLength(password) != nil {
 		return ErrTooShort
 	}
 	now := s.now()

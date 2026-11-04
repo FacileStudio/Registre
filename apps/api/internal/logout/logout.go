@@ -121,6 +121,33 @@ func (s *Service) deliver(ctx context.Context, userID, clientID, uri string) err
 
 // token signs one logout token naming sub and audience.
 func (s *Service) token(userID, clientID string) (string, error) {
+	claims, err := s.claims(userID, clientID, tokenTTL)
+	if err != nil {
+		return "", err
+	}
+	claims["events"] = map[string]any{backchannelLogoutEvent: map[string]any{}}
+	return s.sign(claims, "JWT")
+}
+
+// claims is the envelope every token this package signs carries.
+func (s *Service) claims(userID, clientID string, ttl time.Duration) (map[string]any, error) {
+	jti, err := ids.New()
+	if err != nil {
+		return nil, fmt.Errorf("logout: mint a jti: %w", err)
+	}
+	issued := s.now()
+	return map[string]any{
+		"iss": s.issuer,
+		"aud": []string{clientID},
+		"iat": issued.Unix(),
+		"exp": issued.Add(ttl).Unix(),
+		"jti": jti,
+		"sub": userID,
+	}, nil
+}
+
+// sign signs claims with the active key, with the given typ header.
+func (s *Service) sign(claims map[string]any, typ string) (string, error) {
 	signing, err := s.keys.Signing(context.Background())
 	if err != nil {
 		return "", fmt.Errorf("logout: read the signing key: %w", err)
@@ -129,28 +156,12 @@ func (s *Service) token(userID, clientID string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("logout: signing key is %T, not RSA", signing.Key())
 	}
-	jti, err := ids.New()
-	if err != nil {
-		return "", fmt.Errorf("logout: mint a jti: %w", err)
-	}
-	issued := s.now()
-	claims := map[string]any{
-		"iss": s.issuer,
-		"aud": []string{clientID},
-		"iat": issued.Unix(),
-		"exp": issued.Add(tokenTTL).Unix(),
-		"jti": jti,
-		"sub": userID,
-		"events": map[string]any{
-			backchannelLogoutEvent: map[string]any{},
-		},
-	}
 	payload, err := json.Marshal(claims)
 	if err != nil {
 		return "", fmt.Errorf("logout: encode the claims: %w", err)
 	}
 	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: private},
-		(&jose.SignerOptions{}).WithType("JWT").WithHeader("kid", signing.ID()))
+		(&jose.SignerOptions{}).WithType(jose.ContentType(typ)).WithHeader("kid", signing.ID()))
 	if err != nil {
 		return "", fmt.Errorf("logout: build the signer: %w", err)
 	}

@@ -367,8 +367,9 @@ type RedeemInviteRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+// Reference is Registre's API registry, served at /docs.
 func Reference() apiref.Config {
-	return apiref.Config{
+	cfg := apiref.Config{
 		Title:       "Registre API",
 		Description: "Central OpenID Provider and Identity Management for the Facile Suite.",
 		Servers:     []string{},
@@ -818,4 +819,6 @@ func Reference() apiref.Config {
 			},
 		},
 	}
+	cfg.Registry.Modules = append(cfg.Registry.Modules, signupModules()...)
+	return cfg
 }

@@ -77,6 +77,14 @@ services:
       # transient memory the token endpoint may hold under load. Unset means
       # one per core, which is what the CPU can actually use.
       REGISTRE_VERIFY_CONCURRENCY: ${REGISTRE_VERIFY_CONCURRENCY:-}
+      # Public sign-up stays off until the owner sets SIGNUP_ENABLED=true,
+      # and also needs an ALTCHA_HMAC_KEY of 32+ bytes and SMTP. Passkeys
+      # bind to WEBAUTHN_RP_ID; changing it orphans every registered passkey.
+      SIGNUP_ENABLED: ${SIGNUP_ENABLED:-false}
+      ALTCHA_HMAC_KEY: ${ALTCHA_HMAC_KEY:-}
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-sso.facile.studio}
+      WEBAUTHN_ORIGINS: ${WEBAUTHN_ORIGINS:-https://sso.facile.studio}
+      HIBP_ENABLED: ${HIBP_ENABLED:-true}
       # Seeding needs the mounted seed.yaml and every secret_env it names
       # added to this block by name. Setting the path alone fails the boot,
       # which is the intended failure but a confusing one.
