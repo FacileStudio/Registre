@@ -175,6 +175,7 @@ apps/api/
     accounts/          the session registre holds with a human directly (phase 3)
     recovery/          password reset over facteur (phase 3)
     breakglass/        the way back in when the way in is the problem (§7)
+    billing/           the server-to-server client for Ardoise's billing API (§6)
 apps/client/           SvelteKit 5 + muse admin UI, login, account and recovery pages
 ```
 
@@ -280,6 +281,35 @@ merge by name ignoring case, the highest role anyone held wins, unknown people a
 second import from the same client is a no-op, so a restart cannot re-add someone an owner removed.
 The shared client is `github.com/FacileStudio/porte/directory`, a nested module of the public porte
 repository, because this repository is private and the apps' builds could not fetch it.
+
+**Plan entitlements ride the snapshot.** Ardoise, the billing app, decides what each space and each
+person may do and pushes it with `PUT /api/directory/entitlements`, authenticated with HTTP Basic as
+its own application client, which must also be the client named by `ENTITLEMENTS_WRITER` (unset:
+the route answers 404; another app: 403; bad credentials: 401). The body is
+`{"revision", "spaces": [{"id", "entitlements"}], "people": [{"sub", "email", "entitlements"}]}`,
+at most 1 MiB, unknown fields refused. Each entitlement key matches `^[a-z0-9_]+\.[a-z0-9_]+$`, a
+scope holds at most 200, and each value is a JSON bool or an integer of at least -1, -1 meaning
+unlimited; anything else is 400. The push is the whole truth: every scope it leaves out loses its
+values. A revision older than the one stored answers 409 `{"error":"stale revision","current":N}`
+and changes nothing; an equal one is applied again so a retry converges. A space id registre does
+not know is skipped and counted; a person resolves by subject, else by a verified email, and is
+skipped otherwise. Applying bumps the directory version in the same transaction, nudges the apps
+and writes an `admin_events` row. The snapshot then carries `entitlements_revision`, the last
+revision applied (absent until the first push, and the only signal that ends an app's fail-open),
+`entitlements` on each space, and a `people` list of `{"sub", "entitlements"}` for enabled humans
+with personal values; the last two are omitted when empty, which apps read as "use the feature
+default". Registre stores the values and
+never interprets them.
+
+**Owners manage the plan on registre's spaces pages.** `GET /api/spaces/{id}/billing` answers any
+member the space's plan from Ardoise's `GET /billing/spaces/:id`, and an owner the published
+catalog as well. `POST .../billing/checkout {"lookup_key"}` and `POST .../billing/portal` are
+owners only, checked server side on every call, behind the same cookie and CSRF guard as the rest
+of `/api/spaces`. Registre fills the checkout from its own state: the space id and name, the
+owner's email, and return URLs on its issuer. It calls Ardoise with `Authorization: Bearer
+BILLING_API_TOKEN`, a 5 s timeout and a 1 MiB response cap, and hands the page a URL only when its
+origin is exactly `https://checkout.stripe.com` or `https://billing.stripe.com`. Ardoise down is
+drawn as "billing unavailable" and answers 502 to a write.
 
 Reuse `porte/local/password.go`'s argon2id parameters **verbatim** — 64 MiB, three passes, two
 lanes — so password hashes stay portable in either direction.

@@ -75,7 +75,7 @@ func observe(cfg env.Config) (*slog.Logger, *journal.Client) {
 }
 
 func run() int {
-	cfg, err := env.Load()
+	cfg, plans, err := env.LoadAll()
 	log, shipper := observe(cfg)
 	if shipper != nil {
 		defer shipper.Close()
@@ -124,7 +124,7 @@ func run() int {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	router, err := assemble(ctx, db, root, cfg, services{verifier: verifier, log: log})
+	router, err := assemble(ctx, db, root, cfg, services{verifier: verifier, log: log, billing: plans})
 	if err != nil {
 		log.Error("registre: failed to start", slog.Any("error", err))
 		return 1

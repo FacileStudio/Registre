@@ -21,6 +21,7 @@
 	import { canManage, spaces, type SpaceDetail } from '$lib/spaces';
 	import SpaceAddMember from '$lib/components/SpaceAddMember.svelte';
 	import SpaceMembers from '$lib/components/SpaceMembers.svelte';
+	import SpacePlan from '$lib/components/SpacePlan.svelte';
 
 	const shell = getContext<ShellSession>(SESSION_CONTEXT);
 
@@ -148,6 +149,8 @@
 				</div>
 			{/if}
 		</SettingsSection>
+
+		<SpacePlan spaceID={space.id} />
 
 		<SettingsSection title="Leave">
 			<SettingsRow label="Leave {space.name}" description="You lose access in every app. The last owner cannot leave.">

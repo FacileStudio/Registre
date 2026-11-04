@@ -5,6 +5,10 @@
 // Every route needs the account cookie, and every write the CSRF header, by
 // the same guard as /api/account. A space the caller is not in answers 404,
 // so membership is not something a stranger can probe.
+//
+// The plan section reads and starts billing through Ardoise, server to
+// server. Only an owner may start a checkout or open the billing portal,
+// checked here on every call, and the Ardoise bearer never reaches the page.
 package spaces
 
 import (
@@ -14,6 +18,7 @@ import (
 	"net/http"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
+	"github.com/FacileStudio/Registre/apps/api/internal/billing"
 	"github.com/FacileStudio/Registre/apps/api/internal/directory"
 
 	"github.com/go-chi/chi/v5"
@@ -25,11 +30,21 @@ type Service struct {
 	sessions *accounts.Service
 	cookies  accounts.Cookies
 	logger   *slog.Logger
+	billing  *billing.Client
+	issuer   string
 }
 
 // New builds the module.
 func New(spaces *directory.Service, sessions *accounts.Service, cookies accounts.Cookies, logger *slog.Logger) *Service {
 	return &Service{spaces: spaces, sessions: sessions, cookies: cookies, logger: logger}
+}
+
+// WithBilling turns on the plan section, calling Ardoise through client and
+// sending humans back to this issuer's spaces pages. A nil client leaves
+// the section off: GET answers enabled false and the writes answer 404.
+func (s *Service) WithBilling(client *billing.Client, issuer string) *Service {
+	s.billing, s.issuer = client, issuer
+	return s
 }
 
 // Mount registers the spaces routes behind the account guard.
@@ -46,6 +61,9 @@ func Mount(router chi.Router, s *Service) {
 		r.Delete("/{spaceID}/members/{userID}", s.removeMember)
 		r.Post("/{spaceID}/leave", s.leave)
 		r.Delete("/{spaceID}", s.deleteSpace)
+		r.Get("/{spaceID}/billing", s.plan)
+		r.Post("/{spaceID}/billing/checkout", s.checkout)
+		r.Post("/{spaceID}/billing/portal", s.portal)
 	})
 }
 

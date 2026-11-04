@@ -11,6 +11,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
+	"github.com/FacileStudio/Registre/apps/api/internal/billing"
 	"github.com/FacileStudio/Registre/apps/api/internal/challenges"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
@@ -44,12 +45,12 @@ import (
 	"gorm.io/gorm"
 )
 
-// assemble builds every service and returns the router they are mounted on.
 // services bundles the process-wide dependencies assemble wires into routes,
 // so the function stays under the parameter ceiling as registre grows.
 type services struct {
 	verifier *credentials.Verifier
 	log      *slog.Logger
+	billing  env.Billing
 }
 
 // assemble wires the process's services into routes. The dependencies travel
@@ -127,12 +128,12 @@ func assemble(
 	oidc.Mount(router, provider)
 	mountPeople(router, cfg, people{
 		ctx: ctx, db: db, users: users, invites: invitationService, register: register,
-		keyring: keyring, verifier: svc.verifier, root: root, log: svc.log,
+		keyring: keyring, services: svc, root: root,
 		deviceFlows: deviceFlows, verificationURL: verificationURL, pictures: pictures, teams: teams,
 		authorizeURL: provider.AuthorizationEndpoint().Absolute(cfg.Issuer),
 	})
 	avatar.Mount(router, pictures)
-	directory.Mount(router, directory.New(register, teams, svc.log))
+	directory.Mount(router, directory.New(register, teams, svc.log).WithWriter(svc.billing.EntitlementsWriter, audit.New(db)))
 	docs.Mount(router)
 	client, err := web.Handler()
 	if err != nil {
@@ -151,12 +152,11 @@ type people struct {
 	invites     *invites.Service
 	register    *clients.Service
 	keyring     *keys.Service
-	verifier    *credentials.Verifier
 	deviceFlows *devices.Service
 	pictures    *avatars.Service
 	teams       *spacesdir.Service
 	root        []byte
-	log         *slog.Logger
+	services
 
 	// authorizeURL and verificationURL are the sign-in round trip the
 	// device page sends a session-less human on. They are built here, from
@@ -195,7 +195,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 		Logout:  logout.New(p.keyring, p.register, cfg.Issuer, p.log),
 		Avatars: p.pictures,
 	}, p.log))
-	spaces.Mount(router, spaces.New(p.teams, sessions, cookies, p.log))
+	spaces.Mount(router, spaces.New(p.teams, sessions, cookies, p.log).WithBilling(billing.FromConfig(p.billing, p.log), cfg.Issuer))
 	reset.Mount(router, reset.New(recoveryService(cfg, p), p.log))
 	admin.Mount(router, admin.New(admin.Services{
 		Register: p.register, Users: p.users, Keys: p.keyring, Invites: p.invites,
