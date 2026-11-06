@@ -6,6 +6,26 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Deep-link linking. An app sends a person to `/account/security?link=discord&return_to=<url-encoded>`
+  and Registre links the provider and sends the browser back with `connection=linked|taken|failed`
+  merged into `return_to`'s query, with no manual step. A stale factor opens the usual
+  reauthentication modal and resumes. A provider that is already linked goes straight back
+- `POST /api/account/connections/{provider}/link` takes an optional JSON body
+  `{"return_to": "<url>"}`. It is accepted only when it is https (http in development), has no
+  userinfo, and matches the origin of a redirect URI of an enabled client whose `login_providers`
+  names the provider. Anything else is a 400 `invalid_return_to`. The URL is checked again before
+  the redirect. Migration `00019_social_return.sql` adds `social_states.return_to`
+- `GET /api/account/connections/{provider}/return?return_to=` answers `{"url"}` for an already
+  linked provider and a valid `return_to`, otherwise 400 `invalid_return_to`
+- A canceled or failed link now also returns to `return_to` with `connection=failed`
+
+### Changed
+
+- Connections section: one tile per provider with the Discord logo, a status badge and a primary
+  action
+
 ## [0.6.0] - 2026-11-06
 
 ### Added

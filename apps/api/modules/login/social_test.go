@@ -8,7 +8,9 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/social"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
@@ -156,5 +158,97 @@ func TestSignUpClosedRefusesAnUnknownDiscordAccount(t *testing.T) {
 	location, _ := url.Parse(response.Header.Get("Location"))
 	if location.Query().Get("error") != reasonClosed || location.Query().Get("auth_request") != id {
 		t.Fatalf("Location = %q, want the closed reason on the same flow", response.Header.Get("Location"))
+	}
+}
+
+func linkFixture(t *testing.T, outcome social.Profile) (*fixture, *social.Service) {
+	t.Helper()
+	var svc *social.Service
+	f := newFixtureWith(t, func(service *Service, db *gorm.DB) {
+		svc = social.New(db, []social.Provider{fakeProvider{outcome}}, social.Config{Issuer: "https://sso.test", Secure: true})
+		service.WithSocial(svc)
+		row := schemas.Client{
+			ClientID: "place", Subject: "place-subject", Name: "Place", Kind: schemas.KindApplication,
+			LoginProviders: schemas.StringList{"discord"},
+			RedirectURIs:   schemas.StringList{"https://place.facile.studio/api/auth/callback"},
+		}
+		if err := db.Create(&row).Error; err != nil {
+			t.Fatalf("creating the client: %v", err)
+		}
+	})
+	return f, svc
+}
+
+func (f *fixture) session(user schemas.User) *http.Cookie {
+	f.t.Helper()
+	ctx := context.Background()
+	id, err := f.users.StartSession(ctx, user.ID, "", time.Now().UTC())
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	token, err := accounts.New(f.db).Issue(ctx, id)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return &http.Cookie{Name: accounts.DevCookieName, Value: token}
+}
+
+func TestAFinishedLinkReturnsToTheAppWithTheOutcomeMerged(t *testing.T) {
+	f, svc := linkFixture(t, social.Profile{Subject: "77", Name: "Yann"})
+	user := f.user("yann@facile.studio", "correct horse battery staple")
+	session := f.session(user)
+
+	started, err := svc.Begin(context.Background(), "discord", "", user.ID, "https://place.facile.studio/settings?tab=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	held := &http.Cookie{Name: svc.Cookie(started.State).Name, Value: started.State}
+	response := f.get("/api/login/social/discord/callback?code=c&state="+url.QueryEscape(started.State), held, session)
+	want := "https://place.facile.studio/settings?connection=linked&tab=1"
+	if response.Header.Get("Location") != want {
+		t.Fatalf("Location = %q, want %q", response.Header.Get("Location"), want)
+	}
+}
+
+func TestACanceledLinkReturnsToTheAppAsFailed(t *testing.T) {
+	f, svc := linkFixture(t, social.Profile{Subject: "78"})
+	user := f.user("yann@facile.studio", "correct horse battery staple")
+	started, err := svc.Begin(context.Background(), "discord", "", user.ID, "https://place.facile.studio/settings")
+	if err != nil {
+		t.Fatal(err)
+	}
+	held := &http.Cookie{Name: svc.Cookie(started.State).Name, Value: started.State}
+	response := f.get("/api/login/social/discord/callback?error=access_denied&state="+url.QueryEscape(started.State), held, f.session(user))
+	if response.Header.Get("Location") != "https://place.facile.studio/settings?connection=failed" {
+		t.Fatalf("Location = %q", response.Header.Get("Location"))
+	}
+}
+
+func TestAFinishedLinkWithoutReturnToKeepsTheAccountPage(t *testing.T) {
+	f, svc := linkFixture(t, social.Profile{Subject: "79"})
+	user := f.user("yann@facile.studio", "correct horse battery staple")
+	started, err := svc.Begin(context.Background(), "discord", "", user.ID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	held := &http.Cookie{Name: svc.Cookie(started.State).Name, Value: started.State}
+	response := f.get("/api/login/social/discord/callback?code=c&state="+url.QueryEscape(started.State), held, f.session(user))
+	if response.Header.Get("Location") != "/account/security?connection=linked" {
+		t.Fatalf("Location = %q", response.Header.Get("Location"))
+	}
+}
+
+func TestALinkWhoseSessionChangedHandsStillGoesToLogin(t *testing.T) {
+	f, svc := linkFixture(t, social.Profile{Subject: "80"})
+	owner := f.user("yann@facile.studio", "correct horse battery staple")
+	other := f.user("other@facile.studio", "correct horse battery staple")
+	started, err := svc.Begin(context.Background(), "discord", "", owner.ID, "https://place.facile.studio/settings")
+	if err != nil {
+		t.Fatal(err)
+	}
+	held := &http.Cookie{Name: svc.Cookie(started.State).Name, Value: started.State}
+	response := f.get("/api/login/social/discord/callback?code=c&state="+url.QueryEscape(started.State), held, f.session(other))
+	if response.Header.Get("Location") != "/login" {
+		t.Fatalf("Location = %q, want /login", response.Header.Get("Location"))
 	}
 }

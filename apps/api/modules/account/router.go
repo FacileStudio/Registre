@@ -162,6 +162,7 @@ func mountSelf(private chi.Router, service *Service) {
 	routes.Delete("/passkeys/{id}", service.removePasskey)
 	routes.Get("/connections", service.listConnections)
 	routes.Post("/connections/{provider}/link", service.linkConnection)
+	routes.Get("/connections/{provider}/return", service.returnConnection)
 	routes.Delete("/connections/{provider}", service.unlinkConnection)
 	routes.Get("/export", service.export)
 	routes.Post("/deletion", service.requestDeletion)

@@ -12,12 +12,23 @@ import (
 // connectionsPage is where a finished link sends the signed-in person back.
 const connectionsPage = "/account/security"
 
+// linkRedirect sends the browser back from a link: to the app that asked,
+// with connection=outcome merged into its query, when the state carries a
+// return_to that is still valid, and to the account page otherwise.
+func (s *Service) linkRedirect(w http.ResponseWriter, r *http.Request, row schemas.SocialState, outcome string) {
+	if to := s.social.ReturnURL(r.Context(), row.Provider, row.ReturnTo, "connection", outcome); to != "" {
+		http.Redirect(w, r, to, http.StatusFound)
+		return
+	}
+	http.Redirect(w, r, connectionsPage+"?connection="+outcome, http.StatusFound)
+}
+
 // finishLink attaches the profile to the user who started the link, once the
 // browser still holds that user's session. A session that changed hands
 // between the click and the callback links nothing.
 func (s *Service) finishLink(w http.ResponseWriter, r *http.Request, row schemas.SocialState, profile social.Profile) {
 	if s.factor.Accounts == nil {
-		http.Redirect(w, r, connectionsPage+"?connection=failed", http.StatusFound)
+		s.linkRedirect(w, r, row, "failed")
 		return
 	}
 	user, _, err := s.factor.Accounts.Resolve(r.Context(), s.factor.Cookies.Read(r))
@@ -33,5 +44,5 @@ func (s *Service) finishLink(w http.ResponseWriter, r *http.Request, row schemas
 		s.logger.Error("registre: link a social account", slog.Any("error", err))
 		outcome = "failed"
 	}
-	http.Redirect(w, r, connectionsPage+"?connection="+outcome, http.StatusFound)
+	s.linkRedirect(w, r, row, outcome)
 }

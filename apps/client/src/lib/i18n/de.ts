@@ -348,5 +348,9 @@ export const de: Messages = {
 	"connections.unlinked": "{provider} getrennt.",
 	"connections.taken": "Dieses Konto ist bereits mit einem anderen Facile-Konto verknüpft.",
 	"connections.failed": "Das Verknüpfen hat nicht geklappt. Versuche es erneut.",
-	"connections.lastFactor": "Das ist dein einziger Weg zur Anmeldung. Füge zuerst ein Passwort oder einen Passkey hinzu."
+	"connections.lastFactor": "Das ist dein einziger Weg zur Anmeldung. Füge zuerst ein Passwort oder einen Passkey hinzu.",
+	"connections.connecting": "Verbindung zu {provider} wird hergestellt…",
+	"connections.connectingHint": "Du wirst automatisch weitergeleitet. Du musst nichts weiter tun.",
+	"connections.statusLinked": "Verknüpft",
+	"connections.alreadyLinked": "{provider} ist bereits verknüpft."
 };

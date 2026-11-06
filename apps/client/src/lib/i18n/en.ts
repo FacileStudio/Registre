@@ -346,7 +346,11 @@ export const en = {
 	"connections.unlinked": "{provider} unlinked.",
 	"connections.taken": "That account is already linked to another Facile account.",
 	"connections.failed": "Linking did not work. Try again.",
-	"connections.lastFactor": "This is your only way to sign in. Add a password or a passkey first."
+	"connections.lastFactor": "This is your only way to sign in. Add a password or a passkey first.",
+	"connections.connecting": "Connecting to {provider}…",
+	"connections.connectingHint": "You will be redirected automatically. Nothing else to do.",
+	"connections.statusLinked": "Linked",
+	"connections.alreadyLinked": "{provider} is already linked."
 } as const;
 
 /** MessageKey is every key the catalogs carry. */

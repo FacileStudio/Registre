@@ -144,8 +144,15 @@ export const account = {
 		send<unknown>(`/api/account/passkeys/${encodeURIComponent(id)}`, 'PATCH', JSON.stringify({ name }), 'application/json'),
 	removePasskey: (id: string) => send<unknown>(`/api/account/passkeys/${encodeURIComponent(id)}`, 'DELETE'),
 	connections: () => request<{ connections: ConnectionView[] }>('/api/account/connections'),
-	linkConnection: (provider: string) =>
-		request<{ url: string }>(`/api/account/connections/${encodeURIComponent(provider)}/link`, {}),
+	linkConnection: (provider: string, returnTo = '') =>
+		request<{ url: string }>(
+			`/api/account/connections/${encodeURIComponent(provider)}/link`,
+			returnTo ? { return_to: returnTo } : {}
+		),
+	connectionReturn: (provider: string, returnTo: string) =>
+		request<{ url: string }>(
+			`/api/account/connections/${encodeURIComponent(provider)}/return?return_to=${encodeURIComponent(returnTo)}`
+		),
 	unlinkConnection: (provider: string) =>
 		send<unknown>(`/api/account/connections/${encodeURIComponent(provider)}`, 'DELETE'),
 	requestDeletion: (confirm_email: string) =>

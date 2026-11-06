@@ -25,6 +25,7 @@ type SocialState struct {
 	AuthRequestID string
 	UserID        string
 	Verifier      string
+	ReturnTo      string
 	ExpiresAt     time.Time
 	CreatedAt     time.Time
 }

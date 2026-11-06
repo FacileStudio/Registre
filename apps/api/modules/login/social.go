@@ -69,7 +69,7 @@ func (s *Service) socialStart(w http.ResponseWriter, r *http.Request) {
 		s.socialFailure(w, r, id, reasonFailed)
 		return
 	}
-	started, err := s.social.Begin(r.Context(), provider, id, "")
+	started, err := s.social.Begin(r.Context(), provider, id, "", "")
 	if err != nil {
 		s.logger.Error("registre: begin a social sign-in", slog.Any("error", err))
 		s.socialFailure(w, r, id, reasonFailed)
@@ -95,6 +95,10 @@ func (s *Service) socialCallback(w http.ResponseWriter, r *http.Request) {
 		s.socialFailure(w, r, "", reasonExpired)
 		return
 	}
+	if row.UserID != "" && (query.Get("error") != "" || query.Get("code") == "") {
+		s.linkRedirect(w, r, row, "failed")
+		return
+	}
 	if query.Get("error") != "" || query.Get("code") == "" {
 		s.socialFailure(w, r, row.AuthRequestID, reasonCanceled)
 		return
@@ -102,6 +106,10 @@ func (s *Service) socialCallback(w http.ResponseWriter, r *http.Request) {
 	profile, err := s.social.Complete(r.Context(), row, query.Get("code"))
 	if err != nil {
 		s.logger.Warn("registre: a social sign-in did not complete", slog.Any("error", err))
+		if row.UserID != "" {
+			s.linkRedirect(w, r, row, "failed")
+			return
+		}
 		s.socialFailure(w, r, row.AuthRequestID, reasonFailed)
 		return
 	}

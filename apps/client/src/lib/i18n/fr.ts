@@ -348,5 +348,9 @@ export const fr: Messages = {
 	"connections.unlinked": "{provider} délié.",
 	"connections.taken": "Ce compte est déjà lié à un autre compte Facile.",
 	"connections.failed": "La liaison n'a pas abouti. Réessayez.",
-	"connections.lastFactor": "C'est votre seul moyen de connexion. Ajoutez d'abord un mot de passe ou une clé d'accès."
+	"connections.lastFactor": "C'est votre seul moyen de connexion. Ajoutez d'abord un mot de passe ou une clé d'accès.",
+	"connections.connecting": "Connexion à {provider}…",
+	"connections.connectingHint": "Vous serez redirigé automatiquement. Rien d'autre à faire.",
+	"connections.statusLinked": "Lié",
+	"connections.alreadyLinked": "{provider} est déjà lié."
 };

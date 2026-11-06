@@ -29,11 +29,18 @@ type Started struct {
 }
 
 // Begin records a sign-in for authRequestID, or a link for userID, and
-// answers the provider URL. Exactly one of the two is set.
-func (s *Service) Begin(ctx context.Context, provider, authRequestID, userID string) (Started, error) {
+// answers the provider URL. Exactly one of the two is set. returnTo is where
+// a finished link sends the browser; it must pass ValidReturn or Begin
+// refuses with ErrInvalidReturn before recording anything.
+func (s *Service) Begin(ctx context.Context, provider, authRequestID, userID, returnTo string) (Started, error) {
 	impl, ok := s.providers[provider]
 	if !ok {
 		return Started{}, ErrUnknownProvider
+	}
+	if returnTo != "" {
+		if err := s.ValidReturn(ctx, provider, returnTo); err != nil {
+			return Started{}, err
+		}
 	}
 	state, err := ids.Secret()
 	if err != nil {
@@ -46,7 +53,7 @@ func (s *Service) Begin(ctx context.Context, provider, authRequestID, userID str
 	now := s.now()
 	row := schemas.SocialState{
 		StateHash: digest(state), Provider: provider, AuthRequestID: authRequestID, UserID: userID,
-		Verifier: verifier, ExpiresAt: now.Add(StateTTL), CreatedAt: now,
+		Verifier: verifier, ReturnTo: returnTo, ExpiresAt: now.Add(StateTTL), CreatedAt: now,
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return Started{}, fmt.Errorf("social: record the state: %w", err)
@@ -64,7 +71,7 @@ func (s *Service) Take(ctx context.Context, state, held string) (schemas.SocialS
 	var rows []schemas.SocialState
 	err := s.db.WithContext(ctx).Raw(
 		`DELETE FROM social_states WHERE state_hash = ? AND expires_at > ?
-		 RETURNING state_hash, provider, auth_request_id, user_id, verifier, expires_at, created_at`,
+		 RETURNING state_hash, provider, auth_request_id, user_id, verifier, return_to, expires_at, created_at`,
 		digest(state), s.now(),
 	).Scan(&rows).Error
 	if err != nil {

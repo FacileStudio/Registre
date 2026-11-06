@@ -348,5 +348,9 @@ export const es: Messages = {
 	"connections.unlinked": "{provider} desvinculada.",
 	"connections.taken": "Esa cuenta ya está vinculada a otra cuenta de Facile.",
 	"connections.failed": "No se pudo vincular. Inténtalo de nuevo.",
-	"connections.lastFactor": "Es tu única forma de iniciar sesión. Añade antes una contraseña o una llave de acceso."
+	"connections.lastFactor": "Es tu única forma de iniciar sesión. Añade antes una contraseña o una llave de acceso.",
+	"connections.connecting": "Conectando con {provider}…",
+	"connections.connectingHint": "Serás redirigido automáticamente. No tienes que hacer nada más.",
+	"connections.statusLinked": "Vinculada",
+	"connections.alreadyLinked": "{provider} ya está vinculada."
 };

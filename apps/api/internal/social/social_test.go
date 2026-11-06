@@ -130,7 +130,7 @@ func TestADisabledUserIsRefusedOnEveryPath(t *testing.T) {
 
 func TestAStateIsSpentOnceAndOnlyForTheBrowserHoldingIt(t *testing.T) {
 	svc, db := newService(t, false)
-	started, err := svc.Begin(context.Background(), "discord", "flow-1", "")
+	started, err := svc.Begin(context.Background(), "discord", "flow-1", "", "")
 	if err != nil {
 		t.Fatalf("Begin: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestAStateIsSpentOnceAndOnlyForTheBrowserHoldingIt(t *testing.T) {
 
 func TestAnExpiredStateIsRefused(t *testing.T) {
 	svc, _ := newService(t, false)
-	started, err := svc.Begin(context.Background(), "discord", "flow-1", "")
+	started, err := svc.Begin(context.Background(), "discord", "flow-1", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
