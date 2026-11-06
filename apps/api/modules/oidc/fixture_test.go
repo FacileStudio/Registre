@@ -119,7 +119,7 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 		Keys: keyring, Register: register, Users: users,
 		Logout:  logout.New(keyring, register, issuer, logs),
 		Devices: deviceFlows, Avatars: avatars.New(db, issuer),
-		Connections: social.New(db, nil, social.Config{}),
+		Connections: social.New(db, []social.Provider{discordStub{}}, social.Config{}),
 	}, Config{
 		Issuer: issuer, AccessTokenTTL: time.Hour,
 		RefreshTokenTTL: 24 * time.Hour, Now: ticking.now,
@@ -283,4 +283,12 @@ func (f *fixture) post(path, clientID, secret string, form url.Values) (map[stri
 func (f *fixture) introspect(clientID, secret, token string) (map[string]any, int) {
 	f.t.Helper()
 	return f.post("/oauth/introspect", clientID, secret, url.Values{"token": {token}})
+}
+
+type discordStub struct{}
+
+func (discordStub) Name() string                          { return "discord" }
+func (discordStub) AuthURL(string, string, string) string { return "" }
+func (discordStub) Exchange(context.Context, string, string, string) (social.Profile, error) {
+	return social.Profile{}, nil
 }

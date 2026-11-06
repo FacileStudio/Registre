@@ -215,3 +215,33 @@ func TestTheStateCookieIsHostPrefixedWhenSecure(t *testing.T) {
 		t.Fatal("Held did not read back the cookie")
 	}
 }
+
+func auditActions(t *testing.T, db *gorm.DB, userID string) []string {
+	t.Helper()
+	var actions []string
+	err := db.Model(&schemas.AdminEvent{}).Where("actor_id = ?", userID).Order("id").Pluck("action", &actions).Error
+	if err != nil {
+		t.Fatalf("reading the audit log: %v", err)
+	}
+	return actions
+}
+
+func TestLinkingAndCreatingThroughSocialWriteAuditEntries(t *testing.T) {
+	svc, db := newService(t, true)
+	ctx := context.Background()
+	user := addUser(t, db, "a@facile.studio", "hash")
+	if err := svc.LinkTo(ctx, user.ID, "discord", profile("9", "", false)); err != nil {
+		t.Fatalf("link: %v", err)
+	}
+	if got := auditActions(t, db, user.ID); len(got) != 1 || got[0] != "account.connection_added" {
+		t.Fatalf("link audit = %v", got)
+	}
+	created, err := svc.Resolve(ctx, "discord", profile("10", "new@facile.studio", true))
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	got := auditActions(t, db, created.ID)
+	if len(got) != 2 || got[0] != "account.connection_added" || got[1] != "account.created_social" {
+		t.Fatalf("create audit = %v", got)
+	}
+}

@@ -33,12 +33,21 @@ func (s *Service) Links(ctx context.Context, userID string) ([]Link, error) {
 	return out, nil
 }
 
-// Connections is the provider-to-subject map the connections claim carries,
-// such as {"discord": "123456789012345678"}. A user with none gets an empty
-// map.
-func (s *Service) Connections(ctx context.Context, userID string) (map[string]string, error) {
+// Connections is the provider-to-subject map the connections claim carries
+// for clientID, such as {"discord": "123456789012345678"}. Only providers the
+// client opted into through login_providers appear. A client that opted into
+// none gets a nil map, which means the claim is not emitted at all; one that
+// opted in and has nothing linked gets an empty map.
+func (s *Service) Connections(ctx context.Context, userID, clientID string) (map[string]string, error) {
+	allowed, err := s.ForClient(ctx, clientID)
+	if err != nil {
+		return nil, err
+	}
+	if len(allowed) == 0 {
+		return nil, nil
+	}
 	var rows []schemas.SocialIdentity
-	err := s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&rows).Error
+	err = s.db.WithContext(ctx).Where("user_id = ? AND provider IN ?", userID, allowed).Find(&rows).Error
 	if err != nil {
 		return nil, fmt.Errorf("social: read the connections: %w", err)
 	}

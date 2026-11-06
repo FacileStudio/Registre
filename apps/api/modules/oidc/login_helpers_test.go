@@ -229,6 +229,15 @@ func (f *fixture) application(clientID string, redirect string, extraScopes ...s
 	return secret
 }
 
+func (f *fixture) allowProvider(clientID, provider string) {
+	f.t.Helper()
+	err := f.db.Model(&schemas.Client{}).Where("client_id = ?", clientID).
+		Update("login_providers", schemas.StringList{provider}).Error
+	if err != nil {
+		f.t.Fatalf("opting %s into %s: %v", clientID, provider, err)
+	}
+}
+
 func (f *fixture) human(email, password string) {
 	f.t.Helper()
 	if _, err := f.users.Create(context.Background(), identity.NewUser{

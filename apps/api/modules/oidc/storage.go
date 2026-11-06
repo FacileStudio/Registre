@@ -56,13 +56,13 @@ type Services struct {
 	Avatars  *avatars.Service
 
 	// Connections reads the linked external accounts the connections claim
-	// carries. Nil emits the claim empty.
+	// carries, per client. Nil omits the claim.
 	Connections ConnectionReader
 }
 
 // ConnectionReader answers the provider-to-subject map of one user.
 type ConnectionReader interface {
-	Connections(ctx context.Context, userID string) (map[string]string, error)
+	Connections(ctx context.Context, userID, clientID string) (map[string]string, error)
 }
 
 // Storage is registre's implementation of the contract zitadel/oidc issues
