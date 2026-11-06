@@ -66,8 +66,8 @@
 				kind,
 				redirect_uris: isApplication ? lines(redirects) : undefined,
 				visible_roles: isApplication ? lines(roles) : undefined,
-				backchannel_logout_uri: isApplication ? logoutURI.trim() || undefined : undefined,
-				deletion_uri: isApplication ? deletionURI.trim() || undefined : undefined,
+				backchannel_logout_uri: isApplication ? logoutURI.trim() : undefined,
+				deletion_uri: isApplication ? deletionURI.trim() : undefined,
 				scopes: tokens(scopes),
 				audiences: tokens(audiences)
 			});
