@@ -312,7 +312,8 @@ member the space's plan from Ardoise's `GET /billing/spaces/:id`, and an owner t
 catalog as well. `POST .../billing/checkout {"lookup_key"}` and `POST .../billing/portal` are
 owners only, checked server side on every call, behind the same cookie and CSRF guard as the rest
 of `/api/spaces`. Registre fills the checkout from its own state: the space id and name, the
-owner's email, and return URLs on its issuer. It calls Ardoise with `Authorization: Bearer
+owner's email, and return URLs on its issuer; the portal call carries the same space id and the
+signed-in owner's email from the session, which Ardoise checks against the space's owners. It calls Ardoise with `Authorization: Bearer
 BILLING_API_TOKEN`, a 5 s timeout and a 1 MiB response cap, and hands the page a URL only when its
 origin is exactly `https://checkout.stripe.com` or `https://billing.stripe.com`. Ardoise down is
 drawn as "billing unavailable" and answers 502 to a write. Registre caches the catalog for 60 s,
