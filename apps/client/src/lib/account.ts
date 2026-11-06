@@ -35,6 +35,14 @@ export interface PasskeyView {
 	synced: boolean;
 }
 
+/** ConnectionView is one social provider on the account page. */
+export interface ConnectionView {
+	provider: string;
+	linked: boolean;
+	display_name?: string;
+	linked_at?: string;
+}
+
 /** CeremonyOptions are WebAuthn options plus the bearer to send back. */
 export interface CeremonyOptions {
 	ceremony: string;
@@ -135,6 +143,11 @@ export const account = {
 	renamePasskey: (id: string, name: string) =>
 		send<unknown>(`/api/account/passkeys/${encodeURIComponent(id)}`, 'PATCH', JSON.stringify({ name }), 'application/json'),
 	removePasskey: (id: string) => send<unknown>(`/api/account/passkeys/${encodeURIComponent(id)}`, 'DELETE'),
+	connections: () => request<{ connections: ConnectionView[] }>('/api/account/connections'),
+	linkConnection: (provider: string) =>
+		request<{ url: string }>(`/api/account/connections/${encodeURIComponent(provider)}/link`, {}),
+	unlinkConnection: (provider: string) =>
+		send<unknown>(`/api/account/connections/${encodeURIComponent(provider)}`, 'DELETE'),
 	requestDeletion: (confirm_email: string) =>
 		request<{ deletion_scheduled_for: string }>('/api/account/deletion', { confirm_email }),
 	cancelDeletion: () => send<unknown>('/api/account/deletion', 'DELETE')

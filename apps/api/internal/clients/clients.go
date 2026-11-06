@@ -118,6 +118,7 @@ func declared(row schemas.Client) map[string]any {
 		"deletion_uri":           row.DeletionURI,
 		"visible_roles":          row.VisibleRoles,
 		"token_exchange":         row.TokenExchange,
+		"login_providers":        row.LoginProviders,
 		"updated_at":             time.Now().UTC(),
 	}
 	switch {

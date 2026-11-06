@@ -85,6 +85,12 @@ services:
       WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-sso.facile.studio}
       WEBAUTHN_ORIGINS: ${WEBAUTHN_ORIGINS:-https://sso.facile.studio}
       HIBP_ENABLED: ${HIBP_ENABLED:-true}
+      # Discord sign-in: both or neither. Register
+      # ${REGISTRE_ISSUER}/api/login/social/discord/callback as the redirect
+      # URI in the Discord Developer Portal. A client shows the button only
+      # when its seed entry lists login_providers: [discord].
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
       # Seeding needs the mounted seed.yaml and every secret_env it names
       # added to this block by name. Setting the path alone fails the boot,
       # which is the intended failure but a confusing one.

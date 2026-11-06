@@ -21,6 +21,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
+	"github.com/FacileStudio/Registre/apps/api/internal/social"
 	"github.com/FacileStudio/Registre/apps/api/internal/testdb"
 	"github.com/FacileStudio/Registre/apps/api/modules/login"
 
@@ -118,6 +119,7 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 		Keys: keyring, Register: register, Users: users,
 		Logout:  logout.New(keyring, register, issuer, logs),
 		Devices: deviceFlows, Avatars: avatars.New(db, issuer),
+		Connections: social.New(db, nil, social.Config{}),
 	}, Config{
 		Issuer: issuer, AccessTokenTTL: time.Hour,
 		RefreshTokenTTL: 24 * time.Hour, Now: ticking.now,

@@ -83,6 +83,11 @@ type Application struct {
 	// none, even with the roles scope granted: visibility is opt-in.
 	VisibleRoles []string `yaml:"visible_roles"`
 
+	// LoginProviders lists the social sign-in buttons this client's login
+	// page offers, such as discord. Empty offers none: a provider is opt-in
+	// per client. Each name must be one the build can speak.
+	LoginProviders []string `yaml:"login_providers"`
+
 	// TokenExchange lists the apps this client may trade a signed-in
 	// human's token for (RFC 8693), each with the scopes it may ask for
 	// there. Empty means the client cannot exchange. Declaring any entry is

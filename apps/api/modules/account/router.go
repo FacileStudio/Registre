@@ -29,6 +29,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/limits"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
 	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
+	"github.com/FacileStudio/Registre/apps/api/internal/social"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
 
 	"github.com/go-chi/chi/v5"
@@ -74,6 +75,10 @@ type SelfService struct {
 	Rights   *gdpr.Service
 	Audit    *audit.Service
 	Pwned    credentials.Screen
+
+	// Social lists, links and unlinks external sign-in accounts. Nil turns
+	// the connections routes into an empty list and 404s.
+	Social *social.Service
 }
 
 // Service serves the account pages over the session, the second factor and the
@@ -155,6 +160,9 @@ func mountSelf(private chi.Router, service *Service) {
 	routes.Post("/passkeys/finish", service.finishPasskey)
 	routes.Patch("/passkeys/{id}", service.renamePasskey)
 	routes.Delete("/passkeys/{id}", service.removePasskey)
+	routes.Get("/connections", service.listConnections)
+	routes.Post("/connections/{provider}/link", service.linkConnection)
+	routes.Delete("/connections/{provider}", service.unlinkConnection)
 	routes.Get("/export", service.export)
 	routes.Post("/deletion", service.requestDeletion)
 	routes.Delete("/deletion", service.cancelDeletion)

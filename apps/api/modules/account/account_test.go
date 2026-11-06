@@ -14,12 +14,14 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
+	"github.com/FacileStudio/Registre/apps/api/internal/social"
 	"github.com/FacileStudio/Registre/apps/api/internal/testdb"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
 	"github.com/go-chi/chi/v5"
 	otptotp "github.com/pquerna/otp/totp"
+	"gorm.io/gorm"
 )
 
 // root is the throwaway key the tests seal TOTP seeds under.
@@ -38,6 +40,7 @@ type fixture struct {
 	cookies accounts.Cookies
 	user    string
 	token   string
+	db      *gorm.DB
 }
 
 func newFixture(t *testing.T) fixture {
@@ -63,7 +66,10 @@ func newFixture(t *testing.T) fixture {
 	Mount(router, New(Services{
 		Sessions: sessions, TOTP: factors, Users: users, Passwords: verifier,
 		DB: db, Cookies: cookies, Issuer: "registre", Avatars: avatars.New(db, "https://registre"),
-		Self: SelfService{Passkeys: keysFor(t, db)},
+		Self: SelfService{
+			Passkeys: keysFor(t, db),
+			Social:   social.New(db, []social.Provider{stubProvider{}}, social.Config{Issuer: "https://registre"}),
+		},
 	}, slog.New(slog.DiscardHandler)))
 
 	ctx := context.Background()
@@ -79,7 +85,7 @@ func newFixture(t *testing.T) fixture {
 	if err != nil {
 		t.Fatalf("issuing the cookie: %v", err)
 	}
-	return fixture{router, users, factors, cookies, user.ID, token}
+	return fixture{router, users, factors, cookies, user.ID, token, db}
 }
 
 // request builds a JSON request for path, carrying no credentials.

@@ -9,6 +9,7 @@
 	import TotpEnrolModal from '$lib/components/TotpEnrolModal.svelte';
 	import TwoStepSection from '$lib/components/TwoStepSection.svelte';
 	import PasskeysSection from '$lib/components/PasskeysSection.svelte';
+	import ConnectionsSection from '$lib/components/ConnectionsSection.svelte';
 	import { t } from '$lib/i18n/i18n.svelte';
 	import {
 		account,
@@ -185,6 +186,7 @@
 
 {#if ctx.me}
 	<PasskeysSection me={ctx.me} onchange={ctx.refresh} />
+	<ConnectionsSection me={ctx.me} onchange={ctx.refresh} />
 {/if}
 
 {#if ctx.me?.has_password}

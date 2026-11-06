@@ -327,7 +327,26 @@ export const en = {
 	"spaces.deleteHint": "Removes the space and everyone in it from every Facile app. Files, events and tasks inside the apps are kept.",
 	"spaces.deleteTitle": "Delete {name}?",
 	"spaces.deleteBody": "Everyone loses this space in every Facile app within seconds. This cannot be undone here.",
-	"privacy.soleOwner": "You are the only owner of a space other people use. Make someone else owner first, then ask again."
+	"privacy.soleOwner": "You are the only owner of a space other people use. Make someone else owner first, then ask again.",
+	"login.discord": "Continue with Discord",
+	"login.reason.expired": "That sign-in link expired. Start again.",
+	"login.reason.canceled": "The sign-in was cancelled.",
+	"login.reason.failed": "The sign-in did not work. Try again or use another method.",
+	"login.reason.closed": "Creating accounts is closed. Ask for an invitation first.",
+	"login.reason.noEmail": "Discord did not share a verified email address, so we cannot match or create an account.",
+	"login.reason.taken": "That Discord account is linked to another Facile account.",
+	"connections.title": "Connections",
+	"connections.description": "Other accounts you can use to sign in to Facile.",
+	"connections.discord": "Discord",
+	"connections.linkedAs": "Linked as {name}",
+	"connections.notLinked": "Not linked",
+	"connections.link": "Link",
+	"connections.unlink": "Unlink",
+	"connections.linked": "{provider} linked.",
+	"connections.unlinked": "{provider} unlinked.",
+	"connections.taken": "That account is already linked to another Facile account.",
+	"connections.failed": "Linking did not work. Try again.",
+	"connections.lastFactor": "This is your only way to sign in. Add a password or a passkey first."
 } as const;
 
 /** MessageKey is every key the catalogs carry. */

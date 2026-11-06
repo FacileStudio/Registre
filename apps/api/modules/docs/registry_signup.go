@@ -56,7 +56,7 @@ func okBody() map[string]string { return map[string]string{"ok": "true"} }
 
 // signupModules documents the routes public sign-up added.
 func signupModules() []Module {
-	return []Module{signupModule(), passkeyLoginModule(), accountSelfModule(), legalModule(), invitationModule(), deletionsModule(), operatorModule()}
+	return []Module{signupModule(), passkeyLoginModule(), accountSelfModule(), socialLoginModule(), legalModule(), invitationModule(), deletionsModule(), operatorModule()}
 }
 
 func signupModule() Module {
@@ -73,6 +73,17 @@ func passkeyLoginModule() Module {
 	return Module{Name: "passkey login", Description: "Discoverable passkey sign-in", Routes: []Route{
 		{Method: "POST", Path: "/api/login/passkey/begin", Summary: "Options for a discoverable assertion", RequestBody: map[string]any{}, ResponseBody: PasskeyOptions{}},
 		{Method: "POST", Path: "/api/login/passkey/finish", Summary: "Verify the assertion and finish the login", RequestBody: Ceremony{}, ResponseBody: LoginResponse{}},
+	}}
+}
+
+func socialLoginModule() Module {
+	return Module{Name: "social login", Description: "Sign in with Discord, for the apps that opted in through login_providers; linking is under the account routes", Routes: []Route{
+		{Method: "GET", Path: "/api/login/providers", Summary: "The social buttons the login for ?auth_request= shows; empty when none", ResponseBody: map[string]any{"providers": []string{"discord"}}},
+		{Method: "GET", Path: "/api/login/social/{provider}/start", Summary: "302 to the provider for ?auth_request=; failures redirect to /login?error=", ResponseBody: map[string]string{"redirect": "provider authorize URL"}, Status: http.StatusFound},
+		{Method: "GET", Path: "/api/login/social/{provider}/callback", Summary: "The provider's redirect URI: finishes the login, or redirects to /login?challenge= for a second factor", ResponseBody: map[string]string{"redirect": "/authorize/callback?id="}, Status: http.StatusFound},
+		{Method: "GET", Path: "/api/account/connections", Summary: "Providers an app offers plus the ones I linked", Auth: "cookie", ResponseBody: map[string]any{"connections": []map[string]any{{"provider": "discord", "linked": true, "display_name": ""}}}},
+		{Method: "POST", Path: "/api/account/connections/{provider}/link", Summary: "Begin linking a provider account (fresh factor); answers the URL to open", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]string{"url": ""}},
+		{Method: "DELETE", Path: "/api/account/connections/{provider}", Summary: "Unlink a provider account (fresh factor; 409 for the last way in)", Auth: "cookie", ResponseBody: okBody()},
 	}}
 }
 

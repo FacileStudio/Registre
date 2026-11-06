@@ -31,11 +31,15 @@ const codeKeyContext = "registre/auth-code"
 // anywhere.
 var scopes = []string{
 	oidc.ScopeOpenID, oidc.ScopeProfile, oidc.ScopeEmail,
-	oidc.ScopeOfflineAccess, scopeRoles,
+	oidc.ScopeOfflineAccess, scopeRoles, scopeConnections,
 }
 
 // scopeRoles is the scope that asks for the roles claim in a token.
 const scopeRoles = "roles"
+
+// scopeConnections is the scope that asks for the connections claim: the
+// subjects of the external accounts, such as Discord, the person has linked.
+const scopeConnections = "connections"
 
 // DefaultDeviceStartLimit and DefaultDeviceStartBurst bound how fast one
 // source address may open device flows.
@@ -109,7 +113,7 @@ func NewProvider(storage *Storage, cfg ProviderConfig) (*op.Provider, error) {
 		AuthMethodPost:        true,
 		GrantTypeRefreshToken: true,
 		SupportedScopes:       scopes,
-		SupportedClaims:       append(op.DefaultSupportedClaims, scopeRoles),
+		SupportedClaims:       append(op.DefaultSupportedClaims, scopeRoles, scopeConnections),
 		DeviceAuthorization:   deviceAuthorization(),
 	}, storage, op.StaticIssuer(cfg.Issuer), options...)
 }

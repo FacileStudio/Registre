@@ -70,6 +70,9 @@ func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *zoidc.User
 	userinfo.Name = user.Name
 	userinfo.Picture = s.pictureFor(user.ID)
 	userinfo.Locale = localeOf(user.Locale)
+	if contains(row.Scopes, scopeConnections) {
+		return s.appendConnections(ctx, userinfo, user.ID)
+	}
 	return nil
 }
 
@@ -113,17 +116,19 @@ func (s *Storage) SetUserinfoFromScopes(
 	if err != nil || !found {
 		return err
 	}
-	if !contains(scopes, scopeRoles) {
-		return nil
+	if contains(scopes, scopeRoles) {
+		roles, err := s.rolesForClient(ctx, userID, clientID)
+		if err != nil {
+			return err
+		}
+		if roles == nil {
+			roles = []string{}
+		}
+		userinfo.AppendClaims(scopeRoles, roles)
 	}
-	roles, err := s.rolesForClient(ctx, userID, clientID)
-	if err != nil {
-		return err
+	if contains(scopes, scopeConnections) {
+		return s.appendConnections(ctx, userinfo, userID)
 	}
-	if roles == nil {
-		roles = []string{}
-	}
-	userinfo.AppendClaims(scopeRoles, roles)
 	return nil
 }
 

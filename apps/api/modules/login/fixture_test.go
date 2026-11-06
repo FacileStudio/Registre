@@ -44,6 +44,13 @@ type fixture struct {
 // ratelimit_test.go; here it would only make the attempt tests flaky.
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
+	return newFixtureWith(t, nil)
+}
+
+// newFixtureWith is newFixture with a hook that configures the service before
+// its routes are mounted.
+func newFixtureWith(t *testing.T, configure func(*Service, *gorm.DB)) *fixture {
+	t.Helper()
 	url, ok := testdb.URL()
 	if !ok {
 		testdb.Announce()
@@ -62,6 +69,9 @@ func newFixture(t *testing.T) *fixture {
 		Challenges: challenges.New(db), Codes: codes,
 		Accounts: accounts.New(db), Cookies: accounts.NewCookies(false),
 	})
+	if configure != nil {
+		configure(service, db)
+	}
 	router := chi.NewRouter()
 	MountWithLimits(router, service, 1000, 1000)
 	server := httptest.NewServer(router)

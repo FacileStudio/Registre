@@ -63,6 +63,12 @@ applications:
     deletion_uri: https://courrier.facile.studio/api/registre/deleted
     visible_roles:
       - admin
+    # login_providers opts this client's login page into social sign-in
+    # buttons. Only discord exists, it needs DISCORD_CLIENT_ID and
+    # DISCORD_CLIENT_SECRET in the environment, and leaving the key out
+    # offers none. Add the connections scope to also receive the linked
+    # Discord id as the connections claim.
+    # login_providers: [discord]
 
   # A public client: no secret, because there is nowhere to keep one. Every
   # copy of a CLI binary carries whatever is compiled into it, so a secret

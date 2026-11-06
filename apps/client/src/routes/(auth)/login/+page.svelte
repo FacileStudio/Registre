@@ -4,6 +4,7 @@
 	import { t } from '$lib/i18n/i18n.svelte';
 	import { getPasskey, passkeysSupported } from '$lib/webauthn';
 	import { signupOpen as isSignupOpen } from '$lib/signup';
+	import { loadProviders, reasonKey, startURL, type SocialProvider } from '$lib/social';
 
 	type Step = 'password' | 'second-factor';
 	type AuthStatus = 'checking' | 'redirecting' | 'handed-off' | 'ready' | 'submitting';
@@ -19,6 +20,7 @@
 	let status = $state<AuthStatus>('checking');
 	let signupOpen = $state(false);
 	let canPasskey = $state(false);
+	let providers = $state<SocialProvider[]>([]);
 
 	/**
 	 * REDIRECTED is what this page says when a sign-in was refused elsewhere and
@@ -74,6 +76,8 @@
 	 */
 	function refusal(reason: string): string {
 		if (!reason) return '';
+		const known = reasonKey(reason);
+		if (known) return t(known);
 		if (!PLAIN_REASON.test(reason)) return t('login.redirected');
 		return reason[0].toUpperCase() + reason.slice(1);
 	}
@@ -84,9 +88,29 @@
 		authRequest = req;
 		error = refusal(query.get('error') ?? '');
 		canPasskey = passkeysSupported();
-		checkSession(req);
 		isSignupOpen().then((open) => (signupOpen = open));
+		loadProviders(req).then((found) => (providers = found));
+		const owed = query.get('challenge') ?? '';
+		if (owed) {
+			resumeSecondFactor(owed);
+			return;
+		}
+		checkSession(req);
 	});
+
+	/**
+	 * resumeSecondFactor opens the code step for a challenge a social sign-in
+	 * minted. The challenge is single use, so it is taken off the address bar
+	 * at once rather than left in history.
+	 */
+	function resumeSecondFactor(owed: string) {
+		challenge = owed;
+		step = 'second-factor';
+		status = 'ready';
+		const clean = new URL(window.location.href);
+		clean.searchParams.delete('challenge');
+		history.replaceState(history.state, '', clean);
+	}
 
 	/**
 	 * signInWithPasskey runs a discoverable assertion: no address to type, the
@@ -258,10 +282,24 @@
 					</p>
 				</div>
 
-				{#if canPasskey}
-					<Button icon={icons.key} onclick={signInWithPasskey} disabled={status === 'submitting'}>
-						{t('login.passkey')}
-					</Button>
+				{#if canPasskey || providers.length > 0}
+					<div class="flex flex-col gap-2">
+						{#if canPasskey}
+							<Button icon={icons.key} onclick={signInWithPasskey} disabled={status === 'submitting'}>
+								{t('login.passkey')}
+							</Button>
+						{/if}
+						{#each providers as provider (provider.name)}
+							<Button
+								variant="outline"
+								icon={provider.icon}
+								onclick={() => redirect(startURL(provider.name, authRequest))}
+								disabled={status === 'submitting'}
+							>
+								{t(provider.label)}
+							</Button>
+						{/each}
+					</div>
 					<div class="flex items-center gap-3 text-fc-xs text-fc-fg-muted">
 						<Divider class="flex-1" />{t('common.or')}<Divider class="flex-1" />
 					</div>

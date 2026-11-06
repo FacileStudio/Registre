@@ -23,6 +23,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
 	"github.com/FacileStudio/Registre/apps/api/internal/seed"
+	"github.com/FacileStudio/Registre/apps/api/internal/social"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
 	"github.com/FacileStudio/Registre/apps/api/internal/web"
 	"github.com/FacileStudio/Registre/apps/api/modules/account"
@@ -88,6 +89,10 @@ func assemble(
 		return nil, err
 	}
 	svc.self = self
+	connections, err := buildSocial(db, cfg, self.flow != nil, svc.log)
+	if err != nil {
+		return nil, err
+	}
 	users := identity.New(db, svc.verifier).WithConsent(self.consents)
 	invitationService := invites.New(db, svc.verifier).WithBreachCheck(self.pwned)
 	deviceFlows := devices.New(db)
@@ -98,7 +103,7 @@ func assemble(
 	storage := oidc.NewStorage(db, oidc.Services{
 		Keys: keyring, Register: register, Users: users,
 		Logout:  logout.New(keyring, register, cfg.Issuer, svc.log),
-		Devices: deviceFlows, Avatars: pictures,
+		Devices: deviceFlows, Avatars: pictures, Connections: connections,
 	}, oidc.Config{
 		Issuer:          cfg.Issuer,
 		AccessTokenTTL:  cfg.AccessTokenTTL,
@@ -137,6 +142,7 @@ func assemble(
 		keyring: keyring, services: svc, root: root,
 		deviceFlows: deviceFlows, verificationURL: verificationURL, pictures: pictures, teams: teams,
 		authorizeURL: provider.AuthorizationEndpoint().Absolute(cfg.Issuer), sessions: sessions, cookies: cookies,
+		social: connections,
 	})
 	avatar.Mount(router, pictures)
 	directory.Mount(router, directory.New(register, teams, svc.log).WithWriter(svc.billing.EntitlementsWriter).
@@ -164,6 +170,7 @@ type people struct {
 	deviceFlows *devices.Service
 	pictures    *avatars.Service
 	teams       *spacesdir.Service
+	social      *social.Service
 	sessions    *accounts.Service
 	cookies     accounts.Cookies
 	root        []byte
@@ -191,7 +198,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 
 	login.Mount(router, login.New(p.users, p.log).
 		WithBrowserConfig(cfg.JournalBrowserURL, cfg.JournalBrowserKey).
-		WithPasskeys(p.self.passkeys).WithSignup(p.self.flow != nil).
+		WithPasskeys(p.self.passkeys).WithSignup(p.self.flow != nil).WithSocial(p.social).
 		WithSecondFactor(login.SecondFactor{
 			Challenges: pending,
 			Codes:      factors,

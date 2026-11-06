@@ -196,6 +196,20 @@ Sign-up serves only when `SIGNUP_ENABLED` is true, the key is long enough and SM
 the boot log names which condition is missing. Passkey sign-in, passkey management, consent, the
 legal pages and GDPR export and deletion work whether or not sign-up is open.
 
+## Social sign-in
+
+| Variable | Default | What it decides |
+|---|---|---|
+| `DISCORD_CLIENT_ID` | unset | The Discord application's client ID |
+| `DISCORD_CLIENT_SECRET` | unset | The application's client secret. One without the other refuses boot; both empty turns Discord off everywhere |
+
+The redirect URI to register in the Discord Developer Portal (OAuth2) is
+`<REGISTRE_ISSUER>/api/login/social/discord/callback`. The scopes requested are `identify email`.
+A client shows the button only when its seed entry carries `login_providers: [discord]`; the
+account page lists the provider only when at least one enabled client does. A Discord email the
+provider has not verified neither matches nor creates an account, and a sign-in that would create
+one is refused while public sign-up is closed.
+
 The legal texts live in `apps/api/modules/legal/content/<document>.<lang>.md` and their versions in
 `apps/api/internal/consent`. Changing a version is how everyone is asked to accept again at their
 next sign-in. The texts are drafts; `LEGAL_TODO.md` lists what a lawyer must fill in.

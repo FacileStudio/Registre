@@ -74,6 +74,15 @@ SMTP, because every account starts with an emailed link.
 | `WEBAUTHN_ORIGINS` | issuer origin | Comma-separated exact origins passkeys may answer from, on the RP ID's domain, `https` |
 | `HIBP_ENABLED` | `true` | Screens new passwords against Have I Been Pwned (5-character SHA-1 prefix only, 3 s timeout, skipped on outage) |
 
+"Continue with Discord" shows only on the login of a client whose seed entry lists
+`login_providers: [discord]`, and only when both variables below are set. Register
+`<issuer>/api/login/social/discord/callback` as the redirect URI of the Discord application.
+
+| Variable | Default | What it decides |
+|---|---|---|
+| `DISCORD_CLIENT_ID` | unset | The Discord application's client ID. Set with the secret or not at all |
+| `DISCORD_CLIENT_SECRET` | unset | The Discord application's client secret. Server side only |
+
 `OIDC_ISSUER` stays `https://sso.facile.studio` for every consuming app — the hostname was
 deliberately made product-neutral so registre could move in behind it without any app changing a
 variable.

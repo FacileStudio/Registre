@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
+	"github.com/FacileStudio/Registre/apps/api/internal/social"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
 	zoidc "github.com/zitadel/oidc/v3/pkg/oidc"
@@ -105,6 +107,12 @@ func (a Application) validate(where string) error {
 	if err != nil {
 		return fmt.Errorf("%s (%s): %w", where, a.ClientID, err)
 	}
+	for _, provider := range a.LoginProviders {
+		if !social.IsKnown(provider) {
+			return fmt.Errorf("%s (%s): login_providers: %q is not one of %s",
+				where, a.ClientID, provider, strings.Join(social.Known, ", "))
+		}
+	}
 	if contains(grants, grantAliases[redirectingGrant]) && len(a.RedirectURIs) == 0 {
 		return fmt.Errorf("%s (%s): at least one redirect URI is required — "+
 			"an application that cannot state where its login returns to cannot be sent anywhere safely",
@@ -194,6 +202,7 @@ func (a Application) row(ctx context.Context, register *clients.Service) (schema
 		DirectorySyncURI:     a.DirectorySyncURI,
 		DeletionURI:          a.DeletionURI,
 		VisibleRoles:         schemas.StringList(a.VisibleRoles),
+		LoginProviders:       schemas.StringList(a.LoginProviders),
 		TokenExchange:        a.exchangeGrants(),
 		Managed:              true,
 	}, nil

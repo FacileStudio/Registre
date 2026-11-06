@@ -17,6 +17,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/limits"
 	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
+	"github.com/FacileStudio/Registre/apps/api/internal/social"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
@@ -43,6 +44,7 @@ type Service struct {
 	factor   SecondFactor
 	passkeys *passkeys.Service
 	signup   bool
+	social   *social.Service
 }
 
 // New builds the login service over identity.
@@ -93,6 +95,9 @@ func MountWithLimits(router chi.Router, service *Service, limit float64, burst i
 	router.With(budget, csrf).Post("/api/login/totp", service.jsonSecondFactor)
 	router.With(budget).Post("/api/login/passkey/begin", service.beginPasskey)
 	router.With(budget, csrf).Post("/api/login/passkey/finish", service.finishPasskey)
+	router.With(budget).Get("/api/login/providers", service.providers)
+	router.With(budget).Get("/api/login/social/{provider}/start", service.socialStart)
+	router.With(budget).Get("/api/login/social/{provider}/callback", service.socialCallback)
 	router.Get("/api/login/session", service.sessionLogin)
 	router.Post("/api/login/session", service.sessionLogin)
 	router.Get("/api/config", service.browserConfig)

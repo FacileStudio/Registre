@@ -6,6 +6,26 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Sign in with Discord. A client opts in with `login_providers: [discord]` in the seed, and only
+  then does its login page show "Continue with Discord". Registre sends the browser to Discord
+  (authorization code with PKCE S256, `identify email`), takes it back at
+  `/api/login/social/discord/callback`, and resolves the profile: a linked Discord account signs
+  its user in; a verified Discord email equal to an existing address links to that account; any
+  other verified email creates a passwordless account, only while public sign-up is open. A
+  disabled user is refused, and an account with two-step sign-in still owes the code
+  (`/login?auth_request=&challenge=`). The state is stored hashed, single use, and bound to the
+  browser by an HttpOnly cookie. `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` turn it on, both
+  or neither
+- `connections` scope and claim: `{"discord": "<discord user id>"}` in the ID token and userinfo
+  when the scope is granted, so an app can map a Discord member to its account
+- Account page "Connections" (security tab): link and unlink a Discord account behind a fresh
+  factor; an unlink that would leave no password, passkey or other linked account is refused. The
+  section lists only providers a client opted into
+- Migration `00018_social.sql`: `social_identities`, `social_states` and `clients.login_providers`
+- Seed: `place` opts into Discord and asks for the `connections` scope
+
 ## [0.5.1] - 2026-11-06
 
 ### Security

@@ -86,6 +86,11 @@ type Client struct {
 
 	AccessTokenTTL int64
 
+	// LoginProviders names the social providers whose button this client's
+	// login page shows, such as discord. Empty is the default and means a
+	// password or passkey only: a provider is opt-in per client.
+	LoginProviders StringList `gorm:"type:jsonb"`
+
 	// AccessPolicy decides who may sign in to an application: AccessEveryone
 	// admits every enabled user, AccessAssigned only users holding an
 	// AppGrant for it. The seed never writes it, so an operator's choice

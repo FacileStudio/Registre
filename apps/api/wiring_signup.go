@@ -99,12 +99,14 @@ func accountSelf(cfg env.Config, p people) account.SelfService {
 		cutoff := time.Now().UTC().Add(-time.Hour)
 		purge(ctx, p.log, p.self.passkeys.Purge, cutoff)
 		purge(ctx, p.log, p.teams.PurgeInvitations, cutoff)
+		purge(ctx, p.log, p.social.PurgeExpired, cutoff)
 		if p.self.flow != nil {
 			purge(ctx, p.log, p.self.flow.Purge, cutoff)
 		}
 	})
 	return account.SelfService{
 		Passkeys: p.self.passkeys, Consents: p.self.consents, Rights: rights, Audit: p.self.audit, Pwned: p.self.pwned,
+		Social: p.social,
 	}
 }
 

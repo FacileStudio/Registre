@@ -319,6 +319,20 @@ origin is exactly `https://checkout.stripe.com` or `https://billing.stripe.com`.
 drawn as "billing unavailable" and answers 502 to a write. Registre caches the catalog for 60 s,
 and the three plan routes share a per-person budget of one request a second with a burst of 20.
 
+**A client may offer "Continue with Discord", and nobody else sees it.** `clients.login_providers`
+(seed key `login_providers`, validated against the providers the build knows) is the opt-in:
+`GET /api/login/providers?auth_request=` answers only what the request's client named and the
+deployment has credentials for. `GET /api/login/social/{provider}/start` records a state (stored
+as SHA-256, single use, ten minutes, a PKCE verifier beside it) and sets it as an HttpOnly Lax
+cookie; the callback spends it only for the browser holding that cookie. The profile resolves in
+order: a linked `(provider, subject)` signs that user in; a provider-verified email equal to an
+existing address links to that account; any other verified email creates a passwordless account,
+only while public sign-up is open. Disabled users are refused, and an account with a confirmed
+second factor gets the same challenge a password login would. The `connections` scope adds the
+claim `connections` = `{"discord": "<id>"}` to the ID token and userinfo, an empty object when
+nothing is linked. Unlinking is refused when it would leave no password, passkey or other linked
+account.
+
 **Anyone may create a Facile account, when the owner allows it.** With `SIGNUP_ENABLED` on,
 `/signup` takes an address and an ALTCHA proof of work. `POST /api/signup/start` verifies the
 solution with the official `altcha-lib-go` in constant time, insists on a signed expiry no further
