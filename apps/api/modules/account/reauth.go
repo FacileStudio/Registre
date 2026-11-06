@@ -95,7 +95,7 @@ func (s *Service) finishReauthPasskey(w http.ResponseWriter, r *http.Request) {
 // markFresh stamps the session as freshly reauthenticated.
 func (s *Service) markFresh(w http.ResponseWriter, r *http.Request) {
 	_, session := accounts.Holder(r.Context())
-	if err := s.sessions.MarkReauthenticated(r.Context(), session.ID); err != nil {
+	if err := s.sessions.MarkFactorProven(r.Context(), session.ID); err != nil {
 		serverError(w, err)
 		return
 	}

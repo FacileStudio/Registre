@@ -68,6 +68,9 @@ func (s *Service) signIn(r *http.Request, w http.ResponseWriter, created flow.Cr
 	if err != nil {
 		return "", err
 	}
+	if err := s.Sessions.MarkFactorProven(ctx, sessionID); err != nil {
+		return "", err
+	}
 	s.Cookies.Write(w, token)
 	if !carried {
 		return "/", nil

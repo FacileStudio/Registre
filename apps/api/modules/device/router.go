@@ -32,8 +32,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
-
-	troncmiddleware "github.com/FacileStudio/tronc/middleware"
+	"github.com/FacileStudio/Registre/apps/api/internal/limits"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -113,9 +112,7 @@ func Mount(router chi.Router, service *Service) {
 // session, so guarding it on one would 401 exactly the people it exists for.
 // It is still inside the budget, and it still reads nothing from the request.
 func MountWithLimits(router chi.Router, service *Service, limit float64, burst int) {
-	budget := troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
-		Limit: limit, Burst: burst,
-	})
+	budget := limits.PerAddress(limit, burst)
 	router.Route("/api/device", func(verify chi.Router) {
 		verify.Use(budget, service.guard.CSRF)
 		verify.Get("/authenticate", service.authenticate)

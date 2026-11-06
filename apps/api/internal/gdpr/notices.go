@@ -12,7 +12,7 @@ import (
 // Notice delivery. A push that fails is retried after five minutes, then
 // twice as long each time up to a day, at most MaxAttempts times; the row
 // stays listable at GET /api/directory/deletions for NoticeRetention either
-// way, which is how an app with no sync URI, or one that was down for a
+// way, which is how an app with no deletion URI, or one that was down for a
 // week, still learns.
 const (
 	MaxAttempts     = 12
@@ -48,16 +48,18 @@ func queueNotices(tx *gorm.DB, subject string) error {
 	return nil
 }
 
-// DeliverNotices pushes every due notice to its app's sync URI.
+// DeliverNotices pushes every due notice to its app's deletion URI. Never
+// the sync URI: a sync handler answers 202 to any POST, so a notice sent
+// there would be counted delivered and erase nothing.
 func (s *Service) DeliverNotices(ctx context.Context) {
 	if s.Notifier == nil {
 		return
 	}
 	var due []pendingNotice
-	err := s.DB.WithContext(ctx).Raw(`SELECT n.id, n.client_id, n.subject, n.attempts, c.directory_sync_uri AS uri
+	err := s.DB.WithContext(ctx).Raw(`SELECT n.id, n.client_id, n.subject, n.attempts, c.deletion_uri AS uri
 		FROM deletion_notices n JOIN clients c ON c.client_id = n.client_id
 		WHERE n.delivered_at IS NULL AND n.next_attempt_at <= ? AND n.attempts < ?
-		  AND c.directory_sync_uri <> '' AND c.disabled_at IS NULL
+		  AND c.deletion_uri <> '' AND c.disabled_at IS NULL
 		ORDER BY n.id LIMIT 200`, s.now(), MaxAttempts).Scan(&due).Error
 	if err != nil {
 		s.Logger.Error("registre: read due deletion notices", slog.Any("error", err))

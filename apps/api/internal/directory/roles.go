@@ -30,8 +30,12 @@ func (s *Service) SetRole(ctx context.Context, actorID, spaceID, targetID, role 
 				return err
 			}
 		}
-		return tx.Model(&schemas.SpaceMember{}).
+		err = tx.Model(&schemas.SpaceMember{}).
 			Where("space_id = ? AND user_id = ?", spaceID, targetID).Update("role", role).Error
+		if err != nil {
+			return err
+		}
+		return s.pruneInvitations(tx, spaceID, targetID, role)
 	})
 }
 
@@ -82,7 +86,10 @@ func (s *Service) drop(tx *gorm.DB, spaceID, userID, role string) error {
 			return err
 		}
 	}
-	return tx.Where("space_id = ? AND user_id = ?", spaceID, userID).Delete(&schemas.SpaceMember{}).Error
+	if err := tx.Where("space_id = ? AND user_id = ?", spaceID, userID).Delete(&schemas.SpaceMember{}).Error; err != nil {
+		return err
+	}
+	return s.pruneInvitations(tx, spaceID, userID, "")
 }
 
 // mustRole reads a role already proven to exist inside the same transaction.

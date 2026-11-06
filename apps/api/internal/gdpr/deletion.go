@@ -4,9 +4,11 @@
 //
 // Erasure ends every session, deletes the account and every row keyed on it,
 // then tells each app: a back-channel logout to the apps the sessions reached
-// and a signed user.deleted notice to every app's sync URI, which asks the
-// app to erase what it holds within thirty days. The audit row it leaves
-// names only the subject, which is a random id.
+// and a deletion notice per app, pushed as a signed user.deleted event to
+// each app's deletion URI and listable at GET /api/directory/deletions,
+// which asks the app to erase what it holds within thirty days. The audit
+// trail keeps only the subject, a random id: erasure scrubs the address
+// from every admin_events row that recorded it.
 //
 // It owns no routes; modules/account does.
 package gdpr

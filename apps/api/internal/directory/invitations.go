@@ -19,11 +19,13 @@ import (
 const InvitationTTL = 14 * 24 * time.Hour
 
 // MaxMailsPerRecipient caps the invitation mails one address receives in a
-// day, whoever sends them, and MaxMailsPerHour the invitation mails the whole
+// day, whoever sends them, MaxMailsPerInviter the mails one person's
+// invitations send in a day, and MaxMailsPerHour the invitation mails the whole
 // instance sends in an hour. Past either cap the invitation is still written
 // and answered the same way; only the mail is skipped.
 const (
 	MaxMailsPerRecipient = 3
+	MaxMailsPerInviter   = 20
 	MaxMailsPerHour      = 200
 )
 

@@ -37,6 +37,7 @@ type clientView struct {
 	RedirectURIs         []string `json:"redirect_uris,omitempty"`
 	VisibleRoles         []string `json:"visible_roles,omitempty"`
 	BackchannelLogoutURI string   `json:"backchannel_logout_uri,omitempty"`
+	DeletionURI          string   `json:"deletion_uri,omitempty"`
 
 	AccessPolicy string `json:"access_policy"`
 
@@ -50,7 +51,8 @@ func viewClient(row schemas.Client) clientView {
 		ClientID: row.ClientID, Subject: row.Subject, Name: row.Name, Kind: row.Kind,
 		GrantTypes: row.GrantTypes, Scopes: row.Scopes, Audiences: row.Audiences,
 		RedirectURIs: row.RedirectURIs, VisibleRoles: row.VisibleRoles,
-		BackchannelLogoutURI: row.BackchannelLogoutURI, Managed: row.Managed, AccessPolicy: row.AccessPolicy,
+		BackchannelLogoutURI: row.BackchannelLogoutURI, DeletionURI: row.DeletionURI,
+		Managed: row.Managed, AccessPolicy: row.AccessPolicy,
 		CreatedAt: row.CreatedAt.UTC().Format(timeFormat),
 	}
 	if row.DisabledAt != nil {
@@ -139,6 +141,8 @@ func (s *Service) updateClient(w http.ResponseWriter, r *http.Request) {
 	decl := body.declaration()
 	decl.Managed = existing.Managed
 	decl.Subject = existing.Subject
+	decl.DirectorySyncURI = existing.DirectorySyncURI
+	decl.TokenExchange = existing.TokenExchange
 	row, err := s.register.Upsert(r.Context(), decl)
 	if err != nil {
 		serverError(w, err)

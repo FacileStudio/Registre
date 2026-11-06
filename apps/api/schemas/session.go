@@ -31,9 +31,11 @@ type Session struct {
 	// table where most rows never carry a cookie, not correctness.
 	TokenHash *string `gorm:"uniqueIndex"`
 
-	// ReauthenticatedAt is the last time the holder proved a factor again
-	// inside this session, which sensitive account changes require.
-	ReauthenticatedAt *time.Time
+	// FactorProvenAt is the last time the holder proved a factor in this
+	// session: at sign-in (every factor the account owes) or by
+	// reauthenticating. A session reissued after a password change does not
+	// set it, so sensitive changes cannot inherit freshness from a new row.
+	FactorProvenAt *time.Time
 
 	CreatedAt time.Time
 	EndedAt   *time.Time

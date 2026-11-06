@@ -25,11 +25,10 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
+	"github.com/FacileStudio/Registre/apps/api/internal/limits"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
 
 	"github.com/go-chi/chi/v5"
-
-	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 )
 
 // DefaultRedeemLimit and DefaultRedeemBurst match the login endpoint's
@@ -96,9 +95,7 @@ func New(deps Services, logger *slog.Logger) *Service {
 // public and gets the same budget.
 func Mount(router chi.Router, service *Service) {
 	router.Route("/api/admin", func(admin chi.Router) {
-		admin.Use(troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
-			Limit: DefaultRedeemLimit, Burst: DefaultRedeemBurst,
-		}))
+		admin.Use(limits.PerAddress(DefaultRedeemLimit, DefaultRedeemBurst))
 		admin.Use(service.requireOperator)
 		admin.Get("/clients", service.listClients)
 		admin.Post("/clients", service.createClient)
@@ -127,7 +124,5 @@ func Mount(router chi.Router, service *Service) {
 		admin.Post("/invites", service.inviteUser)
 		admin.Get("/keys", service.keyStatus)
 	})
-	router.With(troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
-		Limit: DefaultRedeemLimit, Burst: DefaultRedeemBurst,
-	})).Post("/api/invites/redeem", service.redeemInvite)
+	router.With(limits.PerAddress(DefaultRedeemLimit, DefaultRedeemBurst)).Post("/api/invites/redeem", service.redeemInvite)
 }

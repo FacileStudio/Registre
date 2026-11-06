@@ -60,7 +60,7 @@ func (s *Service) BeginPasskey(ctx context.Context, token string) (passkeys.Opti
 	if err != nil {
 		return passkeys.Options{}, fmt.Errorf("signup: mint a subject: %w", err)
 	}
-	return s.Passkeys.BeginRegistration(ctx, passkeys.PurposeSignup, subject, row.Email)
+	return s.Passkeys.BeginRegistration(ctx, passkeys.PurposeSignup, subject, row.Email, row.ID)
 }
 
 // Finish validates the form, proves the chosen factor and creates the
@@ -69,10 +69,11 @@ func (s *Service) Finish(ctx context.Context, in Account) (Created, error) {
 	if err := validate(in); err != nil {
 		return Created{}, err
 	}
-	if _, err := s.live(ctx, s.DB, in.Token); err != nil {
+	link, err := s.live(ctx, s.DB, in.Token)
+	if err != nil {
 		return Created{}, err
 	}
-	user, registered, err := s.factor(ctx, in)
+	user, registered, err := s.factor(ctx, in, link.ID)
 	if err != nil {
 		return Created{}, err
 	}
@@ -94,14 +95,18 @@ func (s *Service) Finish(ctx context.Context, in Account) (Created, error) {
 
 // factor proves the passkey or screens and hashes the password, and answers
 // the account row to create with its subject and credential set.
-func (s *Service) factor(ctx context.Context, in Account) (schemas.User, *passkeys.Registered, error) {
+//
+// A passkey must come from a ceremony begun for this very link: a ceremony
+// begun on another link is refused, so one person's link cannot carry a
+// passkey registered under someone else's address.
+func (s *Service) factor(ctx context.Context, in Account, linkID string) (schemas.User, *passkeys.Registered, error) {
 	now := s.now()
 	user := schemas.User{
 		Name: strings.TrimSpace(in.Name), Locale: in.Locale,
 		EmailVerified: true, EmailVerifiedAt: &now, CreatedAt: now, UpdatedAt: now,
 	}
 	if in.Ceremony != "" {
-		registered, err := s.Passkeys.FinishRegistration(ctx, in.Ceremony, passkeys.PurposeSignup, in.Credential)
+		registered, err := s.Passkeys.FinishRegistration(ctx, in.Ceremony, passkeys.PurposeSignup, linkID, in.Credential)
 		if err != nil {
 			return user, nil, err
 		}

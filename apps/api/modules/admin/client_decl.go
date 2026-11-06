@@ -17,6 +17,7 @@ type newClient struct {
 	RedirectURIs         []string `json:"redirect_uris"`
 	VisibleRoles         []string `json:"visible_roles"`
 	BackchannelLogoutURI string   `json:"backchannel_logout_uri"`
+	DeletionURI          string   `json:"deletion_uri"`
 }
 
 func (c newClient) invalid() (string, bool) {
@@ -35,7 +36,7 @@ func (c newClient) invalid() (string, bool) {
 	default:
 		return "kind must be service_account or application", false
 	}
-	if bad, ok := firstBadURI(append(c.RedirectURIs, c.BackchannelLogoutURI)); !ok {
+	if bad, ok := firstBadURI(append(c.RedirectURIs, c.BackchannelLogoutURI, c.DeletionURI)); !ok {
 		return "not an absolute http or https URL: " + bad, false
 	}
 	return c.grantsFit()
@@ -85,6 +86,7 @@ func (c newClient) declaration() schemas.Client {
 		VisibleRoles: schemas.StringList(c.VisibleRoles),
 
 		BackchannelLogoutURI: c.BackchannelLogoutURI,
+		DeletionURI:          c.DeletionURI,
 	}
 }
 

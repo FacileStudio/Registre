@@ -53,7 +53,7 @@ func (s *Service) beginPasskey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user := holder(r.Context())
-	options, err := s.self.Passkeys.BeginRegistration(r.Context(), passkeys.PurposeRegister, user.ID, user.Email)
+	options, err := s.self.Passkeys.BeginRegistration(r.Context(), passkeys.PurposeRegister, user.ID, user.Email, "")
 	if err != nil {
 		serverError(w, err)
 		return
@@ -69,7 +69,7 @@ func (s *Service) finishPasskey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user := holder(r.Context())
-	registered, err := s.self.Passkeys.FinishRegistration(r.Context(), body.Ceremony, passkeys.PurposeRegister, body.Credential)
+	registered, err := s.self.Passkeys.FinishRegistration(r.Context(), body.Ceremony, passkeys.PurposeRegister, "", body.Credential)
 	if err == nil && registered.UserID != user.ID {
 		err = passkeys.ErrInvalid
 	}

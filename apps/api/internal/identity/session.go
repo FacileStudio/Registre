@@ -126,3 +126,11 @@ func (s *Service) EndSessions(ctx context.Context, userID string, at time.Time) 
 	}
 	return clients, nil
 }
+
+// DropSession deletes a session that never reached anyone, such as one opened
+// for a login an access policy then refused. Leaving it would be a live
+// session row with no cookie and no app, which back-channel logout would
+// later announce for nothing. Failure is ignored: the row expires anyway.
+func (s *Service) DropSession(ctx context.Context, sessionID string) {
+	_ = s.db.WithContext(ctx).Where("id = ? AND token_hash IS NULL", sessionID).Delete(&schemas.Session{}).Error
+}

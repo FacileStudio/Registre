@@ -14,24 +14,22 @@ import (
 // of its own or erase the account.
 const ReauthWindow = 10 * time.Minute
 
-// Fresh reports whether the session proved a factor within ReauthWindow,
-// either when it was opened or by reauthenticating since.
+// Fresh reports whether the session proved a factor within ReauthWindow. It
+// reads FactorProvenAt only, never the session's creation time: a session
+// opened without every factor (one reissued after a password change) is not
+// fresh however new it is.
 func (s *Service) Fresh(session schemas.Session) bool {
-	cutoff := s.now().Add(-ReauthWindow)
-	if session.CreatedAt.After(cutoff) {
-		return true
-	}
-	return session.ReauthenticatedAt != nil && session.ReauthenticatedAt.After(cutoff)
+	return session.FactorProvenAt != nil && session.FactorProvenAt.After(s.now().Add(-ReauthWindow))
 }
 
-// MarkReauthenticated records that the holder of sessionID just proved a
-// factor again.
-func (s *Service) MarkReauthenticated(ctx context.Context, sessionID string) error {
+// MarkFactorProven records that the holder of sessionID just proved every
+// factor the account owes: at sign-in, or by reauthenticating.
+func (s *Service) MarkFactorProven(ctx context.Context, sessionID string) error {
 	err := s.db.WithContext(ctx).Model(&schemas.Session{}).
 		Where("id = ? AND ended_at IS NULL", sessionID).
-		Update("reauthenticated_at", s.now()).Error
+		Update("factor_proven_at", s.now()).Error
 	if err != nil {
-		return fmt.Errorf("accounts: record the reauthentication: %w", err)
+		return fmt.Errorf("accounts: record the proven factor: %w", err)
 	}
 	return nil
 }

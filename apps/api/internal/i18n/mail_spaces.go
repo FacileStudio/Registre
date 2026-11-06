@@ -1,24 +1,27 @@
 package i18n
 
 // spaceInvite is the notice to a person who has an account and was invited
-// into a space. vars: inviter, space, role.
+// into a space. It carries no text anyone typed, neither the inviter's name
+// nor the space's: the person reads who invited them, to what and as what on
+// their spaces page, signed in, where the words cannot be passed off as
+// Facile's own.
 func spaceInvite() map[string]mailText {
 	return map[string]mailText{
-		"en": {"You are invited to a Facile space", []string{
-			"{inviter} invited you to join the space \"{space}\" as {role}.",
-			"Nothing changes until you accept. Accept or decline from your spaces page; the invitation expires in 14 days.",
+		"en": {"You have a new invitation on Facile", []string{
+			"Someone invited you to join a shared space on Facile.",
+			"Open your spaces page to see who sent it and to accept or decline. Nothing changes until you accept; the invitation expires in 14 days.",
 		}, "Open my spaces"},
-		"fr": {"Vous êtes invité dans un espace Facile", []string{
-			"{inviter} vous invite à rejoindre l'espace « {space} » en tant que {role}.",
-			"Rien ne change tant que vous n'acceptez pas. Acceptez ou refusez depuis la page de vos espaces ; l'invitation expire dans 14 jours.",
+		"fr": {"Vous avez une nouvelle invitation sur Facile", []string{
+			"Quelqu'un vous invite à rejoindre un espace partagé sur Facile.",
+			"Ouvrez la page de vos espaces pour voir qui l'a envoyée, puis acceptez ou refusez. Rien ne change tant que vous n'acceptez pas ; l'invitation expire dans 14 jours.",
 		}, "Ouvrir mes espaces"},
-		"es": {"Te han invitado a un espacio Facile", []string{
-			"{inviter} te invitó a unirte al espacio «{space}» como {role}.",
-			"Nada cambia hasta que aceptes. Acepta o rechaza desde la página de tus espacios; la invitación caduca en 14 días.",
+		"es": {"Tienes una nueva invitación en Facile", []string{
+			"Alguien te invitó a unirte a un espacio compartido de Facile.",
+			"Abre la página de tus espacios para ver quién la envió y aceptarla o rechazarla. Nada cambia hasta que aceptes; la invitación caduca en 14 días.",
 		}, "Abrir mis espacios"},
-		"de": {"Du wurdest in einen Facile-Bereich eingeladen", []string{
-			"{inviter} hat dich eingeladen, dem Bereich „{space}“ als {role} beizutreten.",
-			"Nichts ändert sich, bis du annimmst. Nimm die Einladung auf deiner Bereichsseite an oder lehne sie ab; sie läuft in 14 Tagen ab.",
+		"de": {"Du hast eine neue Einladung auf Facile", []string{
+			"Jemand hat dich eingeladen, einem geteilten Bereich auf Facile beizutreten.",
+			"Öffne deine Bereichsseite, um zu sehen, wer sie gesendet hat, und sie anzunehmen oder abzulehnen. Nichts ändert sich, bis du annimmst; die Einladung läuft in 14 Tagen ab.",
 		}, "Meine Bereiche öffnen"},
 	}
 }
