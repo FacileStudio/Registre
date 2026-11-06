@@ -66,6 +66,13 @@ type Client struct {
 	// its next interval. Empty means the app only pulls on its own clock.
 	DirectorySyncURI string
 
+	// DeletionURI is where registre pushes the signed user.deleted event
+	// (SPEC §6) when an account is erased. It is deliberately not the sync
+	// URI: a sync handler answers any POST with 202 and only schedules a
+	// pull, so a push there looks delivered and erases nothing. Empty means
+	// the app learns of erasures by polling GET /api/directory/deletions.
+	DeletionURI string
+
 	// VisibleRoles is the whitelist of roles this app may see in its
 	// tokens' roles claim. The default is deliberately none: a new client
 	// must ask for role visibility, rather than every app silently

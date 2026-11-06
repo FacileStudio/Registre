@@ -214,3 +214,79 @@ func TestRefreshingAnInvitationCannotBypassTheMailCap(t *testing.T) {
 		t.Fatalf("10 refreshes of one invitation sent %d mails, want %d", sent, MaxMailsPerRecipient)
 	}
 }
+
+// TestAnInvitationIsOnlyAsGoodAsItsSender withdraws a removed or demoted
+// inviter's pending invitations, and refuses one whose sender lost the rank.
+func TestAnInvitationIsOnlyAsGoodAsItsSender(t *testing.T) {
+	w := invitationWorld(t, false)
+	ctx := context.Background()
+	owner, eve := w.sub["owner@facile.studio"], w.sub["eve@facile.studio"]
+	if err := join(ctx, w.svc, joining{owner, w.spaceID, "eve@facile.studio", "admin", eve}); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.svc.Invite(ctx, eve, w.spaceID, "bob@facile.studio", "admin"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.svc.SetRole(ctx, owner, w.spaceID, eve, "member"); err != nil {
+		t.Fatal(err)
+	}
+	if mine, _ := w.svc.Invited(ctx, w.sub["bob@facile.studio"]); len(mine) != 0 {
+		t.Fatalf("a demoted inviter's invitation survived: %+v", mine)
+	}
+
+	if err := w.svc.SetRole(ctx, owner, w.spaceID, eve, "admin"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.svc.Invite(ctx, eve, w.spaceID, "bob@facile.studio", "admin"); err != nil {
+		t.Fatal(err)
+	}
+	w.svc.db.Exec("UPDATE space_members SET role = 'member' WHERE user_id = ?", eve)
+	mine, _ := w.svc.Invited(ctx, w.sub["bob@facile.studio"])
+	if len(mine) != 1 {
+		t.Fatalf("bob has %d invitations, want 1", len(mine))
+	}
+	if _, err := w.svc.Accept(ctx, w.sub["bob@facile.studio"], mine[0].ID); !errors.Is(err, ErrInvitationNotFound) {
+		t.Fatalf("accepting from a sender who lost the rank = %v, want ErrInvitationNotFound", err)
+	}
+
+	w.svc.db.Exec("UPDATE space_members SET role = 'admin' WHERE user_id = ?", eve)
+	if err := w.svc.Invite(ctx, eve, w.spaceID, "bob@facile.studio", "member"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.svc.RemoveMember(ctx, owner, w.spaceID, eve); err != nil {
+		t.Fatal(err)
+	}
+	if mine, _ := w.svc.Invited(ctx, w.sub["bob@facile.studio"]); len(mine) != 0 {
+		t.Fatalf("a removed inviter's invitation survived: %+v", mine)
+	}
+}
+
+// TestInvitationMailCarriesNoSenderTextAndIsCappedPerInviter.
+func TestInvitationMailCarriesNoSenderTextAndIsCappedPerInviter(t *testing.T) {
+	w := invitationWorld(t, true)
+	ctx := context.Background()
+	owner := w.sub["owner@facile.studio"]
+	w.svc.db.Exec("UPDATE users SET name = 'Eve <script>' WHERE id = ?", owner)
+	w.svc.db.Exec("UPDATE spaces SET name = 'Click http://evil.example' WHERE id = ?", w.spaceID)
+	if err := w.svc.Invite(ctx, owner, w.spaceID, "bob@facile.studio", "member"); err != nil {
+		t.Fatal(err)
+	}
+	for _, leak := range []string{"Eve", "evil.example", "owner@facile.studio"} {
+		if strings.Contains(w.mails.bodies["bob@facile.studio"], leak) {
+			t.Fatalf("the invitation mail carries %q: %s", leak, w.mails.bodies["bob@facile.studio"])
+		}
+	}
+	sent := 1
+	for i := 0; i < MaxMailsPerInviter+5; i++ {
+		address := "stranger" + string(rune('a'+i)) + "@example.com"
+		if err := w.svc.Invite(ctx, owner, w.spaceID, address, "member"); err != nil {
+			t.Fatalf("invite %d: %v", i, err)
+		}
+		if w.mails.to(address) != "" {
+			sent++
+		}
+	}
+	if sent != MaxMailsPerInviter {
+		t.Fatalf("one inviter sent %d mails in a day, want %d", sent, MaxMailsPerInviter)
+	}
+}

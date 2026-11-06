@@ -63,6 +63,7 @@ func newFixture(t *testing.T) fixture {
 	Mount(router, New(Services{
 		Sessions: sessions, TOTP: factors, Users: users, Passwords: verifier,
 		DB: db, Cookies: cookies, Issuer: "registre", Avatars: avatars.New(db, "https://registre"),
+		Self: SelfService{Passkeys: keysFor(t, db)},
 	}, slog.New(slog.DiscardHandler)))
 
 	ctx := context.Background()

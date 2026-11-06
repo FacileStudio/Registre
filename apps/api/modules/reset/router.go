@@ -15,11 +15,10 @@ package reset
 import (
 	"log/slog"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/limits"
 	"github.com/FacileStudio/Registre/apps/api/internal/recovery"
 
 	"github.com/go-chi/chi/v5"
-
-	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 )
 
 // DefaultLimit and DefaultBurst are the per-address budget both routes get.
@@ -53,9 +52,7 @@ func Mount(router chi.Router, service *Service) {
 // Tests use it to reach the limiter without hammering the real default.
 func MountWithLimits(router chi.Router, service *Service, limit float64, burst int) {
 	router.Group(func(routes chi.Router) {
-		routes.Use(troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
-			Limit: limit, Burst: burst,
-		}))
+		routes.Use(limits.PerAddress(limit, burst))
 		routes.Post("/api/recover", service.request)
 		routes.Post("/api/recover/reset", service.redeem)
 	})

@@ -12,13 +12,13 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/access"
+	"github.com/FacileStudio/Registre/apps/api/internal/accounts"
 	"github.com/FacileStudio/Registre/apps/api/internal/challenges"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
+	"github.com/FacileStudio/Registre/apps/api/internal/limits"
 	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
-
-	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 )
 
 // DefaultLoginLimit and DefaultLoginBurst are the budget one source address
@@ -81,14 +81,18 @@ func (s *Service) WithBrowserConfig(url, key string) *Service {
 // on a single per-address budget. A second-factor endpoint with a budget of
 // its own is where a guesser moves once the password endpoint is throttled,
 // and six digits is a far smaller space than a password.
+//
+// Every route that can finish a sign-in also wants X-Facile-CSRF, which no
+// cross-site page can set without a preflight registre never answers. A
+// login a third-party page can submit is a login CSRF: it signs the victim
+// in to the attacker's account and finishes the attacker's flow with it.
 func MountWithLimits(router chi.Router, service *Service, limit float64, burst int) {
-	budget := troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
-		Limit: limit, Burst: burst,
-	})
-	router.With(budget).Post("/api/login", service.jsonSubmit)
-	router.With(budget).Post("/api/login/totp", service.jsonSecondFactor)
+	budget := limits.PerAddress(limit, burst)
+	csrf := accounts.NewGuard(nil, accounts.Cookies{}).CSRF
+	router.With(budget, csrf).Post("/api/login", service.jsonSubmit)
+	router.With(budget, csrf).Post("/api/login/totp", service.jsonSecondFactor)
 	router.With(budget).Post("/api/login/passkey/begin", service.beginPasskey)
-	router.With(budget).Post("/api/login/passkey/finish", service.finishPasskey)
+	router.With(budget, csrf).Post("/api/login/passkey/finish", service.finishPasskey)
 	router.Get("/api/login/session", service.sessionLogin)
 	router.Post("/api/login/session", service.sessionLogin)
 	router.Get("/api/config", service.browserConfig)
@@ -217,6 +221,7 @@ func (s *Service) complete(
 	completed := s.identity.Complete(ctx, authReq.ID, userID, sessionID, s.now())
 	owesConsent := errors.Is(completed, identity.ErrConsentRequired)
 	if completed != nil && !owesConsent {
+		s.identity.DropSession(ctx, sessionID)
 		return "", fmt.Errorf("identity: complete the login: %w", completed)
 	}
 	if err := s.writeAccountCookie(ctx, w, sessionID); err != nil {
@@ -238,6 +243,9 @@ func (s *Service) writeAccountCookie(ctx context.Context, w http.ResponseWriter,
 	token, err := s.factor.Accounts.Issue(ctx, sessionID)
 	if err != nil {
 		return fmt.Errorf("accounts: issue the account session: %w", err)
+	}
+	if err := s.factor.Accounts.MarkFactorProven(ctx, sessionID); err != nil {
+		return err
 	}
 	s.factor.Cookies.Write(w, token)
 	return nil

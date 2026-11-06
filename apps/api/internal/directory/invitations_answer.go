@@ -15,8 +15,7 @@ import (
 // invitationNotice is the mail an invitation sends, decided inside the
 // transaction and sent after it commits.
 type invitationNotice struct {
-	to, locale, kind string
-	vars             map[string]string
+	to, locale, kind, inviter string
 }
 
 // noticeFor picks the mail: the invitation to a person with an account, the
@@ -32,23 +31,14 @@ func (s *Service) noticeFor(tx *gorm.DB, row schemas.SpaceInvitation) (invitatio
 
 // pickNotice decides which mail, if any, an invitation would send.
 func (s *Service) pickNotice(tx *gorm.DB, row schemas.SpaceInvitation) (invitationNotice, error) {
-	var space schemas.Space
-	if err := tx.Where("id = ?", row.SpaceID).Take(&space).Error; err != nil {
-		return invitationNotice{}, err
-	}
 	var inviter schemas.User
 	if err := tx.Where("id = ?", row.InvitedBy).Take(&inviter).Error; err != nil {
 		return invitationNotice{}, err
 	}
-	name := inviter.Name
-	if name == "" {
-		name = inviter.Email
-	}
-	vars := map[string]string{"inviter": name, "space": space.Name, "role": row.Role}
 	var invitee schemas.User
 	err := tx.Where("lower(email) = ? AND disabled_at IS NULL", row.Email).Take(&invitee).Error
 	if err == nil {
-		return invitationNotice{to: invitee.Email, locale: invitee.Locale, kind: i18n.MailSpaceInvite, vars: vars}, nil
+		return invitationNotice{to: invitee.Email, locale: invitee.Locale, kind: i18n.MailSpaceInvite, inviter: inviter.ID}, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return invitationNotice{}, err
@@ -56,7 +46,7 @@ func (s *Service) pickNotice(tx *gorm.DB, row schemas.SpaceInvitation) (invitati
 	if !s.invitations.SignupOpen {
 		return invitationNotice{}, nil
 	}
-	return invitationNotice{to: row.Email, locale: inviter.Locale, kind: i18n.MailSpaceJoin}, nil
+	return invitationNotice{to: row.Email, locale: inviter.Locale, kind: i18n.MailSpaceJoin, inviter: inviter.ID}, nil
 }
 
 // logMail counts the invitation mails actually sent, to this address in the
@@ -66,19 +56,25 @@ func (s *Service) pickNotice(tx *gorm.DB, row schemas.SpaceInvitation) (invitati
 // rewrites its row, and would otherwise mail without limit.
 func logMail(tx *gorm.DB, notice invitationNotice) (invitationNotice, error) {
 	now := time.Now().UTC()
-	var toRecipient, overall int64
+	var toRecipient, byInviter, overall int64
 	err := tx.Table("invitation_mails").
 		Where("lower(email) = lower(?) AND sent_at > ?", notice.to, now.Add(-24*time.Hour)).Count(&toRecipient).Error
+	if err != nil {
+		return invitationNotice{}, err
+	}
+	err = tx.Table("invitation_mails").
+		Where("inviter_id = ? AND sent_at > ?", notice.inviter, now.Add(-24*time.Hour)).Count(&byInviter).Error
 	if err != nil {
 		return invitationNotice{}, err
 	}
 	if err := tx.Table("invitation_mails").Where("sent_at > ?", now.Add(-time.Hour)).Count(&overall).Error; err != nil {
 		return invitationNotice{}, err
 	}
-	if toRecipient >= MaxMailsPerRecipient || overall >= MaxMailsPerHour {
+	if toRecipient >= MaxMailsPerRecipient || byInviter >= MaxMailsPerInviter || overall >= MaxMailsPerHour {
 		return invitationNotice{}, nil
 	}
-	if err := tx.Exec("INSERT INTO invitation_mails (email, sent_at) VALUES (lower(?), ?)", notice.to, now).Error; err != nil {
+	err = tx.Exec("INSERT INTO invitation_mails (email, inviter_id, sent_at) VALUES (lower(?), ?, ?)", notice.to, notice.inviter, now).Error
+	if err != nil {
 		return invitationNotice{}, err
 	}
 	return notice, nil
@@ -93,7 +89,7 @@ func (s *Service) notify(ctx context.Context, notice invitationNotice) {
 	if notice.kind == i18n.MailSpaceJoin {
 		link = s.invitations.Issuer + "/signup?lang=" + i18n.Normalize(notice.locale)
 	}
-	subject, body := i18n.Mail(notice.kind, notice.locale, link, notice.vars)
+	subject, body := i18n.Mail(notice.kind, notice.locale, link, nil)
 	if err := s.invitations.Mailer.Send(ctx, notice.to, subject, body); err != nil {
 		s.logger.Warn("registre: space invitation mail failed", slog.Any("error", err))
 	}
@@ -120,6 +116,9 @@ func (s *Service) Accept(ctx context.Context, userID, invitationID string) (Summ
 		row, err := s.claimInvitation(tx, userID, invitationID)
 		if err != nil {
 			return err
+		}
+		if !s.stillEntitled(tx, row) {
+			return ErrInvitationNotFound
 		}
 		if _, _, err := s.membership(tx, userID, row.SpaceID); err == nil {
 			return nil

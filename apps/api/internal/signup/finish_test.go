@@ -9,6 +9,7 @@ import (
 
 	"github.com/FacileStudio/Registre/apps/api/internal/consent"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
+	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	"github.com/FacileStudio/Registre/apps/api/internal/passkeys/passkeytest"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
@@ -176,5 +177,25 @@ func TestALinkBudgetIsPerAddress(t *testing.T) {
 	err := w.svc.Start(context.Background(), Request{Email: "busy@example.com", Proof: solve(t, w.svc)})
 	if !errors.Is(err, ErrThrottled) {
 		t.Fatalf("a fourth link = %v, want ErrThrottled", err)
+	}
+}
+
+// TestAPasskeyCeremonyBelongsToItsLink refuses a ceremony begun on one link
+// and finished with another, so one person's link cannot carry a passkey
+// registered under someone else's address.
+func TestAPasskeyCeremonyBelongsToItsLink(t *testing.T) {
+	w := newWorld(t, map[string]bool{})
+	ctx := context.Background()
+	mine := linkFor(t, w, "mine@example.com")
+	theirs := linkFor(t, w, "theirs@example.com")
+	options, err := w.svc.BeginPasskey(ctx, mine)
+	if err != nil {
+		t.Fatalf("BeginPasskey: %v", err)
+	}
+	answer, _ := passkeytest.New("localhost", "http://localhost:8080").Create(options.PublicKey)
+	in := form(theirs)
+	in.Password, in.Ceremony, in.Credential = "", options.Ceremony, answer
+	if _, err := w.svc.Finish(ctx, in); !errors.Is(err, passkeys.ErrInvalid) {
+		t.Fatalf("finishing another link's ceremony = %v, want passkeys.ErrInvalid", err)
 	}
 }

@@ -75,6 +75,10 @@ type Application struct {
 	// only picks changes up on its own pull interval.
 	DirectorySyncURI string `yaml:"directory_sync_uri"`
 
+	// DeletionURI is where the signed user.deleted event is pushed when an
+	// account is erased. Empty: the app polls GET /api/directory/deletions.
+	DeletionURI string `yaml:"deletion_uri"`
+
 	// VisibleRoles is the whitelist of roles this app may see. Empty means
 	// none, even with the roles scope granted: visibility is opt-in.
 	VisibleRoles []string `yaml:"visible_roles"`

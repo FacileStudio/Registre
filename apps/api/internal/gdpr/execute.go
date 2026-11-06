@@ -72,6 +72,9 @@ func erase(tx *gorm.DB, user schemas.User) error {
 		{"DELETE FROM signup_challenges WHERE lower(email) = lower(?)", []any{user.Email}},
 		{"DELETE FROM invite_tokens WHERE lower(email) = lower(?)", []any{user.Email}},
 		{"DELETE FROM space_invitations WHERE lower(email) = lower(?)", []any{user.Email}},
+		{"DELETE FROM invitation_mails WHERE lower(email) = lower(?)", []any{user.Email}},
+		{"UPDATE admin_events SET detail = detail - 'email' WHERE lower(detail->>'email') = lower(?)", []any{user.Email}},
+		{"UPDATE admin_events SET target_id = 'erased' WHERE target_type = 'invite' AND lower(target_id) = lower(?)", []any{user.Email}},
 		{"DELETE FROM users WHERE id = ?", []any{user.ID}},
 	}
 	for _, statement := range statements {

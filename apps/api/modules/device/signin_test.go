@@ -194,7 +194,13 @@ func (l *loop) signIn(loginPage string) {
 	if err != nil {
 		l.t.Fatalf("encoding the credentials: %v", err)
 	}
-	response, err := l.client.Post(l.issuer+"/api/login", "application/json", strings.NewReader(string(payload)))
+	request, err := http.NewRequest(http.MethodPost, l.issuer+"/api/login", strings.NewReader(string(payload)))
+	if err != nil {
+		l.t.Fatalf("building POST /api/login: %v", err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Facile-CSRF", "1")
+	response, err := l.client.Do(request)
 	if err != nil {
 		l.t.Fatalf("POST /api/login: %v", err)
 	}

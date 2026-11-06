@@ -7,7 +7,8 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
 
-// TestASessionIsFreshOnlyRightAfterAFactor.
+// TestASessionIsFreshOnlyRightAfterAFactor: a brand-new session that proved
+// nothing (a reissued one) is not fresh.
 func TestASessionIsFreshOnlyRightAfterAFactor(t *testing.T) {
 	svc := New(nil)
 	now := time.Now().UTC()
@@ -17,10 +18,9 @@ func TestASessionIsFreshOnlyRightAfterAFactor(t *testing.T) {
 		session schemas.Session
 		fresh   bool
 	}{
-		"just signed in":         {schemas.Session{CreatedAt: recent}, true},
-		"old, never reproven":    {schemas.Session{CreatedAt: old}, false},
-		"old, reproven":          {schemas.Session{CreatedAt: old, ReauthenticatedAt: &recent}, true},
-		"old, reproven long ago": {schemas.Session{CreatedAt: old, ReauthenticatedAt: &old}, false},
+		"new, nothing proven": {schemas.Session{CreatedAt: now}, false},
+		"proven just now":     {schemas.Session{CreatedAt: old, FactorProvenAt: &recent}, true},
+		"proven long ago":     {schemas.Session{CreatedAt: old, FactorProvenAt: &old}, false},
 	}
 	for name, c := range cases {
 		if got := svc.Fresh(c.session); got != c.fresh {

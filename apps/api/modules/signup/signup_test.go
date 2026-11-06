@@ -36,6 +36,7 @@ func call(t *testing.T, router http.Handler, method, path, body string) (int, st
 	rec := httptest.NewRecorder()
 	request := httptest.NewRequest(method, path, strings.NewReader(body))
 	request.RemoteAddr = "192.0.2.1:1234"
+	request.Header.Set("X-Facile-CSRF", "1")
 	router.ServeHTTP(rec, request)
 	return rec.Code, rec.Body.String()
 }
@@ -197,6 +198,7 @@ func callWithFlow(t *testing.T, router http.Handler, path, body, secret string) 
 	rec := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
 	request.RemoteAddr = "192.0.2.1:1234"
+	request.Header.Set("X-Facile-CSRF", "1")
 	if secret != "" {
 		request.AddCookie(&http.Cookie{Name: flows.CookieName(flows.Digest(secret), false), Value: secret})
 	}
@@ -232,5 +234,16 @@ func TestALinkOpenedElsewhereDoesNotFinishTheLogin(t *testing.T) {
 				t.Fatalf("finish = %s, request %+v; want Registre's home and nothing completed", body, pending)
 			}
 		})
+	}
+}
+
+// TestFinishWantsTheCSRFHeader refuses a sign-up a cross-site page submits.
+func TestFinishWantsTheCSRFHeader(t *testing.T) {
+	router := open(t, DefaultLimits())
+	rec := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/signup/finish", strings.NewReader(`{}`))
+	router.ServeHTTP(rec, request)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("finish without the header = %d, want 403", rec.Code)
 	}
 }

@@ -355,8 +355,18 @@ factor owed, so it requires user verification: presence alone would let whoever 
 security key in. Registration and reauthentication require it too. `/account` adds, renames and removes passkeys; the last
 way into an account (its only passkey when it has no password) cannot be removed, and adding or
 removing one needs a factor proven within ten minutes, either at sign-in or through
-`/api/account/reauth`. Each ceremony is a `webauthn_ceremonies` row claimed once, bound to its
-purpose and, where it has one, its account. TOTP stays as it was.
+`/api/account/reauth`. Freshness is `sessions.factor_proven_at`, set when every factor the account
+owes was proven (a sign-in or a reauthentication), never derived from when the session row was
+created: the session a password change reissues is new but proves nothing. A password change
+itself wants the current password and, when two-step sign-in is on, a live or recovery code. Each
+ceremony is a `webauthn_ceremonies` row claimed once, bound to its purpose, its account where it
+has one, and for sign-up the very link it was begun for. TOTP stays as it was.
+
+**Every route that finishes a sign-in wants `X-Facile-CSRF`.** `POST /api/login`,
+`/api/login/totp`, `/api/login/passkey/finish`, `/api/login/session` and `/api/signup/finish`
+refuse a request without it with 403 before reading any credential. A cross-site page cannot set a
+custom header without a preflight registre never answers, so it cannot sign a victim in to an
+attacker's account (login CSRF). A login an access policy refuses opens no session row.
 
 **Legal documents and consent.** `/legal/{cgu,cgv,privacy,legal-notice}?lang=xx` serves the
 versioned texts in four languages from `GET /api/legal/{document}`; versions live in
@@ -384,11 +394,18 @@ grace period, erasure promotes the most senior other member (an admin first, the
 join) rather than withhold the erasure. The job, every ten minutes, ends every session, deletes
 the account and every row keyed on it (invitations addressed to them included), fires back-channel
 logout to the apps the sessions reached, bumps the directory version, and writes one
-`deletion_notices` row per enabled application in the same transaction as the delete. Each app
-with a `directory_sync_uri` is pushed a signed deletion event:
+`deletion_notices` row per enabled application in the same transaction as the delete.
+
+**`GET /api/directory/deletions` is the source of truth.** Every app lists its erasures for sixty
+days with `?since=<RFC 3339>`, authenticated with HTTP Basic as its own application client like
+the snapshot, and erases each listed `sub` within thirty days. An app that also wants a push
+declares a `deletion_uri` (seed `deletion_uri`, or the dashboard's client page); only that URI ever
+receives the event, never `directory_sync_uri`. A sync handler (porte's `Syncer.Handler`) answers
+202 to any POST and only schedules a pull, so a push there would be counted delivered while
+nothing erased anything. A notice counts as delivered only on a 2xx from the deletion URI:
 
 ```
-POST <directory_sync_uri>
+POST <deletion_uri>
 Content-Type: application/secevent+jwt
 
 <JWT, RS256, typ secevent+jwt, signed with the key in the issuer's JWKS>
@@ -401,25 +418,37 @@ Content-Type: application/secevent+jwt
 }
 ```
 
-This is an RFC 8417 Security Event Token pushed as RFC 8935 describes. An app verifies it against
-the JWKS exactly as it verifies a logout token, checks `aud` is its own client id, then erases
-what it holds about `sub` within thirty days. A failed push is retried after five minutes, then
-twice as long each time up to a day, twelve times at most. Every app, with or without a sync URI,
-can also list its erasures for sixty days with `GET /api/directory/deletions?since=<RFC 3339>`,
-authenticated with HTTP Basic as its own application client like the snapshot; that is how
-Casier, Sonde, Journal, Perception and any app that was down learn. An app that ignores both still
-pulls the snapshot, which no longer lists the person.
+This is an RFC 8417 Security Event Token pushed as RFC 8935 describes. Before acting, the
+receiving handler must verify, and answer 400 to anything else:
+
+1. the JWS header `typ` is exactly `secevent+jwt` (a logout token or an ID token signed by the same
+   key must never pass for a deletion);
+2. the signature, against the issuer's JWKS by `kid`, RS256 only;
+3. `iss` is the issuer, `aud` contains its own client id, `exp` is in the future;
+4. `events` holds the key `https://schemas.facile.studio/event/user-deleted`;
+5. `jti` has not been seen before (replays are refused).
+
+It then answers 202 and erases `sub` within thirty days. Only a 2xx counts as delivered; a failed
+push is retried after five minutes, then twice as long each time up to a day, twelve times at
+most, and the notice stays listable either way. An app with no deletion URI, or one that was
+down, learns from the list; an app that ignores both still pulls the snapshot, which no longer
+lists the person, but keeps its data, which breaks the erasure promise.
 
 **Space invitations.** `POST /api/spaces/{id}/members {"email","role"}` writes a
 `space_invitations` row (fourteen days, at most fifty pending per space, rate limited per inviter
 and per space) and answers `202 {"status":"invited"}` whatever the address. A person with an
 account is mailed in their language; an address without one is mailed "join Facile" only while
-sign-up is open, and that mail carries neither the inviter's name nor the space's, so nobody can
-mail strangers words of their choosing. One address receives at most three invitation mails a
-day and the instance sends at most two hundred an hour, counted from a log of the mails actually
-sent (`invitation_mails`), so refreshing an invitation cannot mail past it; past either cap the invitation is still
+sign-up is open. Neither mail carries any text a person typed, neither the inviter's name nor the
+space's: both say only that someone sent an invitation, with a link to `/spaces` (or to sign up),
+where the signed-in invitee reads who sent it, to what and as what. One address receives at most
+three invitation mails a day, one inviter's invitations send at most twenty a day, and the
+instance sends at most two hundred an hour, counted from a log of the mails actually sent
+(`invitation_mails`), so refreshing an invitation cannot mail past it; past any cap the invitation is still
 written and answered the same way, only the mail is skipped. Deleting a space deletes its pending
-invitations, and an invitation into a deleted space can never be accepted. The invitee sees the space and the offered role on `/spaces` and accepts or
+invitations, and an invitation into a deleted space can never be accepted. An invitation is the
+inviter's authority held in escrow: accepting it needs the inviter still in the space at admin or
+above and at least the offered rank, and removing, demoting or the departure of an inviter
+withdraws the pending invitations they could no longer send. The invitee sees the space and the offered role on `/spaces` and accepts or
 declines (`/api/spaces/invitations`); only acceptance writes `space_members`, so a pending
 invitation never reaches a snapshot. Admins and owners see and revoke pending invitations.
 

@@ -139,6 +139,7 @@ func (s *singleCookie) postJSONNoFollow(t *testing.T, rawURL string, body string
 		t.Fatalf("building POST %s: %v", rawURL, err)
 	}
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Facile-CSRF", "1")
 	s.noFollow = true
 	defer func() { s.noFollow = false }()
 	return s.do(t, request)

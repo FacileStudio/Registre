@@ -115,6 +115,7 @@ func declared(row schemas.Client) map[string]any {
 		"redirect_uris":          row.RedirectURIs,
 		"backchannel_logout_uri": row.BackchannelLogoutURI,
 		"directory_sync_uri":     row.DirectorySyncURI,
+		"deletion_uri":           row.DeletionURI,
 		"visible_roles":          row.VisibleRoles,
 		"token_exchange":         row.TokenExchange,
 		"updated_at":             time.Now().UTC(),

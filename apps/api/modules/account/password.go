@@ -19,11 +19,14 @@ import (
 // the person at the keyboard is the owner, and a password that a walk-up
 // session can change is a password an attacker uses to lock the owner out.
 // The check runs through identity.Verify, so a wrong current password costs
-// exactly what a right one costs.
+// exactly what a right one costs. An account with two-step sign-in also
+// gives a live code or a recovery code: the change ends every session and
+// opens a new one, and that must not cost less than the sign-in it replaces.
 func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		CurrentPassword string `json:"current_password"`
 		NewPassword     string `json:"new_password"`
+		Code            string `json:"code"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		badRequest(w)
@@ -31,6 +34,10 @@ func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	user := holder(r.Context())
 	if !s.provesPassword(r.Context(), user, body.CurrentPassword) {
+		refuse(w)
+		return
+	}
+	if user.TOTPEnrolled() && !s.provesFactor(r.Context(), user, body.Code) {
 		refuse(w)
 		return
 	}

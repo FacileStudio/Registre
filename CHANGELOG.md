@@ -6,6 +6,28 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- Deletion events no longer go to `directory_sync_uri`, whose porte handler answers 202 to any
+  POST, so notices were counted delivered while nothing erased. They are pushed only to a new
+  per-client `deletion_uri` (seed and dashboard field), delivered only on a 2xx from it, and
+  `GET /api/directory/deletions` is the source of truth. SPEC §6 lists what a receiver verifies
+  (`typ` `secevent+jwt`, signature, `iss`/`aud`/`exp`, the event key, `jti`)
+- Freshness for passkey changes and deletion requests is an explicit `sessions.factor_proven_at`,
+  not a session's creation time, so the session a password change reissues proves nothing; a
+  password change now also wants the TOTP or recovery code when two-step sign-in is on
+- Accepting a space invitation needs the inviter still in the space at the offered rank, and
+  removing or demoting an inviter withdraws their pending invitations
+- `POST /api/login`, `/api/login/totp`, `/api/login/passkey/finish` and `/api/signup/finish`
+  require `X-Facile-CSRF` (login CSRF)
+- Invitation mails carry no inviter or space text at all, and one inviter's invitations send at
+  most 20 mails a day
+- Erasure scrubs the person's address from `admin_events`; a sign-up passkey ceremony is bound to
+  the link it was begun for; a login an access policy refuses leaves no session row; every
+  address rate limit counts IPv6 per /64
+- The dashboard's client update no longer blanks `directory_sync_uri` and `token_exchange`
+- Migration `00017_review_v051`
+
 ## [0.5.0] - 2026-11-04
 
 ### Added

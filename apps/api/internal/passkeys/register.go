@@ -32,7 +32,10 @@ type Registered struct {
 // the authenticator. The account's existing passkeys are excluded so the same
 // authenticator is not registered twice. For sign-up, userID is the subject
 // the account will be created with.
-func (s *Service) BeginRegistration(ctx context.Context, purpose, userID, email string) (Options, error) {
+//
+// boundTo is what else the ceremony belongs to, such as the sign-up link it
+// is begun for; FinishRegistration must name the same one.
+func (s *Service) BeginRegistration(ctx context.Context, purpose, userID, email, boundTo string) (Options, error) {
 	holder, err := s.personFor(ctx, userID, email)
 	if err != nil {
 		return Options{}, err
@@ -45,7 +48,7 @@ func (s *Service) BeginRegistration(ctx context.Context, purpose, userID, email 
 	if err != nil {
 		return Options{}, fmt.Errorf("passkeys: begin registration: %w", err)
 	}
-	token, err := s.open(ctx, purpose, userID, session)
+	token, err := s.open(ctx, purpose, userID, boundTo, session)
 	if err != nil {
 		return Options{}, err
 	}
@@ -54,8 +57,8 @@ func (s *Service) BeginRegistration(ctx context.Context, purpose, userID, email 
 
 // FinishRegistration verifies the browser's answer to a registration begun
 // for purpose and answers the credential, unstored.
-func (s *Service) FinishRegistration(ctx context.Context, token, purpose string, response []byte) (Registered, error) {
-	row, session, err := s.claim(ctx, token, purpose)
+func (s *Service) FinishRegistration(ctx context.Context, token, purpose, boundTo string, response []byte) (Registered, error) {
+	row, session, err := s.claim(ctx, token, purpose, boundTo)
 	if err != nil {
 		return Registered{}, err
 	}

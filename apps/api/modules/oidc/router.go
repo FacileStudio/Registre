@@ -12,8 +12,7 @@ import (
 	"crypto/sha256"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
-
-	troncmiddleware "github.com/FacileStudio/tronc/middleware"
+	"github.com/FacileStudio/Registre/apps/api/internal/limits"
 	"github.com/go-chi/chi/v5"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
@@ -133,9 +132,7 @@ func NewProvider(storage *Storage, cfg ProviderConfig) (*op.Provider, error) {
 // flow to the browser that started it and the session that finished it. See
 // Binding for why the library's own callback cannot be mounted bare.
 func Mount(router chi.Router, provider *op.Provider, binding Binding) {
-	budget := troncmiddleware.Ratelimit(troncmiddleware.RatelimitConfig{
-		Limit: DefaultDeviceStartLimit, Burst: DefaultDeviceStartBurst,
-	})
+	budget := limits.PerAddress(DefaultDeviceStartLimit, DefaultDeviceStartBurst)
 	device := provider.DeviceAuthorizationEndpoint().Relative()
 	authorize := provider.AuthorizationEndpoint().Relative()
 	for _, path := range Paths(provider) {

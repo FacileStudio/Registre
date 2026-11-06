@@ -144,7 +144,13 @@ func (f *fixture) post(path string, body map[string]string) (map[string]string, 
 	if err != nil {
 		f.t.Fatalf("encoding the body: %v", err)
 	}
-	response, err := http.Post(f.server.URL+path, "application/json", bytes.NewReader(encoded))
+	request, err := http.NewRequest(http.MethodPost, f.server.URL+path, bytes.NewReader(encoded))
+	if err != nil {
+		f.t.Fatalf("building POST %s: %v", path, err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Facile-CSRF", "1")
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		f.t.Fatalf("POST %s: %v", path, err)
 	}
