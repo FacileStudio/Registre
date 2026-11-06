@@ -245,3 +245,33 @@ func TestLinkingAndCreatingThroughSocialWriteAuditEntries(t *testing.T) {
 		t.Fatalf("create audit = %v", got)
 	}
 }
+
+func TestAFailedAuditEntryLeavesNoLinkBehind(t *testing.T) {
+	svc, db := newService(t, true)
+	ctx := context.Background()
+	user := addUser(t, db, "a@facile.studio", "hash")
+	stmts := []string{
+		`CREATE FUNCTION refuse_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'audit refused'; END $$`,
+		`CREATE TRIGGER refuse_audit BEFORE INSERT ON admin_events FOR EACH ROW EXECUTE FUNCTION refuse_audit()`,
+	}
+	for _, stmt := range stmts {
+		if err := db.Exec(stmt).Error; err != nil {
+			t.Fatalf("%s: %v", stmt, err)
+		}
+	}
+	t.Cleanup(func() {
+		db.Exec(`DROP TRIGGER refuse_audit ON admin_events`)
+		db.Exec(`DROP FUNCTION refuse_audit()`)
+	})
+	if err := svc.LinkTo(ctx, user.ID, "discord", profile("9", "", false)); err == nil {
+		t.Fatal("link succeeded with the audit write refused")
+	}
+	if _, err := svc.Resolve(ctx, "discord", profile("10", "a@facile.studio", true)); err == nil {
+		t.Fatal("email link succeeded with the audit write refused")
+	}
+	var n int64
+	db.Table("social_identities").Count(&n)
+	if n != 0 {
+		t.Fatalf("%d identities survived a refused audit entry", n)
+	}
+}

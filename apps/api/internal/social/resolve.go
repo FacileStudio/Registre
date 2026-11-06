@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
@@ -137,9 +137,14 @@ func (s *Service) insertIdentity(
 		Provider: provider, Subject: profile.Subject, UserID: userID,
 		DisplayName: displayName(profile), CreatedAt: s.now(),
 	}
-	err := db.WithContext(ctx).Create(&row).Error
+	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&row).Error; err != nil {
+			return err
+		}
+		return audit.Write(tx, userID, "account.connection_added", audit.Target{Type: "user", ID: userID}, map[string]any{"provider": provider})
+	})
 	if err == nil {
-		return audit.Write(db.WithContext(ctx), userID, "account.connection_added", audit.Target{Type: "user", ID: userID}, map[string]any{"provider": provider})
+		return nil
 	}
 	if errors.Is(err, gorm.ErrDuplicatedKey) {
 		return s.duplicateCause(ctx, userID, provider, profile.Subject)
