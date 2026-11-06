@@ -22,6 +22,7 @@
 	const ctx = getContext<AccountContext>(ACCOUNT_CONTEXT);
 
 	let current = $state('');
+	let passwordCode = $state('');
 	let next = $state('');
 	let confirm = $state('');
 	let savingPassword = $state(false);
@@ -61,7 +62,8 @@
 		savingPassword = true;
 		passwordError = '';
 		try {
-			await account.changePassword(current, next);
+			await account.changePassword(current, next, passwordCode.trim());
+			passwordCode = '';
 			current = '';
 			next = '';
 			confirm = '';
@@ -191,6 +193,8 @@
 	saving={savingPassword}
 	error={passwordError}
 	bind:current
+	bind:code={passwordCode}
+	needsCode={enrolled}
 	bind:next
 	bind:confirm
 	onSubmit={changePassword}

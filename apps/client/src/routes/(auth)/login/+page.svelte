@@ -104,7 +104,7 @@
 			const credential = await getPasskey(options.publicKey);
 			const response = await fetch('/api/login/passkey/finish', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-Facile-CSRF': '1' },
 				body: JSON.stringify({ auth_request: authRequest, ceremony: options.ceremony, credential })
 			});
 			const body = await response.json().catch(() => null);
@@ -150,7 +150,7 @@
 		try {
 			const response = await fetch('/api/login', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-Facile-CSRF': '1' },
 				body: JSON.stringify({ auth_request: authRequest, email, password })
 			});
 			const body = await response.json().catch(() => null);
@@ -181,7 +181,7 @@
 		try {
 			const response = await fetch('/api/login/totp', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'X-Facile-CSRF': '1' },
 				body: JSON.stringify({ challenge, code: code.trim() })
 			});
 			const body = await response.json().catch(() => null);

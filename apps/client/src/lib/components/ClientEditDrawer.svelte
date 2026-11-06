@@ -19,6 +19,7 @@
 	let redirects = $state('');
 	let roles = $state('');
 	let logoutURI = $state('');
+	let deletionURI = $state('');
 	let scopes = $state('');
 	let audiences = $state('');
 	let saving = $state(false);
@@ -31,6 +32,7 @@
 			redirects = (client.redirect_uris || []).join('\n');
 			roles = (client.visible_roles || []).join('\n');
 			logoutURI = client.backchannel_logout_uri || '';
+			deletionURI = client.deletion_uri || '';
 			scopes = (client.scopes || []).join(' ');
 			audiences = (client.audiences || []).join(' ');
 			error = '';
@@ -65,6 +67,7 @@
 				redirect_uris: isApplication ? lines(redirects) : undefined,
 				visible_roles: isApplication ? lines(roles) : undefined,
 				backchannel_logout_uri: isApplication ? logoutURI.trim() || undefined : undefined,
+				deletion_uri: isApplication ? deletionURI.trim() || undefined : undefined,
 				scopes: tokens(scopes),
 				audiences: tokens(audiences)
 			});
@@ -132,6 +135,18 @@
 					class="font-fc-mono"
 					placeholder="https://sablier.facile.studio/auth/backchannel-logout"
 					bind:value={logoutURI}
+				/>
+			</Field>
+			<Field
+				label="Deletion URI"
+				helper="Where Registre pushes the signed user.deleted event. Not the sync URI. Empty: the app polls /api/directory/deletions."
+			>
+				<Input
+					type="url"
+					disabled={saving}
+					class="font-fc-mono"
+					placeholder="https://sablier.facile.studio/api/registre/deleted"
+					bind:value={deletionURI}
 				/>
 			</Field>
 		{/if}

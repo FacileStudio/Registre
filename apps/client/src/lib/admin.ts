@@ -95,6 +95,7 @@ export interface ClientView {
 	redirect_uris?: string[];
 	visible_roles?: string[];
 	backchannel_logout_uri?: string;
+	deletion_uri?: string;
 	access_policy?: AccessPolicy;
 	managed: boolean;
 	created_at: string;
@@ -140,6 +141,7 @@ export interface NewClient {
 	redirect_uris?: string[];
 	visible_roles?: string[];
 	backchannel_logout_uri?: string;
+	deletion_uri?: string;
 }
 
 export interface UpdateClient {
@@ -151,6 +153,7 @@ export interface UpdateClient {
 	redirect_uris?: string[];
 	visible_roles?: string[];
 	backchannel_logout_uri?: string;
+	deletion_uri?: string;
 }
 
 /** CreatedClient carries the client plus its secret, shown exactly once. */
