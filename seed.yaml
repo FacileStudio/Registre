@@ -114,7 +114,7 @@ applications:
     scopes: [openid, profile, email, offline_access]
     token_exchange:
       - audience: 9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH
-        scopes: [nuage.read, nuage.write]
+        scopes: [nuage.write]
 
   - client_id: RLy72hckdFTa9eIFwCmV5MtDOWny1fLeTLpM5LUD
     name: Vision

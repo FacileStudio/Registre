@@ -237,7 +237,7 @@ func TestTheProductionSeedLetsPlumeWriteToNuage(t *testing.T) {
 		if app.Name != "Plume" {
 			continue
 		}
-		want := []ExchangeGrant{{Audience: nuageID, Scopes: []string{"nuage.read", "nuage.write"}}}
+		want := []ExchangeGrant{{Audience: nuageID, Scopes: []string{"nuage.write"}}}
 		if nuageID == "" || !slices.EqualFunc(app.TokenExchange, want, func(a, b ExchangeGrant) bool {
 			return a.Audience == b.Audience && slices.Equal(a.Scopes, b.Scopes)
 		}) {
