@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-06
+
 ### Security
 
 - Deletion events no longer go to `directory_sync_uri`, whose porte handler answers 202 to any
