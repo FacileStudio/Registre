@@ -286,8 +286,9 @@ applications:
   #
   # Fresh registration, so the id is its own name, like Sonde, Prisme and
   # Capsule. porte mounts under /api, so the redirect keeps the /api prefix.
-  # Place reads no roles and syncs no directory, so no directory_sync_uri is
-  # declared and OIDC_CLAIMS_SCOPE stays empty on the app side.
+  # Place reads one role, admin, which opens its admin page (announcements and
+  # the media review queue). It syncs no directory, so no directory_sync_uri is
+  # declared; OIDC_CLAIMS_SCOPE=roles is set on the app side.
   #
   # The connections scope carries the linked Discord id, so Place can attach
   # Discord messages to the account. login_providers is what puts "Continue
@@ -298,7 +299,8 @@ applications:
     secret_env: REGISTRE_SEED_PLACE_SECRET
     redirect_uris:
       - https://place.facile.studio/api/auth/oidc/callback
-    scopes: [openid, profile, email, offline_access, connections]
+    scopes: [openid, profile, email, offline_access, connections, roles]
+    visible_roles: [admin]
     login_providers: [discord]
 
   # Bulle, the suite's coding agent and harness at bulle.facile.studio.
