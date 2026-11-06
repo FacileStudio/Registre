@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-06
+
 ### Security
 
 - The `connections` claim reaches only clients that opted into the provider through `login_providers`, in both the ID token and userinfo. It lists only those providers. A client that opted into none gets no claim, whatever scope it requested
@@ -13,7 +15,7 @@ All notable changes to Registre are recorded here. The format follows
 
 ### Added
 
-- Audit entries `account.connection_added` on every social link and `account.created_social` when a social sign-in creates an account
+- Audit entries `account.connection_added` on every social link and `account.created_social` when a social sign-in creates an account, written in the same transaction as the link
 
 ## [0.6.1] - 2026-11-06
 
