@@ -130,6 +130,7 @@ func (s *Service) updateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body.ClientID = clientID
+	body.Kind = existing.Kind
 	if body.Name == "" {
 		encode(w, map[string]string{"error": "name is required"}, http.StatusBadRequest)
 		return
@@ -138,12 +139,11 @@ func (s *Service) updateClient(w http.ResponseWriter, r *http.Request) {
 		encode(w, map[string]string{"error": reason}, http.StatusBadRequest)
 		return
 	}
-	decl := body.declaration()
-	decl.Managed = existing.Managed
-	decl.Subject = existing.Subject
-	decl.DirectorySyncURI = existing.DirectorySyncURI
-	decl.TokenExchange = existing.TokenExchange
-	row, err := s.register.Upsert(r.Context(), decl)
+	if body.DeletionURI != "" && body.DeletionURI == existing.DirectorySyncURI {
+		encode(w, map[string]string{"error": "deletion_uri must not be the directory sync URI: a sync handler accepts any POST and erases nothing"}, http.StatusBadRequest)
+		return
+	}
+	row, err := s.register.UpdateForm(r.Context(), body.declaration())
 	if err != nil {
 		serverError(w, err)
 		return

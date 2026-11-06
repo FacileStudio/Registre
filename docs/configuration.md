@@ -199,3 +199,14 @@ legal pages and GDPR export and deletion work whether or not sign-up is open.
 The legal texts live in `apps/api/modules/legal/content/<document>.<lang>.md` and their versions in
 `apps/api/internal/consent`. Changing a version is how everyone is asked to accept again at their
 next sign-in. The texts are drafts; `LEGAL_TODO.md` lists what a lawyer must fill in.
+
+## Deletion notices
+
+Each application may declare a `deletion_uri` (seed field, or the dashboard's client page). When
+an account is erased, Registre pushes a signed `user.deleted` Security Event Token to it
+(`Content-Type: application/secevent+jwt`, RS256, `typ: secevent+jwt`); SPEC §6 lists what the
+receiver verifies. A notice counts as delivered only on a 2xx from that URI, and a failure is
+retried with backoff. The URI must not equal `directory_sync_uri`: a sync handler accepts any POST
+with 202 and only schedules a pull, so it would look delivered and erase nothing; the seed and the
+dashboard refuse it. Whatever the push does, `GET /api/directory/deletions` (HTTP Basic as the
+application client) lists the app's erasures for sixty days and is the source of truth.

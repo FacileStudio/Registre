@@ -8,10 +8,14 @@ import (
 	"gorm.io/gorm"
 )
 
-// stillEntitled reports whether the person who sent row is still in the
-// space at a rank that may offer its role. An invitation is the inviter's
+// stillEntitled reports whether the person who sent row is still enabled and
+// still in the space at a rank that may offer its role. An invitation is the inviter's
 // authority, held in escrow; it is worth nothing once that authority is gone.
 func (s *Service) stillEntitled(tx *gorm.DB, row schemas.SpaceInvitation) bool {
+	var disabled int64
+	if err := tx.Model(&schemas.User{}).Where("id = ? AND disabled_at IS NOT NULL", row.InvitedBy).Count(&disabled).Error; err != nil || disabled > 0 {
+		return false
+	}
 	role, _, err := s.membership(tx, row.InvitedBy, row.SpaceID)
 	if err != nil {
 		return false
