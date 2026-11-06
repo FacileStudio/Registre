@@ -8,35 +8,43 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
 
-// UpdateForm writes the columns the dashboard's client form owns and nothing
-// else: name, grant types, scopes, audiences, redirect URIs, visible roles,
-// the back-channel logout URI and the deletion URI.
+// FormColumns are the only columns the dashboard's client form may write.
+func FormColumns() []string {
+	return []string{
+		"name", "grant_types", "scopes", "audiences", "redirect_uris",
+		"visible_roles", "backchannel_logout_uri", "deletion_uri",
+	}
+}
+
+// UpdateForm writes changes, keyed by column, to the client's row, refusing
+// any column outside FormColumns. The caller passes only the fields the
+// request actually carried, so a field the form omitted keeps its stored
+// value.
 //
 // It exists beside Upsert because Upsert writes the whole declarative half of
-// a row, and the form does not carry the whole half: public,
-// access_token_ttl, managed, directory_sync_uri and token_exchange are not on
-// it. Saving the form through Upsert once turned the public facile-cli
-// client confidential and broke every CLI login. The rule is the register's
-// own: write only the columns a declaration owns.
-func (s *Service) UpdateForm(ctx context.Context, form schemas.Client) (schemas.Client, error) {
-	result := s.db.WithContext(ctx).Model(&schemas.Client{}).
-		Where("client_id = ?", form.ClientID).
-		Updates(map[string]any{
-			"name":                   form.Name,
-			"grant_types":            form.GrantTypes,
-			"scopes":                 form.Scopes,
-			"audiences":              form.Audiences,
-			"redirect_uris":          form.RedirectURIs,
-			"visible_roles":          form.VisibleRoles,
-			"backchannel_logout_uri": form.BackchannelLogoutURI,
-			"deletion_uri":           form.DeletionURI,
-			"updated_at":             time.Now().UTC(),
-		})
+// a row and the form does not carry the whole half. Saving the form through
+// Upsert once turned the public facile-cli client confidential, and filling
+// the omitted grant types with defaults dropped its device grant: both broke
+// every CLI login. The rule is the register's own: write only the columns a
+// declaration owns, and only the ones it actually states.
+func (s *Service) UpdateForm(ctx context.Context, clientID string, changes map[string]any) (schemas.Client, error) {
+	allowed := map[string]bool{}
+	for _, column := range FormColumns() {
+		allowed[column] = true
+	}
+	updates := map[string]any{"updated_at": time.Now().UTC()}
+	for column, value := range changes {
+		if !allowed[column] {
+			return schemas.Client{}, fmt.Errorf("clients: the form does not own %s", column)
+		}
+		updates[column] = value
+	}
+	result := s.db.WithContext(ctx).Model(&schemas.Client{}).Where("client_id = ?", clientID).Updates(updates)
 	if result.Error != nil {
-		return schemas.Client{}, fmt.Errorf("clients: update %s: %w", form.ClientID, result.Error)
+		return schemas.Client{}, fmt.Errorf("clients: update %s: %w", clientID, result.Error)
 	}
 	if result.RowsAffected != 1 {
 		return schemas.Client{}, ErrUnknownClient
 	}
-	return s.rawByClientID(ctx, form.ClientID)
+	return s.rawByClientID(ctx, clientID)
 }

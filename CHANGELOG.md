@@ -27,7 +27,9 @@ All notable changes to Registre are recorded here. The format follows
   address rate limit counts IPv6 per /64
 - `POST /api/spaces/{id}/billing/portal` sends Ardoise the signed-in owner's email from the
   session, as checkout does, for Ardoise's owner check
-- The dashboard's client edit writes only the columns its form owns. It used to write the
+- The dashboard's client edit writes only the columns its form owns, and of those only the fields
+  the request carried: an omitted field keeps its stored value, so saving `facile-cli` no longer
+  replaces its grant types (device grant included) with defaults. It used to write the
   whole declaration, which turned the public `facile-cli` client confidential and zeroed its token
   lifetime on save; `deletion_uri` equal to `directory_sync_uri` is refused there and in the seed
 - An invitation from a disabled inviter can no longer be accepted

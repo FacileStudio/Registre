@@ -3,6 +3,7 @@ package admin
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -124,26 +125,21 @@ func (s *Service) updateClient(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
-	var body newClient
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	raw, err := io.ReadAll(io.LimitReader(r.Body, maxClientBody))
+	if err != nil {
 		badRequest(w)
 		return
 	}
-	body.ClientID = clientID
-	body.Kind = existing.Kind
-	if body.Name == "" {
-		encode(w, map[string]string{"error": "name is required"}, http.StatusBadRequest)
+	edit, err := readEdit(existing, raw)
+	if err != nil {
+		badRequest(w)
 		return
 	}
-	if reason, ok := body.invalid(); !ok {
+	if reason, ok := edit.valid(existing); !ok {
 		encode(w, map[string]string{"error": reason}, http.StatusBadRequest)
 		return
 	}
-	if body.DeletionURI != "" && body.DeletionURI == existing.DirectorySyncURI {
-		encode(w, map[string]string{"error": "deletion_uri must not be the directory sync URI: a sync handler accepts any POST and erases nothing"}, http.StatusBadRequest)
-		return
-	}
-	row, err := s.register.UpdateForm(r.Context(), body.declaration())
+	row, err := s.register.UpdateForm(r.Context(), clientID, edit.changes)
 	if err != nil {
 		serverError(w, err)
 		return
