@@ -101,3 +101,33 @@ func TestTheDrawerKeepsTheDeviceGrantAndCustomLists(t *testing.T) {
 		t.Fatalf("a field sent empty was not cleared: %q", row.BackchannelLogoutURI)
 	}
 }
+
+// TestAnEditCannotLeaveAClientUnusable refuses an explicitly empty grant
+// list, and application scopes that are empty or lack openid.
+func TestAnEditCannotLeaveAClientUnusable(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	seeded, err := f.register.Upsert(ctx, schemas.Client{
+		ClientID: "app", Subject: "app-sub", Name: "App", Kind: schemas.KindApplication, Public: true,
+		GrantTypes: schemas.StringList{"authorization_code"}, Scopes: schemas.StringList{"openid", "email"},
+		RedirectURIs: schemas.StringList{"https://app.example/cb"},
+	})
+	if err != nil {
+		t.Fatalf("seeding: %v", err)
+	}
+	for name, edit := range map[string]func(map[string]any){
+		"empty grant types": func(b map[string]any) { b["grant_types"] = []string{} },
+		"empty scopes":      func(b map[string]any) { b["scopes"] = []string{} },
+		"no openid":         func(b map[string]any) { b["scopes"] = []string{"email"} },
+	} {
+		body := drawerBody(seeded, "App")
+		edit(body)
+		if response, answer := f.call(t, http.MethodPut, "/api/admin/clients/app", body, true); response.StatusCode != http.StatusBadRequest {
+			t.Errorf("%s answered %d %v, want 400", name, response.StatusCode, answer)
+		}
+	}
+	row, _ := f.register.ByClientID(ctx, "app")
+	if len(row.GrantTypes) != 1 || len(row.Scopes) != 2 {
+		t.Fatalf("a refused edit changed the client: %+v", row)
+	}
+}

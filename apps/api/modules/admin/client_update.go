@@ -87,6 +87,11 @@ func (e formEdit) valid(existing schemas.Client) (string, bool) {
 	checked := e.merged
 	if _, stated := e.changes["grant_types"]; !stated {
 		checked.GrantTypes = nil
+	} else if len(e.merged.GrantTypes) == 0 {
+		return "grant_types cannot be empty: a client with no grant can never get a token", false
+	}
+	if reason, ok := e.scopesUsable(); !ok {
+		return reason, false
 	}
 	if reason, ok := checked.invalid(); !ok {
 		return reason, false
@@ -95,4 +100,19 @@ func (e formEdit) valid(existing schemas.Client) (string, bool) {
 		return "deletion_uri must not be the directory sync URI: a sync handler accepts any POST and erases nothing", false
 	}
 	return "", true
+}
+
+// scopesUsable refuses an application whose stated scopes are empty or lack
+// openid: no sign-in could ever ask for an ID token. The drawer always sends
+// scopes, so an emptied field is the easy way to break a client.
+func (e formEdit) scopesUsable() (string, bool) {
+	if _, stated := e.changes["scopes"]; !stated || e.merged.Kind != schemas.KindApplication {
+		return "", true
+	}
+	for _, scope := range e.merged.Scopes {
+		if scope == "openid" {
+			return "", true
+		}
+	}
+	return "an application's scopes must include openid", false
 }
