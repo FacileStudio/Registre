@@ -93,13 +93,15 @@ func (s *Service) checkout(w http.ResponseWriter, r *http.Request) {
 	s.redirect(w, target, err)
 }
 
-// portal opens the Stripe billing portal for the space. Owners only.
+// portal opens the Stripe billing portal for the space. Owners only; the
+// owner's address comes from the session, exactly as for checkout.
 func (s *Service) portal(w http.ResponseWriter, r *http.Request) {
 	detail, ok := s.owner(w, r)
 	if !ok {
 		return
 	}
-	target, err := s.billing.Portal(r.Context(), detail.ID, s.spaceURL(detail.ID))
+	user, _ := accounts.Holder(r.Context())
+	target, err := s.billing.Portal(r.Context(), detail.ID, user.Email, s.spaceURL(detail.ID))
 	s.redirect(w, target, err)
 }
 

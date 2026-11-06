@@ -83,10 +83,12 @@ func (c *Client) Checkout(ctx context.Context, in CheckoutRequest) (string, erro
 }
 
 // Portal opens a Stripe billing portal session and answers its URL, which
-// is always on https://billing.stripe.com.
-func (c *Client) Portal(ctx context.Context, spaceID, returnURL string) (string, error) {
+// is always on https://billing.stripe.com. ownerEmail is the signed-in
+// owner's address from registre's own account row, never from the browser;
+// Ardoise checks it against the space's owners, as it does for checkout.
+func (c *Client) Portal(ctx context.Context, spaceID, ownerEmail, returnURL string) (string, error) {
 	var out redirect
-	body := map[string]string{"space_id": spaceID, "return_url": returnURL}
+	body := map[string]string{"space_id": spaceID, "owner_email": ownerEmail, "return_url": returnURL}
 	if err := c.call(ctx, http.MethodPost, "/billing/portal", body, &out); err != nil {
 		return "", err
 	}

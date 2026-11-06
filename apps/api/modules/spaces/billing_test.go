@@ -32,6 +32,7 @@ type ardoise struct {
 	down      bool
 	catalogs  int
 	checkouts []billing.CheckoutRequest
+	portals   []map[string]string
 }
 
 // ServeHTTP answers the four routes registre calls.
@@ -52,6 +53,9 @@ func (a *ardoise) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.checkouts = append(a.checkouts, body)
 		_ = json.NewEncoder(w).Encode(map[string]string{"url": a.redirect})
 	case "/billing/portal":
+		var body map[string]string
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		a.portals = append(a.portals, body)
 		_ = json.NewEncoder(w).Encode(map[string]string{"url": a.redirect})
 	default:
 		_, _ = w.Write([]byte(`{"plan":"pro","status":"active","comped":false}`))

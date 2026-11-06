@@ -89,8 +89,14 @@ func TestOnlyStripeOriginsAreHandedOn(t *testing.T) {
 		}
 	}
 	w.fake.set(func() { w.fake.redirect = "https://billing.stripe.com/p/session/x" })
-	status, out := w.call(w.on, http.MethodPost, "/billing/portal", w.yann, map[string]any{})
+	status, out := w.call(w.on, http.MethodPost, "/billing/portal", w.yann, map[string]any{"owner_email": "mallory@example.com"})
 	if status != http.StatusOK || out["url"] != w.fake.redirect {
 		t.Errorf("owner portal = %d %v", status, out)
 	}
+	w.fake.set(func() {
+		last := w.fake.portals[len(w.fake.portals)-1]
+		if last["owner_email"] != "yann@facile.studio" || last["space_id"] != w.space {
+			t.Errorf("Ardoise was sent %v, want the signed-in owner's address from the session", last)
+		}
+	})
 }
