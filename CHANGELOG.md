@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-06
+
 ### Added
 
 - Deep-link linking. An app sends a person to `/account/security?link=discord&return_to=<url-encoded>`
