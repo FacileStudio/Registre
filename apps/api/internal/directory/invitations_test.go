@@ -290,3 +290,20 @@ func TestInvitationMailCarriesNoSenderTextAndIsCappedPerInviter(t *testing.T) {
 		t.Fatalf("one inviter sent %d mails in a day, want %d", sent, MaxMailsPerInviter)
 	}
 }
+
+// TestADisabledInvitersInvitationIsRefused.
+func TestADisabledInvitersInvitationIsRefused(t *testing.T) {
+	w := invitationWorld(t, false)
+	ctx := context.Background()
+	if err := w.svc.Invite(ctx, w.sub["owner@facile.studio"], w.spaceID, "bob@facile.studio", "member"); err != nil {
+		t.Fatal(err)
+	}
+	w.svc.db.Exec("UPDATE users SET disabled_at = now() WHERE id = ?", w.sub["owner@facile.studio"])
+	mine, _ := w.svc.Invited(ctx, w.sub["bob@facile.studio"])
+	if len(mine) != 1 {
+		t.Fatalf("bob has %d invitations, want 1", len(mine))
+	}
+	if _, err := w.svc.Accept(ctx, w.sub["bob@facile.studio"], mine[0].ID); !errors.Is(err, ErrInvitationNotFound) {
+		t.Fatalf("accepting a disabled inviter's invitation = %v, want ErrInvitationNotFound", err)
+	}
+}

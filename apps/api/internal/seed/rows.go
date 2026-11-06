@@ -172,6 +172,10 @@ func (a Application) row(ctx context.Context, register *clients.Service) (schema
 	if err != nil {
 		return schemas.Client{}, fmt.Errorf("seed: %s: %w", a.ClientID, err)
 	}
+	if a.DeletionURI != "" && a.DeletionURI == a.DirectorySyncURI {
+		return schemas.Client{}, fmt.Errorf("seed: %s: deletion_uri must not be the directory_sync_uri, "+
+			"a sync handler accepts any POST and erases nothing", a.ClientID)
+	}
 	subject, err := ids.New()
 	if err != nil {
 		return schemas.Client{}, fmt.Errorf("seed: mint a subject for %s: %w", a.ClientID, err)

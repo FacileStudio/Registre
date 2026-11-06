@@ -25,8 +25,16 @@ All notable changes to Registre are recorded here. The format follows
 - Erasure scrubs the person's address from `admin_events`; a sign-up passkey ceremony is bound to
   the link it was begun for; a login an access policy refuses leaves no session row; every
   address rate limit counts IPv6 per /64
-- The dashboard's client update no longer blanks `directory_sync_uri` and `token_exchange`
-- Migration `00017_review_v051`
+- `POST /api/spaces/{id}/billing/portal` sends Ardoise the signed-in owner's email from the
+  session, as checkout does, for Ardoise's owner check
+- The dashboard's client edit writes only the columns its form owns. It used to write the
+  whole declaration, which turned the public `facile-cli` client confidential and zeroed its token
+  lifetime on save; `deletion_uri` equal to `directory_sync_uri` is refused there and in the seed
+- An invitation from a disabled inviter can no longer be accepted
+- Migration `00017_review_v051`. Rolling back to v0.5.0 needs its Down first: `registre migrate`
+  has no down subcommand, so run the `-- +goose Down` block of `00017_review_v051.sql` with psql
+  and `DELETE FROM goose_db_version WHERE version_id = 17`. v0.5.0 reads
+  `sessions.reauthenticated_at`, which 00017 renames to `factor_proven_at`
 
 ## [0.5.0] - 2026-11-04
 

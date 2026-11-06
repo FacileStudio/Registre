@@ -53,6 +53,14 @@ applications:
       - offline_access
       - roles
     backchannel_logout_uri: https://courrier.facile.studio/auth/backchannel-logout
+    # directory_sync_uri is nudged (an empty POST) after any change to spaces.
+    # deletion_uri receives the signed user.deleted event when an account is
+    # erased (SPEC §6) and must be a handler that verifies it; never the sync
+    # URI, which answers any POST with 202 and erases nothing, and which the
+    # seed refuses. Leave it out to learn of erasures by polling
+    # GET /api/directory/deletions instead.
+    directory_sync_uri: https://courrier.facile.studio/api/registre/sync
+    deletion_uri: https://courrier.facile.studio/api/registre/deleted
     visible_roles:
       - admin
 
