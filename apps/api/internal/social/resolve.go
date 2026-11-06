@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"strings"
 	"unicode/utf8"
 
@@ -112,7 +113,10 @@ func (s *Service) create(ctx context.Context, provider string, profile Profile) 
 		if err := tx.Create(&user).Error; err != nil {
 			return err
 		}
-		return s.insertIdentity(ctx, tx, user.ID, provider, profile)
+		if err := s.insertIdentity(ctx, tx, user.ID, provider, profile); err != nil {
+			return err
+		}
+		return audit.Write(tx.WithContext(ctx), user.ID, "account.created_social", audit.Target{Type: "user", ID: user.ID}, map[string]any{"provider": provider})
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) || errors.Is(err, errRaced) {
@@ -135,7 +139,7 @@ func (s *Service) insertIdentity(
 	}
 	err := db.WithContext(ctx).Create(&row).Error
 	if err == nil {
-		return nil
+		return audit.Write(db.WithContext(ctx), userID, "account.connection_added", audit.Target{Type: "user", ID: userID}, map[string]any{"provider": provider})
 	}
 	if errors.Is(err, gorm.ErrDuplicatedKey) {
 		return s.duplicateCause(ctx, userID, provider, profile.Subject)

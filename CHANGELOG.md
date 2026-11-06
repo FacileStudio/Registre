@@ -6,6 +6,15 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- The `connections` claim reaches only clients that opted into the provider through `login_providers`, in both the ID token and userinfo. It lists only those providers. A client that opted into none gets no claim, whatever scope it requested
+- The GDPR export now includes `social_identities`: provider, provider subject, display name and `linked_at`. Tokens are never exported
+
+### Added
+
+- Audit entries `account.connection_added` on every social link and `account.created_social` when a social sign-in creates an account
+
 ## [0.6.1] - 2026-11-06
 
 ### Added
