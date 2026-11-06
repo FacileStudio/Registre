@@ -282,6 +282,20 @@ applications:
       - https://capsule.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
 
+  # Place, the suite's unified forum at place.facile.studio.
+  #
+  # Fresh registration, so the id is its own name, like Sonde, Prisme and
+  # Capsule. porte mounts under /api, so the redirect keeps the /api prefix.
+  # Place reads no roles and syncs no directory, so no directory_sync_uri is
+  # declared and OIDC_CLAIMS_SCOPE stays empty on the app side.
+  - client_id: place
+    name: Place
+    backchannel_logout_uri: https://place.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_PLACE_SECRET
+    redirect_uris:
+      - https://place.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+
   # Bulle, the suite's coding agent and harness at bulle.facile.studio.
   #
   # token_exchange (RFC 8693) is how Bulle reaches a signed-in user's own mail,
