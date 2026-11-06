@@ -117,8 +117,8 @@ export const account = {
 		request<unknown>('/api/account/totp/disable', { password, code }),
 	regenerateRecoveryCodes: (password: string) =>
 		request<RecoveryCodes>('/api/account/totp/recovery-codes', { password }),
-	changePassword: (current_password: string, new_password: string) =>
-		request<unknown>('/api/account/password', { current_password, new_password }),
+	changePassword: (current_password: string, new_password: string, code: string) =>
+		request<unknown>('/api/account/password', { current_password, new_password, code }),
 	logout: () => request<unknown>('/api/account/logout', {}),
 	setPicture: (image: Blob) =>
 		send<{ picture: string }>('/api/account/avatar', 'PUT', image, image.type || 'image/png'),

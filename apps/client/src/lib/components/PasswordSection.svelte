@@ -14,6 +14,8 @@
 		current = $bindable(),
 		next = $bindable(),
 		confirm = $bindable(),
+		code = $bindable(),
+		needsCode = false,
 		onSubmit
 	}: {
 		minLength: number;
@@ -22,6 +24,8 @@
 		current: string;
 		next: string;
 		confirm: string;
+		code?: string;
+		needsCode?: boolean;
 		onSubmit: (event: SubmitEvent) => void;
 	} = $props();
 
@@ -74,6 +78,11 @@
 				bind:value={confirm}
 			/>
 		</Field>
+		{#if needsCode}
+			<Field label={t('login.code')} helper={t('totp.recoveryWorks')}>
+				<Input inputmode="numeric" autocomplete="one-time-code" required disabled={saving} bind:value={code} />
+			</Field>
+		{/if}
 		<div class="flex justify-end">
 			<Button
 				type="submit"

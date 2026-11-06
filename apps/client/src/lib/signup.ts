@@ -24,7 +24,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 	try {
 		response = await fetch(path, {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: { 'Content-Type': 'application/json', 'X-Facile-CSRF': '1' },
 			body: JSON.stringify(body)
 		});
 	} catch {
