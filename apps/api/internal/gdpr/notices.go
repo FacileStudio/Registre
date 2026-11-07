@@ -2,8 +2,12 @@ package gdpr
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -23,6 +27,7 @@ const (
 
 // Deleted is one erased account as an app lists it.
 type Deleted struct {
+	ID        int64     `json:"-"`
 	Subject   string    `json:"sub"`
 	DeletedAt time.Time `json:"deleted_at"`
 }
@@ -92,12 +97,67 @@ func backoff(attempts int) time.Duration {
 	return min(wait, maxRetry)
 }
 
-// DeletedFor lists the accounts erased since since, for one app.
-func DeletedFor(ctx context.Context, db *gorm.DB, clientID string, since time.Time) ([]Deleted, error) {
-	out := []Deleted{}
-	err := db.WithContext(ctx).Raw(`SELECT subject, created_at AS deleted_at FROM deletion_notices
-		WHERE client_id = ? AND created_at > ? ORDER BY created_at, id LIMIT 1000`, clientID, since).Scan(&out).Error
-	return out, err
+// DeletionPageSize is how many notices one page of the listing holds.
+const DeletionPageSize = 1000
+
+// ErrBadCursor is a cursor DecodeCursor refuses.
+var ErrBadCursor = errors.New("gdpr: malformed cursor")
+
+// Cursor is a position in the listing: the (created_at, id) of the last
+// notice a page returned. Listing resumes strictly after it, so any number of
+// notices sharing one timestamp can be walked.
+type Cursor struct {
+	At time.Time
+	ID int64
+}
+
+// Encode is the opaque form of the cursor.
+func (c Cursor) Encode() string {
+	raw := strconv.FormatInt(c.At.UnixMicro(), 10) + "." + strconv.FormatInt(c.ID, 10)
+	return base64.RawURLEncoding.EncodeToString([]byte(raw))
+}
+
+// DecodeCursor parses what Encode wrote.
+func DecodeCursor(raw string) (Cursor, error) {
+	decoded, err := base64.RawURLEncoding.DecodeString(raw)
+	if err != nil {
+		return Cursor{}, ErrBadCursor
+	}
+	at, id, found := strings.Cut(string(decoded), ".")
+	if !found {
+		return Cursor{}, ErrBadCursor
+	}
+	micros, errAt := strconv.ParseInt(at, 10, 64)
+	rowID, errID := strconv.ParseInt(id, 10, 64)
+	if errAt != nil || errID != nil || rowID < 0 {
+		return Cursor{}, ErrBadCursor
+	}
+	return Cursor{At: time.UnixMicro(micros).UTC(), ID: rowID}, nil
+}
+
+// DeletedFor lists the accounts erased since since, for one app, one page at
+// a time in (created_at, id) order. after, when set, resumes past a previous
+// page. next is the cursor of the following page, empty on the last one.
+func DeletedFor(ctx context.Context, db *gorm.DB, clientID string, since time.Time, after *Cursor) (out []Deleted, next string, err error) {
+	query := db.WithContext(ctx).Table("deletion_notices").
+		Select("id, subject, created_at AS deleted_at").
+		Where("client_id = ? AND created_at > ?", clientID, since)
+	if after != nil {
+		query = query.Where("(created_at, id) > (?, ?)", after.At, after.ID)
+	}
+	var rows []Deleted
+	if err := query.Order("created_at, id").Limit(DeletionPageSize + 1).Scan(&rows).Error; err != nil {
+		return nil, "", err
+	}
+	if len(rows) > DeletionPageSize {
+		rows = rows[:DeletionPageSize]
+		last := rows[len(rows)-1]
+		next = Cursor{At: last.DeletedAt, ID: last.ID}.Encode()
+	}
+	if rows == nil {
+		rows = []Deleted{}
+	}
+	return rows, next, nil
 }
 
 // PurgeNotices deletes notices older than NoticeRetention.

@@ -9,7 +9,7 @@ import (
 )
 
 // DeletionLister answers the accounts erased since a moment, for one app.
-type DeletionLister func(ctx context.Context, clientID string, since time.Time) ([]gdpr.Deleted, error)
+type DeletionLister func(ctx context.Context, clientID string, since time.Time, after *gdpr.Cursor) ([]gdpr.Deleted, string, error)
 
 // WithDeletions turns on GET /api/directory/deletions. Without it the route
 // answers 404.
@@ -19,7 +19,9 @@ func (s *Service) WithDeletions(list DeletionLister) *Service {
 }
 
 // deletions answers the calling app's erased accounts since ?since= (RFC
-// 3339, default: the whole retention window). An app with no sync URI polls
+// 3339, default: the whole retention window), a page at a time. A full page
+// carries next_cursor; passing it back as ?cursor= resumes after the last
+// notice listed, however many share one timestamp. An app with no sync URI polls
 // here; one with a sync URI may poll here to catch up after downtime.
 func (s *Service) deletions(w http.ResponseWriter, r *http.Request) {
 	if s.deletionsFor == nil {
@@ -39,10 +41,23 @@ func (s *Service) deletions(w http.ResponseWriter, r *http.Request) {
 		}
 		since = parsed
 	}
-	out, err := s.deletionsFor(r.Context(), app.ClientID, since)
+	var after *gdpr.Cursor
+	if raw := r.URL.Query().Get("cursor"); raw != "" {
+		parsed, err := gdpr.DecodeCursor(raw)
+		if err != nil {
+			encode(w, map[string]string{"error": "malformed cursor"}, http.StatusBadRequest)
+			return
+		}
+		after = &parsed
+	}
+	out, next, err := s.deletionsFor(r.Context(), app.ClientID, since, after)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	encode(w, map[string]any{"deleted": out}, http.StatusOK)
+	body := map[string]any{"deleted": out}
+	if next != "" {
+		body["next_cursor"] = next
+	}
+	encode(w, body, http.StatusOK)
 }
