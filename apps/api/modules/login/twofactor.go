@@ -85,7 +85,7 @@ func (s *Service) answer(
 	if !user.Enabled() {
 		return decision{}, identity.ErrInvalid
 	}
-	if err := s.checkCode(ctx, user, code); err != nil {
+	if err := s.checkCodeThrottled(ctx, user, code); err != nil {
 		return decision{}, err
 	}
 	if err := s.factor.Challenges.Consume(ctx, row.ID); err != nil {

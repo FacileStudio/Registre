@@ -131,11 +131,11 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	}
 	router := chi.NewRouter()
 	sessions, cookies := accounts.New(db), accounts.NewCookies(false)
-	Mount(router, provider, Binding{Storage: storage, Sessions: sessions, Cookies: cookies})
-	login.Mount(router, login.New(users, logs).WithSecondFactor(login.SecondFactor{
+	MountWithTokenLimit(router, provider, Binding{Storage: storage, Sessions: sessions, Cookies: cookies}, 1000, 1000)
+	login.MountWithLimits(router, login.New(users, logs).WithSecondFactor(login.SecondFactor{
 		Accounts: sessions,
 		Cookies:  cookies,
-	}))
+	}), 1000, 1000)
 	router.Get("/login", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(
 			`<form method="post"><input type="hidden" name="auth_request" value="` +

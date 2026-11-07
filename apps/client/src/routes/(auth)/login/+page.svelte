@@ -167,6 +167,13 @@
 		}
 	}
 
+	function answerFor(status: number, reason: string | undefined, fallback: string): string {
+		if (reason === 'no_access') return t('login.noAccess');
+		if (status === 429) return t('login.tooMany');
+		if (status === 503) return t('login.busy');
+		return fallback;
+	}
+
 	async function submitPassword(event: SubmitEvent) {
 		event.preventDefault();
 		if (status === 'submitting' || status === 'redirecting') return;
@@ -180,7 +187,7 @@
 			});
 			const body = await response.json().catch(() => null);
 			if (!response.ok) {
-				error = body?.error === 'no_access' ? t('login.noAccess') : t('login.refused');
+				error = answerFor(response.status, body?.error, t('login.refused'));
 				status = 'ready';
 				return;
 			}
@@ -211,7 +218,7 @@
 			});
 			const body = await response.json().catch(() => null);
 			if (!response.ok) {
-				error = body?.error === 'no_access' ? t('login.noAccess') : t('login.codeRefused');
+				error = answerFor(response.status, body?.error, t('login.codeRefused'));
 				code = '';
 				status = 'ready';
 				return;

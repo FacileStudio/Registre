@@ -77,6 +77,16 @@ services:
       # transient memory the token endpoint may hold under load. Unset means
       # one per core, which is what the CPU can actually use.
       REGISTRE_VERIFY_CONCURRENCY: ${REGISTRE_VERIFY_CONCURRENCY:-}
+      # Overload and abuse limits. Empty means the built-in default, see
+      # docs/configuration.md.
+      REGISTRE_VERIFY_QUEUE_WAIT: ${REGISTRE_VERIFY_QUEUE_WAIT:-}
+      REGISTRE_DB_MAX_OPEN_CONNS: ${REGISTRE_DB_MAX_OPEN_CONNS:-}
+      REGISTRE_DB_MAX_IDLE_CONNS: ${REGISTRE_DB_MAX_IDLE_CONNS:-}
+      REGISTRE_DB_CONN_MAX_LIFETIME: ${REGISTRE_DB_CONN_MAX_LIFETIME:-}
+      REGISTRE_LOGIN_RATE: ${REGISTRE_LOGIN_RATE:-}
+      REGISTRE_LOGIN_BURST: ${REGISTRE_LOGIN_BURST:-}
+      REGISTRE_TOKEN_RATE: ${REGISTRE_TOKEN_RATE:-}
+      REGISTRE_TOKEN_BURST: ${REGISTRE_TOKEN_BURST:-}
       # Public sign-up stays off until the owner sets SIGNUP_ENABLED=true,
       # and also needs an ALTCHA_HMAC_KEY of 32+ bytes and SMTP. Passkeys
       # bind to WEBAUTHN_RP_ID; changing it orphans every registered passkey.

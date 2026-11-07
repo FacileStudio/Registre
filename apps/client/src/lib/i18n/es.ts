@@ -34,6 +34,8 @@ export const es: Messages = {
 	"login.noAccess": "Tu cuenta no tiene acceso a esta aplicación. Pide acceso a un propietario de la aplicación.",
 	"login.refused": "Correo o contraseña incorrectos.",
 	"login.codeRefused": "Ese código no es válido.",
+	"login.tooMany": "Demasiados intentos. Espera un momento y vuelve a intentarlo.",
+	"login.busy": "El servidor está ocupado. Inténtalo de nuevo en unos segundos.",
 	"login.passkeyRefused": "Esa llave de acceso no fue aceptada.",
 	"login.passkeyCancelled": "El inicio de sesión con llave de acceso no terminó. Inténtalo de nuevo o usa tu contraseña.",
 	"login.redirected": "Ese inicio de sesión no terminó. Empieza de nuevo desde la aplicación que estabas abriendo.",

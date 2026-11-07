@@ -34,7 +34,7 @@ the server. `up` and `baseline` are there too, from `tronc/migrate`.
 The login rate limiter keys on the request's source address, and behind Traefik that address is
 Traefik's unless `TRUSTED_PROXIES` is configured so the real client IP is recovered from
 `X-Forwarded-For`. Unset, every login from every app in the suite comes from one address and
-shares one bucket of 5 requests per second — the first few sign-ins succeed and everything after
+shares one bucket of 1 request per second (burst 10) — the first few sign-ins succeed and everything after
 that is refused, which reads as a suite-wide login outage with nothing wrong in any app. Set
 `TRUSTED_PROXIES` in production; the compose file carries the variable and a comment saying the
 same.

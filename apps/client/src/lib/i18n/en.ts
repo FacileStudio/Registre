@@ -32,6 +32,8 @@ export const en = {
 	"login.noAccess": "Your account does not have access to this app. Ask an owner of the app to give you access.",
 	"login.refused": "Wrong email or password.",
 	"login.codeRefused": "That code is not valid.",
+	"login.tooMany": "Too many attempts. Wait a moment, then try again.",
+	"login.busy": "The server is busy. Try again in a few seconds.",
 	"login.passkeyRefused": "That passkey was not accepted.",
 	"login.passkeyCancelled": "The passkey sign-in did not finish. Try again or use your password.",
 	"login.redirected": "That sign-in did not finish. Start again from the app you were opening.",

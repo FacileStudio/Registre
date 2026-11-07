@@ -34,6 +34,8 @@ export const de: Messages = {
 	"login.noAccess": "Dein Konto hat keinen Zugriff auf diese App. Bitte einen Eigentümer der App um Zugriff.",
 	"login.refused": "E-Mail oder Passwort falsch.",
 	"login.codeRefused": "Dieser Code ist ungültig.",
+	"login.tooMany": "Zu viele Versuche. Bitte warte einen Moment und versuche es erneut.",
+	"login.busy": "Der Server ist ausgelastet. Versuche es in ein paar Sekunden erneut.",
 	"login.passkeyRefused": "Dieser Passkey wurde nicht akzeptiert.",
 	"login.passkeyCancelled": "Die Anmeldung mit Passkey wurde nicht abgeschlossen. Versuch es noch einmal oder nutze dein Passwort.",
 	"login.redirected": "Diese Anmeldung wurde nicht abgeschlossen. Beginne neu in der App, die du öffnen wolltest.",

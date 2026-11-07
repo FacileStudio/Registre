@@ -56,6 +56,16 @@ const (
 	DefaultDeviceStartBurst = 10
 )
 
+// DefaultTokenLimit and DefaultTokenBurst bound how fast one source address
+// may call the token endpoint. Every call there is client-authenticated, and a
+// confidential client's secret is an argon2 verification of its own, so an
+// unauthenticated flood of bad secrets costs the server about 145 ms of CPU
+// each. A real app calls it once per sign-in and once per refresh.
+const (
+	DefaultTokenLimit = 1
+	DefaultTokenBurst = 10
+)
+
 // deviceAuthorization is the flow's shape as the library mints it: how long a
 // flow lives, how often the CLI is told to poll, where the human goes, and
 // what a user code looks like.
@@ -136,7 +146,18 @@ func NewProvider(storage *Storage, cfg ProviderConfig) (*op.Provider, error) {
 // flow to the browser that started it and the session that finished it. See
 // Binding for why the library's own callback cannot be mounted bare.
 func Mount(router chi.Router, provider *op.Provider, binding Binding) {
+	MountWithTokenLimit(router, provider, binding, DefaultTokenLimit, DefaultTokenBurst)
+}
+
+// MountWithTokenLimit is Mount with an explicit per-address budget on the token
+// endpoint. The token endpoint also answers 503 with Retry-After when every
+// argon2 slot stayed busy, instead of the library's invalid_client, because
+// telling an app its secret is wrong when the server is merely busy is a lie
+// that ends in a rotated secret.
+func MountWithTokenLimit(router chi.Router, provider *op.Provider, binding Binding, tokenLimit float64, tokenBurst int) {
 	budget := limits.PerAddress(DefaultDeviceStartLimit, DefaultDeviceStartBurst)
+	tokenBudget := limits.PerAddress(tokenLimit, tokenBurst)
+	token := provider.TokenEndpoint().Relative()
 	device := provider.DeviceAuthorizationEndpoint().Relative()
 	authorize := provider.AuthorizationEndpoint().Relative()
 	for _, path := range Paths(provider) {
@@ -145,6 +166,8 @@ func Mount(router chi.Router, provider *op.Provider, binding Binding) {
 			router.Handle(path, filteredDiscovery(provider))
 		case device:
 			router.With(budget).Handle(path, provider)
+		case token:
+			router.With(tokenBudget, busyAs503).Handle(path, provider)
 		case authorize:
 			router.Handle(path, binding.authorize(provider))
 		case authorize + "/callback":

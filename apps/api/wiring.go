@@ -24,6 +24,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
 	"github.com/FacileStudio/Registre/apps/api/internal/seed"
 	"github.com/FacileStudio/Registre/apps/api/internal/social"
+	"github.com/FacileStudio/Registre/apps/api/internal/throttle"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
 	"github.com/FacileStudio/Registre/apps/api/internal/web"
 	"github.com/FacileStudio/Registre/apps/api/modules/account"
@@ -136,7 +137,8 @@ func assemble(
 	})
 	health.Mount(router, health.DB(sqlDB))
 	sessions, cookies := accounts.New(db), accounts.NewCookies(!cfg.InsecureIssuer())
-	oidc.Mount(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies})
+	oidc.MountWithTokenLimit(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies},
+		cfg.TokenRate, cfg.TokenBurst)
 	mountPeople(router, cfg, people{
 		ctx: ctx, db: db, users: users, invites: invitationService, register: register,
 		keyring: keyring, services: svc, root: root,
@@ -196,7 +198,8 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 	pending := challenges.New(p.db)
 	pending.StartPurge(p.ctx, challengeRetention, p.log)
 
-	login.Mount(router, login.New(p.users, p.log).
+	login.MountWithLimits(router, login.New(p.users, p.log).
+		WithThrottle(throttle.New(p.db).StartPurge(p.ctx, p.log)).
 		WithBrowserConfig(cfg.JournalBrowserURL, cfg.JournalBrowserKey).
 		WithPasskeys(p.self.passkeys).WithSignup(p.self.flow != nil).WithSocial(p.social).
 		WithSecondFactor(login.SecondFactor{
@@ -204,7 +207,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 			Codes:      factors,
 			Accounts:   p.sessions,
 			Cookies:    p.cookies,
-		}))
+		}), cfg.LoginRate, cfg.LoginBurst)
 	account.Mount(router, account.New(account.Services{
 		Sessions: p.sessions, TOTP: factors, Users: p.users, Passwords: p.verifier,
 		DB: p.db, Cookies: p.cookies, Issuer: cfg.Issuer,

@@ -90,7 +90,9 @@ func run() int {
 		return 1
 	}
 
-	db, err := database.Open(cfg.DatabaseURL)
+	db, err := database.Open(cfg.DatabaseURL, database.Pool{
+		MaxOpen: cfg.DBMaxOpen, MaxIdle: cfg.DBMaxIdle, MaxLifetime: cfg.DBMaxLifetime,
+	})
 	if err != nil {
 		log.Error("registre: failed to open the database", slog.Any("error", err))
 		return 1
@@ -110,7 +112,7 @@ func run() int {
 		return code
 	}
 
-	verifier := credentials.New(cfg.VerifyConcurrency)
+	verifier := credentials.New(cfg.VerifyConcurrency).WithQueueWait(cfg.VerifyWait)
 	if len(os.Args) > 1 && os.Args[1] == "user-create" {
 		return runUserCreate(context.Background(), db, verifier, log)
 	}

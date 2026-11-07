@@ -47,11 +47,36 @@ its own; fifteen minutes is the margin for anything that does not.
 would break the derived default silently the moment somebody raised the token lifetime alone: the
 boot guard would refuse to start, correctly, and the reason would be a value nobody set.
 
+## Pool and per-address limits
+
+| Variable | Default | What it decides |
+|---|---|---|
+| `REGISTRE_DB_MAX_OPEN_CONNS` | `40` | Open database connections; keep well under Postgres `max_connections` |
+| `REGISTRE_DB_MAX_IDLE_CONNS` | `10` | Idle connections kept warm (clamped to the open cap) |
+| `REGISTRE_DB_CONN_MAX_LIFETIME` | `30m` | Age after which a connection is recycled |
+| `REGISTRE_LOGIN_RATE` / `REGISTRE_LOGIN_BURST` | `1` / `10` | Per-address budget on the login endpoints, requests per second |
+| `REGISTRE_TOKEN_RATE` / `REGISTRE_TOKEN_BURST` | `1` / `10` | Per-address budget on the token endpoint |
+
+A password check costs about 145 ms of CPU, so two cores verify about 13 logins a second. The
+per-address budgets are set to one request a second so that a handful of addresses cannot saturate
+the box. The suite's apps reach the token endpoint through one or a few addresses: raise
+`REGISTRE_TOKEN_RATE` if they start seeing 429.
+
+## The per-account login throttle
+
+Each password attempt and each second-factor attempt counts against the account, stored in the
+`login_throttles` table (keys are SHA-256 digests, never addresses). Five attempts are free, then
+each attempt waits 30 s, doubling to 15 min. A success resets the count. A throttled attempt
+answers 429 `too_many_attempts` with `Retry-After`, identically for unknown and known addresses,
+and does not extend the delay. There is no hard lockout. While a delay runs, the right password is
+refused too (at most 15 min); passkeys, social sign-in and the emailed reset are not affected.
+
 ## The argon2 ceiling
 
 | Variable | Default | What it decides |
 |---|---|---|
-| `REGISTRE_VERIFY_CONCURRENCY` | one per core | How many argon2 verifications run at once |
+| `REGISTRE_VERIFY_CONCURRENCY` | two per core | How many argon2 verifications run at once |
+| `REGISTRE_VERIFY_QUEUE_WAIT` | `3s` | How long a request queues for a slot before it is answered 503 |
 
 **This is a memory ceiling wearing a count. Multiply it by 64 MiB.** argon2id at porte's parameters
 allocates 64 MiB per call, and the token endpoint has to hash before it can refuse a bad credential,
