@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-11-07
+
 ### Changed
 
 - The production seed lets Plume exchange a signed-in user's token for Nuage (`nuage.write` only). Plume uses it to store signed PDFs in the user's private Plume folder in Nuage.
