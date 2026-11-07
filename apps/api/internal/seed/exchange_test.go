@@ -224,3 +224,26 @@ func TestTheProductionSeedLetsCourrierReachBulle(t *testing.T) {
 	}
 	t.Fatal("no courrier client in the production seed")
 }
+
+func TestTheProductionSeedLetsPlumeWriteToNuage(t *testing.T) {
+	file := loadProductionSeed(t)
+	var nuageID string
+	for _, app := range file.Applications {
+		if app.Name == "Nuage" {
+			nuageID = app.ClientID
+		}
+	}
+	for _, app := range file.Applications {
+		if app.Name != "Plume" {
+			continue
+		}
+		want := []ExchangeGrant{{Audience: nuageID, Scopes: []string{"nuage.write"}}}
+		if nuageID == "" || !slices.EqualFunc(app.TokenExchange, want, func(a, b ExchangeGrant) bool {
+			return a.Audience == b.Audience && slices.Equal(a.Scopes, b.Scopes)
+		}) {
+			t.Errorf("plume exchanges %+v, want %+v", app.TokenExchange, want)
+		}
+		return
+	}
+	t.Fatal("no plume client in the production seed")
+}

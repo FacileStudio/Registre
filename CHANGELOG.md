@@ -6,6 +6,11 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The production seed lets Plume exchange a signed-in user's token for Nuage (`nuage.write` only). Plume uses it to store signed PDFs in the user's private Plume folder in Nuage.
+  Ardoise needs the same entry; its client is not in the seed (see the Nuage cutover runbook).
+
 ## [0.6.2] - 2026-11-06
 
 ### Security
