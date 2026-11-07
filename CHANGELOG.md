@@ -6,7 +6,21 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-11-07
+
 ### Added
+
+- `GET /api/directory/deletions` pages with an opaque `cursor` (created_at and id) and answers `next_cursor` when more notices remain, so more than 1000 notices on one timestamp can be listed. Callers sending only `since` still get the first 1000.
+- `deletion_uri` in the seed for Agenda, Vision, Casier, Journal, Antenne, Mycelium, Plume, Prisme, Sablier, Bulle, Courrier and Opus.
+
+### Security
+
+- A social sign-in that owes a TOTP code no longer puts the challenge token in the `/login` URL. It travels in an HttpOnly, SameSite=Strict `__Host-` cookie, and the page posts the code alone.
+
+## [0.6.4] - 2026-11-07
+
+### Added
+
 - Seed client `echo` for echo.facile.studio (sign-in, directory sync and GDPR deletion URIs), with its `REGISTRE_SEED_ECHO_SECRET` forwarded in docker-compose.yml.
 
 ## [0.6.3] - 2026-11-07
