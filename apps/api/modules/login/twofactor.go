@@ -32,7 +32,8 @@ type SecondFactor struct {
 	Cookies    accounts.Cookies
 }
 
-// jsonSecondFactor answers the second step: a challenge plus either the six
+// jsonSecondFactor answers the second step: a challenge (in the body, or when
+// the body omits it, the cookie a social sign-in set) plus either the six
 // digits from the authenticator app or one recovery code. It refuses exactly
 // as the password endpoint refuses, so a wrong code, a spent challenge and an
 // invented one are one answer.
@@ -45,10 +46,17 @@ func (s *Service) jsonSecondFactor(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad body", http.StatusBadRequest)
 		return
 	}
-	answer, err := s.answer(r.Context(), w, body.Challenge, body.Code)
+	token, held := body.Challenge, false
+	if token == "" && s.social != nil {
+		token, held = s.social.Handoff(r), true
+	}
+	answer, err := s.answer(r.Context(), w, token, body.Code)
 	if err != nil {
 		s.refuse(w, err)
 		return
+	}
+	if held {
+		http.SetCookie(w, s.social.ClearHandoff())
 	}
 	encode(w, answer, http.StatusOK)
 }

@@ -166,7 +166,9 @@ func (s *Service) socialChallenge(w http.ResponseWriter, r *http.Request, userID
 		s.socialFailure(w, r, authRequestID, reasonFailed)
 		return
 	}
-	query := url.Values{"auth_request": {authRequestID}, "challenge": {token}}
+	http.SetCookie(w, s.social.HandoffCookie(token))
+	w.Header().Set("Cache-Control", "no-store")
+	query := url.Values{"auth_request": {authRequestID}, "second_factor": {"1"}}
 	http.Redirect(w, r, "/login?"+query.Encode(), http.StatusFound)
 }
 

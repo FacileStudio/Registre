@@ -150,6 +150,12 @@ func (f *fixture) authRequest() string {
 // post sends one JSON body and returns the decoded answer and the response.
 func (f *fixture) post(path string, body map[string]string) (map[string]string, *http.Response) {
 	f.t.Helper()
+	return f.postWith(path, body)
+}
+
+// postWith is post carrying cookies.
+func (f *fixture) postWith(path string, body map[string]string, cookies ...*http.Cookie) (map[string]string, *http.Response) {
+	f.t.Helper()
 	encoded, err := json.Marshal(body)
 	if err != nil {
 		f.t.Fatalf("encoding the body: %v", err)
@@ -160,6 +166,9 @@ func (f *fixture) post(path string, body map[string]string) (map[string]string, 
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Facile-CSRF", "1")
+	for _, c := range cookies {
+		request.AddCookie(c)
+	}
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		f.t.Fatalf("POST %s: %v", path, err)

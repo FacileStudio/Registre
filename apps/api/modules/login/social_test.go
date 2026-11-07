@@ -137,16 +137,40 @@ func TestAnEnrolledAccountStillOwesItsSecondFactorAfterDiscord(t *testing.T) {
 
 	response := f.get("/api/login/social/discord/callback?code=c&state="+url.QueryEscape(state), held)
 	location, err := url.Parse(response.Header.Get("Location"))
-	if err != nil || location.Path != "/login" || location.Query().Get("challenge") == "" {
-		t.Fatalf("Location = %q, want /login with a challenge", response.Header.Get("Location"))
+	if err != nil || location.Path != "/login" || location.Query().Get("second_factor") != "1" {
+		t.Fatalf("Location = %q, want /login at the second factor", response.Header.Get("Location"))
+	}
+	if strings.Contains(response.Header.Get("Location"), "challenge") {
+		t.Fatalf("Location = %q carries a challenge token", response.Header.Get("Location"))
 	}
 	if f.done(id) || cookie(response) != nil {
 		t.Fatal("Discord alone finished an account that owes a second factor")
 	}
-	answer, second := f.second(location.Query().Get("challenge"), f.code(secret))
+	handoff := handoffCookie(response)
+	if handoff == nil || !handoff.HttpOnly || handoff.SameSite != http.SameSiteStrictMode || handoff.Value == "" {
+		t.Fatalf("handoff cookie = %+v, want an HttpOnly Strict cookie holding the challenge", handoff)
+	}
+
+	_, bare := f.postWith("/api/login/totp", map[string]string{"code": f.code(secret)})
+	if bare.StatusCode == http.StatusOK || f.done(id) {
+		t.Fatal("a browser without the cookie answered the challenge")
+	}
+	answer, second := f.postWith("/api/login/totp", map[string]string{"code": f.code(secret)}, handoff)
 	if second.StatusCode != http.StatusOK || answer["redirect"] == "" || !f.done(id) {
 		t.Fatalf("the second factor did not finish the flow: %d %v", second.StatusCode, answer)
 	}
+	if cleared := handoffCookie(second); cleared == nil || cleared.MaxAge >= 0 {
+		t.Fatalf("cookie after the answer = %+v, want it expired", cleared)
+	}
+}
+
+func handoffCookie(response *http.Response) *http.Cookie {
+	for _, c := range response.Cookies() {
+		if c.Name == "registre-2fa" {
+			return c
+		}
+	}
+	return nil
 }
 
 func TestSignUpClosedRefusesAnUnknownDiscordAccount(t *testing.T) {

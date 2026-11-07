@@ -80,7 +80,7 @@ func socialLoginModule() Module {
 	return Module{Name: "social login", Description: "Sign in with Discord, for the apps that opted in through login_providers; linking is under the account routes", Routes: []Route{
 		{Method: "GET", Path: "/api/login/providers", Summary: "The social buttons the login for ?auth_request= shows; empty when none", ResponseBody: map[string]any{"providers": []string{"discord"}}},
 		{Method: "GET", Path: "/api/login/social/{provider}/start", Summary: "302 to the provider for ?auth_request=; failures redirect to /login?error=", ResponseBody: map[string]string{"redirect": "provider authorize URL"}, Status: http.StatusFound},
-		{Method: "GET", Path: "/api/login/social/{provider}/callback", Summary: "The provider's redirect URI: finishes the login, or redirects to /login?challenge= for a second factor", ResponseBody: map[string]string{"redirect": "/authorize/callback?id="}, Status: http.StatusFound},
+		{Method: "GET", Path: "/api/login/social/{provider}/callback", Summary: "The provider's redirect URI: finishes the login, or redirects to /login?second_factor=1 with the challenge in an HttpOnly cookie", ResponseBody: map[string]string{"redirect": "/authorize/callback?id="}, Status: http.StatusFound},
 		{Method: "GET", Path: "/api/account/connections", Summary: "Providers an app offers plus the ones I linked", Auth: "cookie", ResponseBody: map[string]any{"connections": []map[string]any{{"provider": "discord", "linked": true, "display_name": ""}}}},
 		{Method: "POST", Path: "/api/account/connections/{provider}/link", Summary: "Begin linking a provider account (fresh factor); optional return_to must be a registered client's origin, else 400 invalid_return_to; answers the URL to open", Auth: "cookie", RequestBody: map[string]any{"return_to": "https://app.example/settings"}, ResponseBody: map[string]string{"url": ""}},
 		{Method: "GET", Path: "/api/account/connections/{provider}/return", Summary: "Where to send the browser back when the provider is already linked: ?return_to= validated, connection=linked merged in; else 400 invalid_return_to", Auth: "cookie", QueryParams: []Field{{Name: "return_to", Type: "string", Description: "A registered client's origin"}}, ResponseBody: map[string]string{"url": ""}},
@@ -124,7 +124,7 @@ func invitationModule() Module {
 
 func deletionsModule() Module {
 	return Module{Name: "deletions", Description: "Accounts erased in the last 60 days, for the calling app (HTTP Basic, application clients)", Routes: []Route{
-		{Method: "GET", Path: "/api/directory/deletions", Summary: "Subjects erased since ?since= (RFC 3339); apps erase them within 30 days", Auth: "basic", ResponseBody: map[string]any{"deleted": []map[string]string{{"sub": "", "deleted_at": ""}}}},
+		{Method: "GET", Path: "/api/directory/deletions", Summary: "Subjects erased since ?since= (RFC 3339), 1000 per page; next_cursor, when present, goes back as ?cursor= for the next page; apps erase them within 30 days", Auth: "basic", ResponseBody: map[string]any{"deleted": []map[string]string{{"sub": "", "deleted_at": ""}}, "next_cursor": ""}},
 	}}
 }
 

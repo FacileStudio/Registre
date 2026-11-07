@@ -14,6 +14,7 @@
 	let password = $state('');
 	let code = $state('');
 	let challenge = $state('');
+	let handedOver = $state(false);
 	let step = $state<Step>('password');
 	let recovery = $state(false);
 	let error = $state('');
@@ -90,25 +91,25 @@
 		canPasskey = passkeysSupported();
 		isSignupOpen().then((open) => (signupOpen = open));
 		loadProviders(req).then((found) => (providers = found));
-		const owed = query.get('challenge') ?? '';
-		if (owed) {
-			resumeSecondFactor(owed);
+		if (query.get('second_factor') === '1') {
+			resumeSecondFactor();
 			return;
 		}
 		checkSession(req);
 	});
 
 	/**
-	 * resumeSecondFactor opens the code step for a challenge a social sign-in
-	 * minted. The challenge is single use, so it is taken off the address bar
-	 * at once rather than left in history.
+	 * resumeSecondFactor opens the code step for a social sign-in. The
+	 * challenge itself sits in an HttpOnly cookie the server set, so this page
+	 * never holds it and the address bar never carried it. The flag is taken
+	 * off the address bar at once.
 	 */
-	function resumeSecondFactor(owed: string) {
-		challenge = owed;
+	function resumeSecondFactor() {
+		handedOver = true;
 		step = 'second-factor';
 		status = 'ready';
 		const clean = new URL(window.location.href);
-		clean.searchParams.delete('challenge');
+		clean.searchParams.delete('second_factor');
 		history.replaceState(history.state, '', clean);
 	}
 
@@ -199,14 +200,14 @@
 
 	async function submitCode(event: SubmitEvent) {
 		event.preventDefault();
-		if (!challenge || status === 'submitting' || status === 'redirecting') return;
+		if ((!challenge && !handedOver) || status === 'submitting' || status === 'redirecting') return;
 		status = 'submitting';
 		error = '';
 		try {
 			const response = await fetch('/api/login/totp', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json', 'X-Facile-CSRF': '1' },
-				body: JSON.stringify({ challenge, code: code.trim() })
+				body: JSON.stringify(challenge ? { challenge, code: code.trim() } : { code: code.trim() })
 			});
 			const body = await response.json().catch(() => null);
 			if (!response.ok) {
@@ -231,6 +232,7 @@
 	function startOver() {
 		step = 'password';
 		challenge = '';
+		handedOver = false;
 		code = '';
 		recovery = false;
 		error = '';
