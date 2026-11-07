@@ -17,6 +17,7 @@ type Export struct {
 	GeneratedAt time.Time       `json:"generated_at"`
 	Account     exportAccount   `json:"account"`
 	Passkeys    []exportPasskey `json:"passkeys"`
+	Social      []exportSocial  `json:"social_identities"`
 	Consents    []exportConsent `json:"consents"`
 	Sessions    []exportSession `json:"sessions"`
 	Apps        []exportGrant   `json:"app_grants"`
@@ -44,6 +45,13 @@ type exportPasskey struct {
 	Name       string     `json:"name"`
 	CreatedAt  time.Time  `json:"created_at"`
 	LastUsedAt *time.Time `json:"last_used_at"`
+}
+
+type exportSocial struct {
+	Provider    string    `json:"provider"`
+	Subject     string    `json:"provider_subject"`
+	DisplayName string    `json:"display_name"`
+	LinkedAt    time.Time `json:"linked_at"`
 }
 
 type exportConsent struct {
@@ -83,7 +91,7 @@ func (s *Service) Export(ctx context.Context, user schemas.User) (Export, error)
 		CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
 	}}
 	steps := []func(context.Context, string, *Export) error{
-		s.exportPasskeys, s.exportConsents, s.exportSessions, s.exportGrants, s.exportRest,
+		s.exportPasskeys, s.exportSocial, s.exportConsents, s.exportSessions, s.exportGrants, s.exportRest,
 	}
 	for _, step := range steps {
 		if err := step(ctx, user.ID, &out); err != nil {
@@ -101,6 +109,20 @@ func (s *Service) exportPasskeys(ctx context.Context, userID string, out *Export
 	out.Passkeys = make([]exportPasskey, 0, len(rows))
 	for _, row := range rows {
 		out.Passkeys = append(out.Passkeys, exportPasskey{Name: row.Name, CreatedAt: row.CreatedAt, LastUsedAt: row.LastUsedAt})
+	}
+	return nil
+}
+
+func (s *Service) exportSocial(ctx context.Context, userID string, out *Export) error {
+	var rows []schemas.SocialIdentity
+	if err := s.DB.WithContext(ctx).Where("user_id = ?", userID).Order("provider").Find(&rows).Error; err != nil {
+		return fmt.Errorf("gdpr: export social identities: %w", err)
+	}
+	out.Social = make([]exportSocial, 0, len(rows))
+	for _, row := range rows {
+		out.Social = append(out.Social, exportSocial{
+			Provider: row.Provider, Subject: row.Subject, DisplayName: row.DisplayName, LinkedAt: row.CreatedAt,
+		})
 	}
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
@@ -112,7 +113,10 @@ func (s *Service) create(ctx context.Context, provider string, profile Profile) 
 		if err := tx.Create(&user).Error; err != nil {
 			return err
 		}
-		return s.insertIdentity(ctx, tx, user.ID, provider, profile)
+		if err := s.insertIdentity(ctx, tx, user.ID, provider, profile); err != nil {
+			return err
+		}
+		return audit.Write(tx.WithContext(ctx), user.ID, "account.created_social", audit.Target{Type: "user", ID: user.ID}, map[string]any{"provider": provider})
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) || errors.Is(err, errRaced) {
@@ -133,7 +137,12 @@ func (s *Service) insertIdentity(
 		Provider: provider, Subject: profile.Subject, UserID: userID,
 		DisplayName: displayName(profile), CreatedAt: s.now(),
 	}
-	err := db.WithContext(ctx).Create(&row).Error
+	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&row).Error; err != nil {
+			return err
+		}
+		return audit.Write(tx, userID, "account.connection_added", audit.Target{Type: "user", ID: userID}, map[string]any{"provider": provider})
+	})
 	if err == nil {
 		return nil
 	}

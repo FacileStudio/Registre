@@ -11,6 +11,17 @@ All notable changes to Registre are recorded here. The format follows
 - The production seed lets Plume exchange a signed-in user's token for Nuage (`nuage.write` only). Plume uses it to store signed PDFs in the user's private Plume folder in Nuage.
   Ardoise needs the same entry; its client is not in the seed (see the Nuage cutover runbook).
 
+## [0.6.2] - 2026-11-06
+
+### Security
+
+- The `connections` claim reaches only clients that opted into the provider through `login_providers`, in both the ID token and userinfo. It lists only those providers. A client that opted into none gets no claim, whatever scope it requested
+- The GDPR export now includes `social_identities`: provider, provider subject, display name and `linked_at`. Tokens are never exported
+
+### Added
+
+- Audit entries `account.connection_added` on every social link and `account.created_social` when a social sign-in creates an account, written in the same transaction as the link
+
 ## [0.6.1] - 2026-11-06
 
 ### Added

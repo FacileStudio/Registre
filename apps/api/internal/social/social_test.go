@@ -215,3 +215,63 @@ func TestTheStateCookieIsHostPrefixedWhenSecure(t *testing.T) {
 		t.Fatal("Held did not read back the cookie")
 	}
 }
+
+func auditActions(t *testing.T, db *gorm.DB, userID string) []string {
+	t.Helper()
+	var actions []string
+	err := db.Model(&schemas.AdminEvent{}).Where("actor_id = ?", userID).Order("id").Pluck("action", &actions).Error
+	if err != nil {
+		t.Fatalf("reading the audit log: %v", err)
+	}
+	return actions
+}
+
+func TestLinkingAndCreatingThroughSocialWriteAuditEntries(t *testing.T) {
+	svc, db := newService(t, true)
+	ctx := context.Background()
+	user := addUser(t, db, "a@facile.studio", "hash")
+	if err := svc.LinkTo(ctx, user.ID, "discord", profile("9", "", false)); err != nil {
+		t.Fatalf("link: %v", err)
+	}
+	if got := auditActions(t, db, user.ID); len(got) != 1 || got[0] != "account.connection_added" {
+		t.Fatalf("link audit = %v", got)
+	}
+	created, err := svc.Resolve(ctx, "discord", profile("10", "new@facile.studio", true))
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	got := auditActions(t, db, created.ID)
+	if len(got) != 2 || got[0] != "account.connection_added" || got[1] != "account.created_social" {
+		t.Fatalf("create audit = %v", got)
+	}
+}
+
+func TestAFailedAuditEntryLeavesNoLinkBehind(t *testing.T) {
+	svc, db := newService(t, true)
+	ctx := context.Background()
+	user := addUser(t, db, "a@facile.studio", "hash")
+	stmts := []string{
+		`CREATE FUNCTION refuse_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'audit refused'; END $$`,
+		`CREATE TRIGGER refuse_audit BEFORE INSERT ON admin_events FOR EACH ROW EXECUTE FUNCTION refuse_audit()`,
+	}
+	for _, stmt := range stmts {
+		if err := db.Exec(stmt).Error; err != nil {
+			t.Fatalf("%s: %v", stmt, err)
+		}
+	}
+	t.Cleanup(func() {
+		db.Exec(`DROP TRIGGER refuse_audit ON admin_events`)
+		db.Exec(`DROP FUNCTION refuse_audit()`)
+	})
+	if err := svc.LinkTo(ctx, user.ID, "discord", profile("9", "", false)); err == nil {
+		t.Fatal("link succeeded with the audit write refused")
+	}
+	if _, err := svc.Resolve(ctx, "discord", profile("10", "a@facile.studio", true)); err == nil {
+		t.Fatal("email link succeeded with the audit write refused")
+	}
+	var n int64
+	db.Table("social_identities").Count(&n)
+	if n != 0 {
+		t.Fatalf("%d identities survived a refused audit entry", n)
+	}
+}

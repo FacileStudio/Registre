@@ -153,3 +153,26 @@ func TestTheExportCarriesNoSecrets(t *testing.T) {
 		t.Fatalf("Export = %+v", out)
 	}
 }
+
+func TestTheExportListsSocialIdentities(t *testing.T) {
+	svc, db, _ := open(t)
+	user := seed(t, db)
+	linked := time.Now().UTC().Truncate(time.Second)
+	link := schemas.SocialIdentity{
+		Provider: "discord", Subject: "123456789012345678", UserID: user.ID, DisplayName: "yann", CreatedAt: linked,
+	}
+	if err := db.Create(&link).Error; err != nil {
+		t.Fatalf("link: %v", err)
+	}
+	out, err := svc.Export(context.Background(), user)
+	if err != nil {
+		t.Fatalf("Export: %v", err)
+	}
+	if len(out.Social) != 1 {
+		t.Fatalf("social identities = %+v, want one", out.Social)
+	}
+	got := out.Social[0]
+	if got.Provider != "discord" || got.Subject != "123456789012345678" || got.DisplayName != "yann" || !got.LinkedAt.Equal(linked) {
+		t.Fatalf("social identity = %+v", got)
+	}
+}
