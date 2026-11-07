@@ -6,6 +6,9 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Seed client `echo` for echo.facile.studio (sign-in, directory sync and GDPR deletion URIs), with its `REGISTRE_SEED_ECHO_SECRET` forwarded in docker-compose.yml.
+
 ## [0.6.3] - 2026-11-07
 
 ### Changed
