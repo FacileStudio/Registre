@@ -77,7 +77,7 @@ func TestNoticesArePersistedRetriedAndListable(t *testing.T) {
 		t.Fatalf("plume, which has only a sync URI, shows %+v; a sync nudge must never count as delivery", plume)
 	}
 	for _, app := range []string{"nuage", "plume", "casier"} {
-		listed, err := DeletedFor(ctx, db, app, time.Now().Add(-time.Hour))
+		listed, _, err := DeletedFor(ctx, db, app, time.Now().Add(-time.Hour), nil)
 		if err != nil || len(listed) != 1 || listed[0].Subject != user.ID {
 			t.Fatalf("%s lists %v, %v; want the erased subject", app, listed, err)
 		}

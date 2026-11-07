@@ -146,8 +146,8 @@ func assemble(
 	})
 	avatar.Mount(router, pictures)
 	directory.Mount(router, directory.New(register, teams, svc.log).WithWriter(svc.billing.EntitlementsWriter).
-		WithDeletions(func(ctx context.Context, clientID string, since time.Time) ([]gdpr.Deleted, error) {
-			return gdpr.DeletedFor(ctx, db, clientID, since)
+		WithDeletions(func(ctx context.Context, clientID string, since time.Time, after *gdpr.Cursor) ([]gdpr.Deleted, string, error) {
+			return gdpr.DeletedFor(ctx, db, clientID, since, after)
 		}))
 	docs.Mount(router)
 	client, err := web.Handler()
