@@ -36,6 +36,7 @@ applications:
   - client_id: mycelium
     name: Mycelium
     directory_sync_uri: https://mycelium.facile.studio/api/registre/sync
+    deletion_uri: https://mycelium.facile.studio/api/registre/deletions
     secret_env: REGISTRE_SEED_MYCELIUM_SECRET
     redirect_uris:
       - https://mycelium.facile.studio/api/auth/oidc/callback
@@ -57,6 +58,7 @@ applications:
   - client_id: 5TVdL3zCbhhh7XCs3MvaIr5nqoV2ZIMLeEdjnVYu
     name: Sablier
     directory_sync_uri: https://sablier.facile.studio/api/registre/sync
+    deletion_uri: https://sablier.facile.studio/api/registre/deletions
     backchannel_logout_uri: https://sablier.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_SABLIER_SECRET
     redirect_uris:
@@ -66,6 +68,7 @@ applications:
 
   - client_id: b0f6NMJbVkZ89jgWOjfWYICAwCDb4jTCTMMDAonW
     name: Casier
+    deletion_uri: https://casier.facile.studio/api/registre/deletions
     backchannel_logout_uri: https://casier.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_CASIER_SECRET
     redirect_uris:
@@ -75,6 +78,7 @@ applications:
   - client_id: JnT6bwkiBXL9pqZKRdUHgYpK0hG7apupsUtCpl8A
     name: Antenne
     directory_sync_uri: https://antenne.facile.studio/api/registre/sync
+    deletion_uri: https://antenne.facile.studio/api/registre/deletions
     backchannel_logout_uri: https://antenne.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_ANTENNE_SECRET
     redirect_uris:
@@ -86,6 +90,7 @@ applications:
   - client_id: vvVAmcun8BFuAxMdNrp6lhqs2anzvz3vnzkeZh3U
     name: Agenda
     directory_sync_uri: https://agenda.facile.studio/api/registre/sync
+    deletion_uri: https://agenda.facile.studio/api/registre/deletions
     backchannel_logout_uri: https://agenda.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_AGENDA_SECRET
     redirect_uris:
@@ -95,6 +100,7 @@ applications:
   - client_id: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
     name: Courrier
     directory_sync_uri: https://courrier.facile.studio/api/registre/sync
+    deletion_uri: https://courrier.facile.studio/api/registre/deletions
     backchannel_logout_uri: https://courrier.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_COURRIER_SECRET
     redirect_uris:
@@ -107,6 +113,7 @@ applications:
   - client_id: 6FkN7WYS9xtKNMJMdKRtBWPLfLoS35EWELHIjgkf
     name: Plume
     directory_sync_uri: https://plume.facile.studio/api/registre/sync
+    deletion_uri: https://plume.facile.studio/api/registre/deletions
     backchannel_logout_uri: https://plume.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_PLUME_SECRET
     redirect_uris:
@@ -119,6 +126,7 @@ applications:
   - client_id: RLy72hckdFTa9eIFwCmV5MtDOWny1fLeTLpM5LUD
     name: Vision
     directory_sync_uri: https://vision.facile.studio/api/registre/sync
+    deletion_uri: https://vision.facile.studio/api/registre/deletions
     backchannel_logout_uri: https://vision.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_VISION_SECRET
     redirect_uris:
@@ -162,6 +170,7 @@ applications:
   # already sends, and what it sends is this.
   - client_id: 8bf0bcb5-e1c4-4e1e-830d-a39eb4b7c9a3
     name: Journal
+    deletion_uri: https://journal.facile.studio/api/registre/deletions
     backchannel_logout_uri: https://journal.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_JOURNAL_SECRET
     redirect_uris:
@@ -187,6 +196,7 @@ applications:
   - client_id: aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D
     name: Opus
     directory_sync_uri: https://opus.facile.studio/api/registre/sync
+    deletion_uri: https://opus.facile.studio/api/registre/deletions
     secret_env: REGISTRE_SEED_OPUS_SECRET
     redirect_uris:
       - https://opus.facile.studio/api/auth/oidc/callback
@@ -264,6 +274,7 @@ applications:
   - client_id: prisme
     name: Prisme
     directory_sync_uri: https://prisme.facile.studio/api/registre/sync
+    deletion_uri: https://prisme.facile.studio/api/registre/deletions
     backchannel_logout_uri: https://prisme.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_PRISME_SECRET
     redirect_uris:
@@ -346,6 +357,7 @@ applications:
   - client_id: bulle
     name: Bulle
     directory_sync_uri: https://bulle.facile.studio/api/registre/sync
+    deletion_uri: https://bulle.facile.studio/api/registre/deletions
     backchannel_logout_uri: https://bulle.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_BULLE_SECRET
     redirect_uris:
