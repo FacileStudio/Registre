@@ -6,6 +6,7 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-11-07
 ### Security
 
 - Failed password logins are throttled per account, stored in Postgres (migration 00020). The first five attempts are free, then each attempt waits 30 s, doubling to a 15 min cap, and a success resets the count. A throttled attempt answers 429 `too_many_attempts` with `Retry-After`, with the same status and body for unknown and known addresses. There is no hard lockout. The TOTP step has its own per-account throttle, so a fresh password login cannot reset it.
