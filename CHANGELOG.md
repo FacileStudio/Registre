@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-11-07
+
+### Added
+
+- `deletion_uri` in the seed for Glouton.
+
 ## [0.6.5] - 2026-11-07
 
 ### Added
