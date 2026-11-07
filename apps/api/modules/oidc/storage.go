@@ -127,6 +127,7 @@ func (s *Storage) GetClientByClientID(ctx context.Context, clientID string) (op.
 // and revocation endpoints.
 func (s *Storage) AuthorizeClientIDSecret(ctx context.Context, clientID, secret string) error {
 	_, err := s.svc.Register.Authenticate(ctx, clientID, secret)
+	noteBusy(ctx, err)
 	return err
 }
 
@@ -134,6 +135,7 @@ func (s *Storage) AuthorizeClientIDSecret(ctx context.Context, clientID, secret 
 func (s *Storage) ClientCredentials(ctx context.Context, clientID, secret string) (op.Client, error) {
 	row, err := s.svc.Register.Authenticate(ctx, clientID, secret)
 	if err != nil {
+		noteBusy(ctx, err)
 		return nil, err
 	}
 	return client{row: row, ttl: row.TokenLifetime(s.cfg.AccessTokenTTL)}, nil

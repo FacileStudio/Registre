@@ -13,6 +13,7 @@ import (
 	"net/http"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
+	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	spaces "github.com/FacileStudio/Registre/apps/api/internal/directory"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
@@ -102,6 +103,11 @@ func (s *Service) app(w http.ResponseWriter, r *http.Request) (schemas.Client, b
 
 // fail logs the cause and tells the caller nothing about it.
 func (s *Service) fail(w http.ResponseWriter, err error) {
+	if errors.Is(err, credentials.ErrBusy) {
+		w.Header().Set("Retry-After", "2")
+		encode(w, map[string]string{"error": "busy"}, http.StatusServiceUnavailable)
+		return
+	}
 	s.logger.Error("registre: directory request failed", slog.Any("error", err))
 	encode(w, map[string]string{"error": "internal error"}, http.StatusInternalServerError)
 }

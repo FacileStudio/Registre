@@ -57,10 +57,9 @@ type Config struct {
 	// database is the only source of clients.
 	SeedFile string
 
-	// VerifyConcurrency is how many argon2 verifications run at once. It is
-	// a memory ceiling wearing a count: multiply it by 64 MiB to get the
-	// transient memory the token endpoint may hold under load.
-	VerifyConcurrency int
+	// Hardening carries the overload and abuse settings: the argon2
+	// ceiling, the database pool and the per-address budgets.
+	Hardening
 
 	// JournalBrowserURL and JournalBrowserKey are the client pages' half of
 	// Journal, handed to the browser over GET /api/config rather than baked
@@ -102,6 +101,9 @@ func Load() (Config, error) {
 	cfg.JournalBrowserURL = strings.TrimSuffix(troncenv.String("JOURNAL_BROWSER_URL", ""), "/")
 	cfg.JournalBrowserKey = troncenv.String("JOURNAL_BROWSER_KEY", "")
 
+	if cfg.Hardening, err = loadHardening(); err != nil {
+		return Config{}, err
+	}
 	cfg.VerifyConcurrency, err = troncenv.Int("REGISTRE_VERIFY_CONCURRENCY", credentials.DefaultConcurrency())
 	if err != nil {
 		return Config{}, err

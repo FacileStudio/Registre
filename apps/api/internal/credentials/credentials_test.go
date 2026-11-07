@@ -3,6 +3,7 @@ package credentials
 import (
 	"context"
 	"errors"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -138,5 +139,42 @@ func TestAZeroCeilingIsRaisedRatherThanDeadlocking(t *testing.T) {
 			t.Errorf("New(%d) blocks forever: %v", concurrency, err)
 		}
 		cancel()
+	}
+}
+
+func TestAFullCeilingAnswersBusyAfterTheQueueWait(t *testing.T) {
+	verifier := New(1).WithQueueWait(30 * time.Millisecond)
+	release, err := verifier.hold(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+
+	started := time.Now()
+	_, err = verifier.Matches(context.Background(), "secret", "")
+	if !errors.Is(err, ErrBusy) {
+		t.Fatalf("a saturated verifier returned %v, want ErrBusy", err)
+	}
+	if elapsed := time.Since(started); elapsed < 25*time.Millisecond || elapsed > time.Second {
+		t.Errorf("busy after %s, want about the 30ms queue wait", elapsed)
+	}
+}
+
+func TestACallerThatGetsASlotInsideTheQueueWaitIsServed(t *testing.T) {
+	verifier := New(1).WithQueueWait(2 * time.Second)
+	release, err := verifier.hold(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.AfterFunc(30*time.Millisecond, release)
+
+	if matched, err := verifier.Matches(context.Background(), "secret", ""); err != nil || matched {
+		t.Fatalf("Matches = %v, %v, want a served refusal once the slot frees", matched, err)
+	}
+}
+
+func TestTheDefaultCeilingIsTwoPerCore(t *testing.T) {
+	if got, want := DefaultConcurrency(), runtime.GOMAXPROCS(0)*2; got != want {
+		t.Fatalf("DefaultConcurrency = %d, want %d", got, want)
 	}
 }

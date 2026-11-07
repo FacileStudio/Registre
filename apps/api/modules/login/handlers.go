@@ -18,6 +18,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/limits"
 	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	"github.com/FacileStudio/Registre/apps/api/internal/social"
+	"github.com/FacileStudio/Registre/apps/api/internal/throttle"
 	"github.com/FacileStudio/Registre/apps/api/internal/totp"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
@@ -25,11 +26,14 @@ import (
 // DefaultLoginLimit and DefaultLoginBurst are the budget one source address
 // gets on the credential endpoint. Tight enough that a password guesser runs
 // out of attempts in minutes, loose enough that a family or small studio
-// behind one NAT never notices it exists. Lockout-by-account is deliberately
-// absent: an attacker who can lock an account can lock a person out, which is
-// the denial of service they wanted.
+// behind one NAT never notices it exists. One request a second is also about
+// what two cores can verify: a password check costs roughly 145 ms of CPU, so
+// the earlier five a second let three addresses saturate the box. Lockout by
+// account is deliberately absent: an attacker who can lock an account can lock
+// a person out, which is the denial of service they wanted. The per-account
+// throttle in internal/throttle delays guessing instead.
 const (
-	DefaultLoginLimit = 5
+	DefaultLoginLimit = 1
 	DefaultLoginBurst = 10
 )
 
@@ -45,6 +49,7 @@ type Service struct {
 	passkeys *passkeys.Service
 	signup   bool
 	social   *social.Service
+	throttle *throttle.Service
 }
 
 // New builds the login service over identity.
@@ -145,6 +150,9 @@ func (s *Service) jsonSubmit(w http.ResponseWriter, r *http.Request) {
 // user who proved who they are but may not use the app answers 403 no_access:
 // they already know their account exists, so saying so leaks nothing.
 func (s *Service) refuse(w http.ResponseWriter, err error) {
+	if s.refuseOverload(w, err) {
+		return
+	}
 	if errors.Is(err, access.ErrNoAccess) {
 		encode(w, map[string]string{"error": "no_access"}, http.StatusForbidden)
 		return
@@ -183,7 +191,7 @@ func (s *Service) authenticate(
 	if err != nil {
 		return decision{}, err
 	}
-	user, err := s.identity.Verify(ctx, email, password)
+	user, err := s.verifyThrottled(ctx, email, password)
 	if err != nil {
 		return decision{}, err
 	}

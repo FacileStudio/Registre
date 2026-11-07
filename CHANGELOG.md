@@ -6,6 +6,17 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- Failed password logins are throttled per account, stored in Postgres (migration 00020). The first five attempts are free, then each attempt waits 30 s, doubling to a 15 min cap, and a success resets the count. A throttled attempt answers 429 `too_many_attempts` with `Retry-After`, with the same status and body for unknown and known addresses. There is no hard lockout. The TOTP step has its own per-account throttle, so a fresh password login cannot reset it.
+- Argon2 verification queues for at most 3 s (`REGISTRE_VERIFY_QUEUE_WAIT`) and then answers 503 with `Retry-After`, on `/api/login`, the token endpoint and the directory API, instead of waiting without limit. The default concurrency is now two per core.
+- The per-address login budget drops from 5/s to 1/s (burst 10), and the token endpoint gets the same budget. Both are configurable with `REGISTRE_LOGIN_RATE`, `REGISTRE_LOGIN_BURST`, `REGISTRE_TOKEN_RATE` and `REGISTRE_TOKEN_BURST`.
+
+### Changed
+
+- The database pool is capped: 40 open and 10 idle connections, recycled after 30 min (`REGISTRE_DB_MAX_OPEN_CONNS`, `REGISTRE_DB_MAX_IDLE_CONNS`, `REGISTRE_DB_CONN_MAX_LIFETIME`). At 128 concurrent requests the uncapped pool exhausted Postgres `max_connections`.
+- The login page shows a specific message on 429 and 503.
+
 ## [0.6.6] - 2026-11-07
 
 ### Added

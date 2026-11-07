@@ -97,9 +97,11 @@ end to end in `apps/api/modules/oidc`.
 - [x] Password identities, argon2id at porte's parameters, through `internal/credentials` so they
       sit under the same ceiling
 - [x] Rate limiting. The limiter lives in **`tronc/middleware`** as decided — `tronc v0.15.0`
-      ships `middleware.Ratelimit`, and registre's login endpoint mounts it at 5 req/s, burst
-      10, per source address. Lockout-by-account was deliberately not built: an attacker who
-      can lock an account can lock a person out, which is the denial of service they wanted
+      ships `middleware.Ratelimit`, and registre's login endpoint mounts it at 1 req/s, burst
+      10, per source address (5 req/s until v0.6.7), with the same budget on the token endpoint.
+      Lockout-by-account was deliberately not built: an attacker who can lock an account can
+      lock a person out, which is the denial of service they wanted. A per-account delay
+      (`internal/throttle`) slows guessing without locking
 - [x] `apps/client`: SvelteKit 5 + muse login page — shipped with slice one; the Go form stays
       behind it in production as the no-JS fallback
 - [x] Refresh tokens, and only then advertise `offline_access` in discovery — shipped 2026-08-24.

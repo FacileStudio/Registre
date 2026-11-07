@@ -13,10 +13,12 @@
 // The ceiling is the fix Keycloak shipped for the same bug — keycloak#28477,
 // PR #28478 — and for the same reason: argon2 is CPU bound, so hashing more
 // values at once than the machine has cores buys no throughput at all and
-// costs 64 MiB each. Callers past the ceiling wait rather than fail, which is
-// also what Keycloak chose; a refusal here would surface to the client as
-// invalid_client, and telling an agent its credentials are wrong when the
-// server is merely busy is worse than making it wait.
+// costs 64 MiB each. Callers past the ceiling wait, which is also what
+// Keycloak chose, but only for DefaultQueueWait: past that they get ErrBusy,
+// which the HTTP layers answer 503. An unbounded queue under a flood is a box
+// that answers nobody; a short queue and an honest 503 is a box that still
+// answers its own health check. ErrBusy is never a credential verdict, so no
+// caller may read it as "wrong secret".
 //
 // This is the only package that may import porte/local. scripts/check.sh
 // enforces that, because a second call site is a second uncapped path.
@@ -24,7 +26,9 @@ package credentials
 
 import (
 	"context"
+	"errors"
 	"runtime"
+	"time"
 
 	"github.com/FacileStudio/porte/local"
 )
@@ -46,17 +50,33 @@ import (
 const MinPasswordLength = 15
 
 // DefaultConcurrency is how many verifications run at once when the
-// configuration says nothing: one per core.
+// configuration says nothing: two per core.
 //
-// porte hashes with two lanes, so this deliberately oversubscribes the
-// machine rather than undersubscribing it. The number that matters is the
-// product: concurrency multiplied by 64 MiB is the transient memory an
-// operator is agreeing to.
-func DefaultConcurrency() int { return runtime.GOMAXPROCS(0) }
+// porte hashes with two lanes, so one verification per core already keeps the
+// machine busy; the second slot per core absorbs the gaps while a lane waits
+// on memory. The number that matters is the product: concurrency multiplied by
+// 64 MiB is the transient memory an operator is agreeing to.
+func DefaultConcurrency() int { return runtime.GOMAXPROCS(0) * 2 }
+
+// DefaultQueueWait is how long a caller waits for a slot before it is told the
+// server is busy.
+//
+// A verification takes about 150 ms of CPU, so three seconds is a queue of
+// roughly twenty callers per core: long enough to ride out a burst, short
+// enough that the answer arrives before the proxy and the 15 second write
+// timeout give up. Past it, waiting longer only moves the failure to a place
+// where it is harder to read.
+const DefaultQueueWait = 3 * time.Second
+
+// ErrBusy means every verification slot stayed taken for the whole queue wait.
+// It is the server's overload, not the caller's mistake, and the HTTP layers
+// answer it 503 rather than a credential refusal.
+var ErrBusy = errors.New("credentials: all verification slots are busy")
 
 // Verifier checks secrets against stored hashes and seals new ones.
 type Verifier struct {
 	slots chan struct{}
+	wait  time.Duration
 }
 
 // New returns a verifier admitting concurrency verifications at once. A value
@@ -66,7 +86,18 @@ func New(concurrency int) *Verifier {
 	if concurrency < 1 {
 		concurrency = 1
 	}
-	return &Verifier{slots: make(chan struct{}, concurrency)}
+	return &Verifier{slots: make(chan struct{}, concurrency), wait: DefaultQueueWait}
+}
+
+// WithQueueWait sets how long a caller queues for a slot before ErrBusy. A
+// value below one millisecond is raised to one, so a mistyped zero cannot turn
+// every verification into an immediate refusal while a slot is free.
+func (v *Verifier) WithQueueWait(wait time.Duration) *Verifier {
+	if wait < time.Millisecond {
+		wait = time.Millisecond
+	}
+	v.wait = wait
+	return v
 }
 
 // Matches reports whether secret matches hash.
@@ -102,16 +133,26 @@ func (v *Verifier) Hash(ctx context.Context, secret string) (string, error) {
 	return local.HashPassword(secret)
 }
 
-// hold takes a slot, or gives up when the caller does.
+// hold takes a slot, or gives up when the caller does or the queue wait ends.
 //
 // Selecting on the context is what a blocking acquire cannot do: when a client
 // disconnects, its request context is cancelled and the goroutine leaves the
-// queue immediately instead of waiting for a slot it will never use.
+// queue immediately instead of waiting for a slot it will never use. The timer
+// is what turns a long queue into ErrBusy instead of a hang.
 func (v *Verifier) hold(ctx context.Context) (release func(), err error) {
+	select {
+	case v.slots <- struct{}{}:
+		return func() { <-v.slots }, nil
+	default:
+	}
+	timer := time.NewTimer(v.wait)
+	defer timer.Stop()
 	select {
 	case v.slots <- struct{}{}:
 		return func() { <-v.slots }, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	case <-timer.C:
+		return nil, ErrBusy
 	}
 }
