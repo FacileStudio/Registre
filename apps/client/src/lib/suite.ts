@@ -59,12 +59,6 @@ export const suite: SuiteGroup[] = [
 			{ name: 'Sonde', url: 'https://sonde.facile.studio', description: "Monitoring d'uptime et pages de statut.", logo: logo('sonde') },
 			{ name: 'Antenne', url: 'https://antenne.facile.studio', description: "Bus d'alertes et de notifications.", logo: logo('antenne') }
 		]
-	},
-	{
-		title: 'Studio',
-		apps: [
-			{ name: 'Facile', url: 'https://facile.studio', description: 'Site public du studio.', logo: logo('facile') }
-		]
 	}
 ];
 
