@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-08
+
 ### Added
 
 - MCP authorization, first half (see `docs/mcp.md`). `GET /.well-known/oauth-authorization-server` serves RFC 8414 metadata. `/authorize`, the code and refresh grants and token exchange accept the RFC 8707 `resource`: the access token's `aud` becomes the resource URI alone and it carries a space-separated `scope` claim with the resource's scopes. Unknown resources, two resources, or another app's scopes answer `invalid_target`.
