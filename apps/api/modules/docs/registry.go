@@ -387,6 +387,12 @@ func Reference() apiref.Config {
 						},
 						{
 							Method:       "GET",
+							Path:         "/.well-known/oauth-authorization-server",
+							Summary:      "OAuth 2.0 authorization server metadata (RFC 8414), the discovery document",
+							ResponseBody: DiscoveryResponse{},
+						},
+						{
+							Method:       "GET",
 							Path:         "/oauth/v2/keys",
 							Summary:      "JSON Web Key Set (JWKS)",
 							ResponseBody: map[string]any{"keys": []any{}},

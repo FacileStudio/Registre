@@ -119,6 +119,8 @@ func declared(row schemas.Client) map[string]any {
 		"visible_roles":          row.VisibleRoles,
 		"token_exchange":         row.TokenExchange,
 		"login_providers":        row.LoginProviders,
+		"mcp_resource":           row.MCPResource,
+		"mcp_scopes":             row.MCPScopes,
 		"updated_at":             time.Now().UTC(),
 	}
 	switch {

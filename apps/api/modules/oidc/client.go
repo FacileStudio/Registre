@@ -17,6 +17,10 @@ const loginPath = "/login?auth_request="
 type client struct {
 	row schemas.Client
 	ttl time.Duration
+
+	// resourceScopes are the scopes registered MCP resources declare. Any
+	// client may ask for them; the resource check decides where they land.
+	resourceScopes map[string]bool
 }
 
 // GetID returns the id the client authenticates under.
@@ -101,8 +105,13 @@ func (c client) RestrictAdditionalAccessTokenScopes() func([]string) []string {
 	return func(scopes []string) []string { return scopes }
 }
 
-// IsScopeAllowed reports whether the register row grants this scope.
-func (c client) IsScopeAllowed(scope string) bool { return c.row.Scopes.Contains(scope) }
+// IsScopeAllowed reports whether the register row grants this scope, or a
+// registered MCP resource declares it. zitadel drops a scope this refuses
+// without saying so, so a resource scope has to pass here to reach the check
+// that binds it to its resource.
+func (c client) IsScopeAllowed(scope string) bool {
+	return c.row.Scopes.Contains(scope) || c.resourceScopes[scope]
+}
 
 // IDTokenUserinfoClaimsAssertion reports whether profile claims ride in the ID
 // token as well as at the userinfo endpoint. They do.

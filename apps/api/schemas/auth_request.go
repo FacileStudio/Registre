@@ -40,6 +40,10 @@ type AuthRequest struct {
 	// hashed-free deliberately: the code is single-use, short-lived and
 	// already an opaque random, so a second hash layer buys nothing.
 	Code string
+
+	// Resource is the MCP resource (RFC 8707) the flow asked for, or empty.
+	// The token minted from this flow names it as the only audience.
+	Resource string
 }
 
 // TableName is the table this model reads.

@@ -6,6 +6,25 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- MCP authorization, first half (see `docs/mcp.md`). `GET /.well-known/oauth-authorization-server` serves RFC 8414 metadata. `/authorize`, the code and refresh grants and token exchange accept the RFC 8707 `resource`: the access token's `aud` becomes the resource URI alone and it carries a space-separated `scope` claim with the resource's scopes. Unknown resources, two resources, or another app's scopes answer `invalid_target`.
+- Applications declare their MCP server in the seed with an `mcp` block (resource URI and `<app>.read`/`<app>.write` scopes; migration 00021). Courrier (`https://courrier.facile.studio/mcp`) and Agenda (`https://agenda.facile.studio/mcp`) are the first two.
+- Token exchange accepts `resource` and maps it to the app that declares it, so Bulle's existing grant for an app covers its MCP server.
+- Every authorization response carries `iss` (RFC 9207), and both discovery documents advertise it.
+- CORS from any origin, without credentials, on discovery, AS metadata, JWKS, token and revocation.
+- Token requests without a client secret get their own per-address budget, 20/s burst 200 (`REGISTRE_PUBLIC_TOKEN_RATE`, `REGISTRE_PUBLIC_TOKEN_BURST`), so MCP connectors sharing an egress range are not throttled together.
+
+### Security
+
+- `code_challenge_method=plain` is refused with `invalid_request`.
+- A token for an app's MCP server follows that app's access policy, at sign-in, on refresh and on exchange.
+- Every HTML page answers `X-Frame-Options: DENY` and `frame-ancestors 'none'`.
+
+### Changed
+
+- Discovery advertises `response_types_supported: ["code"]`, the only response type clients may use.
+
 ## [0.6.8] - 2026-11-08
 
 ### Added

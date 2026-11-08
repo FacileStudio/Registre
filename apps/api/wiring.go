@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"strings"
 	"time"
 
@@ -130,16 +131,16 @@ func assemble(
 		CDNProxies:     cfg.CDNProxies,
 		CDNHeader:      cfg.CDNHeader,
 		Logger:         svc.log,
-		CORS: troncmiddleware.CORSConfig{
-			AllowedOrigins:   cfg.CORSAllowedOrigins,
-			AllowCredentials: true,
-		},
 	})
+	router.Use(oidc.CORS(oidc.PublicPaths(provider), guardedCORS(cfg.CORSAllowedOrigins)))
 	health.Mount(router, health.DB(sqlDB))
 	mountVersion(router)
 	sessions, cookies := accounts.New(db), accounts.NewCookies(!cfg.InsecureIssuer())
-	oidc.MountWithTokenLimit(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies},
-		cfg.TokenRate, cfg.TokenBurst)
+	oidc.MountWithLimits(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies},
+		oidc.Limits{
+			Token: cfg.TokenRate, TokenBurst: cfg.TokenBurst,
+			PublicToken: cfg.PublicTokenRate, PublicTokenBurst: cfg.PublicTokenBurst,
+		})
 	mountPeople(router, cfg, people{
 		ctx: ctx, db: db, users: users, invites: invitationService, register: register,
 		keyring: keyring, services: svc, root: root,
@@ -236,6 +237,16 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 // proven, which is not a fact worth keeping once the flow it belonged to is
 // over, and the table would otherwise grow with every second-factor login.
 const challengeRetention = time.Hour
+
+// guardedCORS is the credentialed cross-origin policy of registre's own API,
+// or no policy at all when no origin is configured, which is what the router
+// applied before the public OAuth endpoints got their own.
+func guardedCORS(origins []string) func(http.Handler) http.Handler {
+	if len(origins) == 0 {
+		return func(next http.Handler) http.Handler { return next }
+	}
+	return troncmiddleware.CORS(troncmiddleware.CORSConfig{AllowedOrigins: origins, AllowCredentials: true})
+}
 
 // applySeed brings the register up to the file, when one is configured.
 func applySeed(ctx context.Context, register *clients.Service, path string, log *slog.Logger) error {

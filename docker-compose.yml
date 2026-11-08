@@ -87,6 +87,8 @@ services:
       REGISTRE_LOGIN_BURST: ${REGISTRE_LOGIN_BURST:-}
       REGISTRE_TOKEN_RATE: ${REGISTRE_TOKEN_RATE:-}
       REGISTRE_TOKEN_BURST: ${REGISTRE_TOKEN_BURST:-}
+      REGISTRE_PUBLIC_TOKEN_RATE: ${REGISTRE_PUBLIC_TOKEN_RATE:-}
+      REGISTRE_PUBLIC_TOKEN_BURST: ${REGISTRE_PUBLIC_TOKEN_BURST:-}
       # Public sign-up stays off until the owner sets SIGNUP_ENABLED=true,
       # and also needs an ALTCHA_HMAC_KEY of 32+ bytes and SMTP. Passkeys
       # bind to WEBAUTHN_RP_ID; changing it orphans every registered passkey.

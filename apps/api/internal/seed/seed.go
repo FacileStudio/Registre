@@ -93,6 +93,9 @@ type Application struct {
 	// there. Empty means the client cannot exchange. Declaring any entry is
 	// what grants the exchange grant; it is not listed in grant_types.
 	TokenExchange []ExchangeGrant `yaml:"token_exchange"`
+
+	// MCP declares the MCP server this application runs, if any. See MCP.
+	MCP *MCP `yaml:"mcp"`
 }
 
 // ServiceAccount declares one machine principal.

@@ -96,6 +96,9 @@ applications:
     redirect_uris:
       - https://agenda.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://agenda.facile.studio/mcp
+      scopes: [agenda.read, agenda.write]
 
   - client_id: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
     name: Courrier
@@ -106,6 +109,9 @@ applications:
     redirect_uris:
       - https://courrier.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://courrier.facile.studio/mcp
+      scopes: [courrier.read, courrier.write]
     token_exchange:
       - audience: bulle
         scopes: [bulle.read, bulle.write]

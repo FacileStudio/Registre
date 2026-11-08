@@ -30,16 +30,21 @@ func (s *Service) AuthRequestByID(ctx context.Context, id string) (schemas.AuthR
 }
 
 // Complete binds an authenticated user to a pending auth request, after
-// checking that the user may use the app the request is for. It answers
+// checking that the user may use the app the request is for, and the app
+// behind the MCP resource it asked for, if any. It answers
 // access.ErrNoAccess for a restricted app the user holds no grant to, so every
 // sign-in path, password, second factor or live session, is gated in one place.
 func (s *Service) Complete(ctx context.Context, id, userID, sessionID string, at time.Time) error {
-	var clientID string
-	if err := s.db.WithContext(ctx).Model(&schemas.AuthRequest{}).Select("client_id").
-		Where("id = ?", id).Scan(&clientID).Error; err != nil {
+	var pending schemas.AuthRequest
+	if err := s.db.WithContext(ctx).Select("client_id", "resource").
+		Where("id = ?", id).Limit(1).Find(&pending).Error; err != nil {
 		return fmt.Errorf("identity: read the auth request's app: %w", err)
 	}
-	if err := access.New(s.db, "").Require(ctx, clientID, userID); err != nil {
+	gate := access.New(s.db, "")
+	if err := gate.Require(ctx, pending.ClientID, userID); err != nil {
+		return err
+	}
+	if err := gate.RequireResource(ctx, pending.Resource, userID); err != nil {
 		return err
 	}
 	if err := s.requireConsent(ctx, userID); err != nil {

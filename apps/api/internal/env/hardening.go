@@ -24,6 +24,8 @@ const (
 	DefaultLoginBurst    = 10
 	DefaultTokenRate     = 1.0
 	DefaultTokenBurst    = 10
+	DefaultPublicRate    = 20.0
+	DefaultPublicBurst   = 200
 	DefaultVerifyWait    = 3 * time.Second
 )
 
@@ -45,10 +47,17 @@ type Hardening struct {
 	TokenRate  float64
 	TokenBurst int
 
+	// PublicTokenRate and PublicTokenBurst budget token requests that carry
+	// no client secret, so cost no argon2: public clients such as MCP
+	// connectors, which share a few egress addresses across many people.
+	PublicTokenRate  float64
+	PublicTokenBurst int
+
 	VerifyWait time.Duration
 }
 
-// loadHardening reads the REGISTRE_DB_*, REGISTRE_LOGIN_*, REGISTRE_TOKEN_*
+// loadHardening reads the REGISTRE_DB_*, REGISTRE_LOGIN_*, REGISTRE_TOKEN_*,
+// REGISTRE_PUBLIC_TOKEN_*
 // and REGISTRE_VERIFY_QUEUE_WAIT variables. An empty value means the default,
 // so the compose file can pass them through unset.
 func loadHardening() (Hardening, error) {
@@ -63,7 +72,10 @@ func loadHardening() (Hardening, error) {
 	if h.LoginRate, err = rate("REGISTRE_LOGIN_RATE", DefaultLoginRate); err != nil {
 		return Hardening{}, err
 	}
-	h.TokenRate, err = rate("REGISTRE_TOKEN_RATE", DefaultTokenRate)
+	if h.TokenRate, err = rate("REGISTRE_TOKEN_RATE", DefaultTokenRate); err != nil {
+		return Hardening{}, err
+	}
+	h.PublicTokenRate, err = rate("REGISTRE_PUBLIC_TOKEN_RATE", DefaultPublicRate)
 	return h, err
 }
 
@@ -80,6 +92,7 @@ func (h *Hardening) loadCounts() error {
 		{"REGISTRE_DB_MAX_IDLE_CONNS", DefaultDBMaxIdle, &h.DBMaxIdle, 0},
 		{"REGISTRE_LOGIN_BURST", DefaultLoginBurst, &h.LoginBurst, 1},
 		{"REGISTRE_TOKEN_BURST", DefaultTokenBurst, &h.TokenBurst, 1},
+		{"REGISTRE_PUBLIC_TOKEN_BURST", DefaultPublicBurst, &h.PublicTokenBurst, 1},
 	}
 	for _, field := range ints {
 		if *field.into, err = troncenv.Int(field.key, field.fallback); err != nil {

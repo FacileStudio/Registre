@@ -80,7 +80,10 @@ func (f File) validate() error {
 		}
 		seen[application.ClientID] = true
 	}
-	return f.validateExchange()
+	if err := f.validateExchange(); err != nil {
+		return err
+	}
+	return f.validateMCP()
 }
 
 // validate rejects one application declaration.
@@ -192,6 +195,7 @@ func (a Application) row(ctx context.Context, register *clients.Service) (schema
 	if len(scopes) == 0 {
 		scopes = []string{"openid", "profile", "email"}
 	}
+	resource, resourceScopes := a.mcpColumns()
 	return schemas.Client{
 		ClientID: a.ClientID, Subject: subject, Name: a.Name,
 		Kind: schemas.KindApplication, SecretHash: hash, Public: a.Public,
@@ -204,6 +208,8 @@ func (a Application) row(ctx context.Context, register *clients.Service) (schema
 		VisibleRoles:         schemas.StringList(a.VisibleRoles),
 		LoginProviders:       schemas.StringList(a.LoginProviders),
 		TokenExchange:        a.exchangeGrants(),
+		MCPResource:          resource,
+		MCPScopes:            schemas.StringList(resourceScopes),
 		Managed:              true,
 	}, nil
 }

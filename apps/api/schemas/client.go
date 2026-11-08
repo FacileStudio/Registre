@@ -97,6 +97,14 @@ type Client struct {
 	// survives every boot.
 	AccessPolicy string `gorm:"default:everyone"`
 
+	// MCPResource is the canonical URI of the MCP server this app runs, or
+	// empty. A token asked for it (RFC 8707 resource) names it as the only
+	// audience.
+	MCPResource string
+
+	// MCPScopes are the scopes a token for MCPResource may carry.
+	MCPScopes StringList `gorm:"type:jsonb"`
+
 	// Managed marks a row the YAML seed owns. The seed rewrites it at every
 	// boot, so an edit made anywhere else is lost on the next restart.
 	Managed bool

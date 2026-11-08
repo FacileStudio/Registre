@@ -69,6 +69,15 @@ applications:
     # offers none. Add the connections scope to also receive the linked
     # Discord id as the connections claim.
     # login_providers: [discord]
+    # mcp declares the MCP server this app runs (see docs/mcp.md). resource is
+    # the exact URL people paste into an MCP client and the exact `resource`
+    # the server's protected resource metadata publishes; a token asked for
+    # it carries it as the only aud, plus a space-separated scope claim. The
+    # scopes are <name>.read and <name>.write, name lower-cased, the same
+    # vocabulary as token_exchange. Two apps may not declare one URL.
+    mcp:
+      resource: https://courrier.facile.studio/mcp
+      scopes: [courrier.read, courrier.write]
 
   # A public client: no secret, because there is nowhere to keep one. Every
   # copy of a CLI binary carries whatever is compiled into it, so a secret
