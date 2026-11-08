@@ -6,6 +6,16 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-08
+
+### Added
+
+- Sonar is now listed in the suite directory on the user dashboard.
+
+### Changed
+
+- Removed Coffre, Gare, Abeille, and Miel from the user-facing apps list.
+
 ## [0.7.0] - 2026-11-08
 
 ### Added
