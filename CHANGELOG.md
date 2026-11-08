@@ -6,6 +6,10 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `GET /version` and `GET /api/version` answer `{"version":"vX.Y.Z"}`, public and cheap. The image build links the value in from the top released heading of `CHANGELOG.md` (`scripts/version.sh`), so Sonde can check the deployed version
+
 ## [0.6.7] - 2026-11-07
 ### Security
 

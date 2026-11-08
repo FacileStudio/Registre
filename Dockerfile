@@ -9,9 +9,11 @@ COPY apps/api/go.mod apps/api/go.sum ./
 RUN go mod download
 
 COPY apps/api ./
+COPY CHANGELOG.md /version/CHANGELOG.md
+COPY scripts/version.sh /version/version.sh
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH:-amd64} \
-    go build -trimpath -ldflags="-s -w" -o bin/api .
+    go build -trimpath -ldflags="-s -w -X main.version=$(sh /version/version.sh /version/CHANGELOG.md)" -o bin/api .
 
 FROM gcr.io/distroless/static-debian12:nonroot
 

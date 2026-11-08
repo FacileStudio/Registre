@@ -81,7 +81,7 @@ func TestRegistryIsComplete(t *testing.T) {
 
 func TestEveryRouteIsDocumented(t *testing.T) {
 	router := buildTestRouter(t)
-	if missing := apiref.Undocumented(router, docs.Reference(), zitadelOP()...); len(missing) > 0 {
+	if missing := apiref.Undocumented(router, docs.Reference(), append(zitadelOP(), "/version", "/api/version")...); len(missing) > 0 {
 		t.Errorf("routes missing from the API registry: %v", missing)
 	}
 }

@@ -136,6 +136,7 @@ func assemble(
 		},
 	})
 	health.Mount(router, health.DB(sqlDB))
+	mountVersion(router)
 	sessions, cookies := accounts.New(db), accounts.NewCookies(!cfg.InsecureIssuer())
 	oidc.MountWithTokenLimit(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies},
 		cfg.TokenRate, cfg.TokenBurst)
