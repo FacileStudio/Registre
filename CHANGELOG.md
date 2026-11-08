@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-11-08
+
+### Removed
+
+- Removed the studio vitrine (Facile) from the apps list.
+
 ## [0.7.1] - 2026-11-08
 
 ### Added
