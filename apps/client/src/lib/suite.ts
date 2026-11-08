@@ -34,6 +34,7 @@ export const suite: SuiteGroup[] = [
 			{ name: 'Nuage', url: 'https://nuage.facile.studio', description: "Fichiers partagés et espace cloud de l'équipe.", logo: logo('nuage') },
 			{ name: 'Sablier', url: 'https://sablier.facile.studio', description: 'Suivi du temps de travail par projet.', logo: logo('sablier') },
 			{ name: 'Plume', url: 'https://plume.facile.studio', description: 'Signature électronique, simple et moderne.', logo: logo('plume') },
+			{ name: 'Sonar', url: 'https://sonar.facile.studio', description: 'Moteur de recherche web privé et rapide.', logo: logo('sonar') },
 			{ name: 'Bulle', url: 'https://bulle.facile.studio', description: 'Assistant du studio, branché sur toute la suite.', logo: logo('bulle') },
 			{ name: 'Vision', url: 'https://vision.facile.studio', description: 'Analytics web avec suivi en temps réel.', logo: logo('vision') },
 			{ name: 'Perception', url: 'https://perception.facile.studio', description: 'Mémoire métier et intelligence contextuelle.', logo: logo('perception') },
@@ -49,16 +50,12 @@ export const suite: SuiteGroup[] = [
 		title: 'Workspace',
 		apps: [
 			{ name: 'Docs', url: 'https://docs.facile.studio', description: 'Documents collaboratifs, propulsé par Outline.', icon: icons.notebook },
-			{ name: 'Coffre', url: 'https://coffre.facile.studio', description: 'Mots de passe et secrets partagés.', icon: icons.key },
 			{ name: 'Ardoise', url: 'https://ardoise.facile.studio', description: 'Factures, devis et contrats freelance.', logo: logo('ardoise') }
 		]
 	},
 	{
 		title: 'Infrastructure',
 		apps: [
-			{ name: 'Gare', url: 'https://gare.facile.studio', description: 'Déploiement et gestion des apps.', icon: icons.server },
-			{ name: 'Abeille', url: 'https://abeille.facile.studio', description: 'Reverse proxy et routage.', icon: icons.globe },
-			{ name: 'Miel', url: 'https://miel.facile.studio', description: 'Ressources et santé des machines.', icon: icons.dashboard },
 			{ name: 'Sonde', url: 'https://sonde.facile.studio', description: "Monitoring d'uptime et pages de statut.", logo: logo('sonde') },
 			{ name: 'Antenne', url: 'https://antenne.facile.studio', description: "Bus d'alertes et de notifications.", logo: logo('antenne') }
 		]
