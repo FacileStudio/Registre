@@ -48,11 +48,8 @@ func (s *Storage) ValidateTokenExchangeRequest(ctx context.Context, request op.T
 	if err := s.checkSubjectToken(ctx, request, caller); err != nil {
 		return err
 	}
-	grant, err := exchangeAllowance(caller, request)
+	grant, err := s.exchangeGrant(ctx, request, caller)
 	if err != nil {
-		return err
-	}
-	if err := s.checkAudienceAccess(ctx, request); err != nil {
 		return err
 	}
 	scopes, err := narrowExchangeScopes(grant, request.GetScopes())
@@ -95,20 +92,15 @@ func (s *Storage) checkSubjectToken(ctx context.Context, request op.TokenExchang
 
 // checkAudienceAccess refuses minting a delegated token for an app the
 // subject may not use: an exchange must never reach an app the human could not
-// sign in to themselves. Audiences that name no registered app are left to
-// exchangeAllowance.
-func (s *Storage) checkAudienceAccess(ctx context.Context, request op.TokenExchangeRequest) error {
+// sign in to themselves. app is the client id exchangeApp resolved, so an MCP
+// resource URI is checked against the app that runs it.
+func (s *Storage) checkAudienceAccess(ctx context.Context, request op.TokenExchangeRequest, app string) error {
 	token, err := s.liveToken(ctx, request.GetExchangeSubjectTokenIDOrToken())
 	if err != nil {
 		return refusedSubject()
 	}
-	for _, audience := range request.GetAudience() {
-		if _, err := s.svc.Register.ByClientID(ctx, audience); err != nil {
-			continue
-		}
-		if err := access.New(s.db, "").Require(ctx, audience, token.Subject); err != nil {
-			return zoidc.ErrAccessDenied().WithDescription("the user may not use %s", audience).WithParent(err)
-		}
+	if err := access.New(s.db, "").Require(ctx, app, token.Subject); err != nil {
+		return zoidc.ErrAccessDenied().WithDescription("the user may not use %s", app).WithParent(err)
 	}
 	return nil
 }

@@ -45,13 +45,13 @@ func exchangeShape(request op.TokenExchangeRequest) error {
 	return nil
 }
 
-// exchangeAllowance finds the grant that names the one requested audience.
-func exchangeAllowance(caller schemas.Client, request op.TokenExchangeRequest) (schemas.ExchangeGrant, error) {
-	audience := request.GetAudience()
-	if len(audience) != 1 || audience[0] == caller.ClientID {
+// exchangeAllowance finds the grant that names app, the one app the exchange
+// is for once exchangeApp has resolved it.
+func exchangeAllowance(caller schemas.Client, app string) (schemas.ExchangeGrant, error) {
+	if app == caller.ClientID {
 		return schemas.ExchangeGrant{}, refusedTarget()
 	}
-	grant, ok := caller.TokenExchange.For(audience[0])
+	grant, ok := caller.TokenExchange.For(app)
 	if !ok {
 		return schemas.ExchangeGrant{}, refusedTarget()
 	}

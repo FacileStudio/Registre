@@ -34,6 +34,13 @@ const authTTL = 10 * time.Minute
 // deliberately ignored, because pre-authenticating a flow on an unverified
 // hint would let anyone skip the password by naming themselves in a URL.
 func (s *Storage) CreateAuthRequest(ctx context.Context, request *zoidc.AuthRequest, _ string) (op.AuthRequest, error) {
+	if err := checkChallengeMethod(request); err != nil {
+		return nil, err
+	}
+	resource, err := s.resolveResource(ctx, request)
+	if err != nil {
+		return nil, err
+	}
 	id, err := ids.New()
 	if err != nil {
 		return nil, fmt.Errorf("oidc: mint an auth request id: %w", err)
@@ -49,6 +56,7 @@ func (s *Storage) CreateAuthRequest(ctx context.Context, request *zoidc.AuthRequ
 		CodeChallenge:       request.CodeChallenge,
 		CodeChallengeMethod: string(request.CodeChallengeMethod),
 		BrowserHash:         browserHash(ctx),
+		Resource:            resource,
 		ExpiresAt:           s.now().Add(authTTL),
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
@@ -210,6 +218,14 @@ func (a authRequest) GetAMR() []string {
 	return []string{"pwd"}
 }
 
-func (a authRequest) GetAudience() []string { return []string{a.row.ClientID} }
+// GetAudience is the resource the flow asked for when it asked for one, and
+// the app itself otherwise. zitadel adds the client id to an ID token's
+// audience on its own, so only the access token is bound to the resource.
+func (a authRequest) GetAudience() []string {
+	if a.row.Resource != "" {
+		return []string{a.row.Resource}
+	}
+	return []string{a.row.ClientID}
+}
 
 func (a authRequest) Done() bool { return a.row.Done() }

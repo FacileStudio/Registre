@@ -55,7 +55,8 @@ boot guard would refuse to start, correctly, and the reason would be a value nob
 | `REGISTRE_DB_MAX_IDLE_CONNS` | `10` | Idle connections kept warm (clamped to the open cap) |
 | `REGISTRE_DB_CONN_MAX_LIFETIME` | `30m` | Age after which a connection is recycled |
 | `REGISTRE_LOGIN_RATE` / `REGISTRE_LOGIN_BURST` | `1` / `10` | Per-address budget on the login endpoints, requests per second |
-| `REGISTRE_TOKEN_RATE` / `REGISTRE_TOKEN_BURST` | `1` / `10` | Per-address budget on the token endpoint |
+| `REGISTRE_TOKEN_RATE` / `REGISTRE_TOKEN_BURST` | `1` / `10` | Per-address budget on the token endpoint for requests that carry a client secret |
+| `REGISTRE_PUBLIC_TOKEN_RATE` / `REGISTRE_PUBLIC_TOKEN_BURST` | `20` / `200` | Per-address budget on the token endpoint for public clients (no secret, no argon2). MCP connectors such as claude.ai share Anthropic's egress range, so this one is large |
 
 A password check costs about 145 ms of CPU, so two cores verify about 13 logins a second. The
 per-address budgets are set to one request a second so that a handful of addresses cannot saturate

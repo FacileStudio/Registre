@@ -120,7 +120,11 @@ func (s *Storage) GetClientByClientID(ctx context.Context, clientID string) (op.
 	if err != nil {
 		return nil, err
 	}
-	return client{row: row, ttl: row.TokenLifetime(s.cfg.AccessTokenTTL)}, nil
+	extra, err := s.resourceScopes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return client{row: row, ttl: row.TokenLifetime(s.cfg.AccessTokenTTL), resourceScopes: extra}, nil
 }
 
 // AuthorizeClientIDSecret verifies a client secret at the token, introspection

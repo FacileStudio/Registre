@@ -10,11 +10,12 @@ package oidc
 
 import (
 	"crypto/sha256"
+	"net/http"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
 	"github.com/FacileStudio/Registre/apps/api/internal/limits"
 	"github.com/go-chi/chi/v5"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
+	zoidc "github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
 )
 
@@ -30,8 +31,8 @@ const codeKeyContext = "registre/auth-code"
 // failure mode available — every role check denying, silently, with no error
 // anywhere.
 var scopes = []string{
-	oidc.ScopeOpenID, oidc.ScopeProfile, oidc.ScopeEmail,
-	oidc.ScopeOfflineAccess, scopeRoles, scopeConnections,
+	zoidc.ScopeOpenID, zoidc.ScopeProfile, zoidc.ScopeEmail,
+	zoidc.ScopeOfflineAccess, scopeRoles, scopeConnections,
 }
 
 // scopeRoles is the scope that asks for the roles claim in a token.
@@ -150,31 +151,67 @@ func Mount(router chi.Router, provider *op.Provider, binding Binding) {
 }
 
 // MountWithTokenLimit is Mount with an explicit per-address budget on the token
-// endpoint. The token endpoint also answers 503 with Retry-After when every
-// argon2 slot stayed busy, instead of the library's invalid_client, because
-// telling an app its secret is wrong when the server is merely busy is a lie
-// that ends in a rotated secret.
+// endpoint for requests that carry a client secret. The token endpoint also
+// answers 503 with Retry-After when every argon2 slot stayed busy, instead of
+// the library's invalid_client, because telling an app its secret is wrong
+// when the server is merely busy is a lie that ends in a rotated secret.
 func MountWithTokenLimit(router chi.Router, provider *op.Provider, binding Binding, tokenLimit float64, tokenBurst int) {
-	budget := limits.PerAddress(DefaultDeviceStartLimit, DefaultDeviceStartBurst)
-	tokenBudget := limits.PerAddress(tokenLimit, tokenBurst)
-	token := provider.TokenEndpoint().Relative()
-	device := provider.DeviceAuthorizationEndpoint().Relative()
-	authorize := provider.AuthorizationEndpoint().Relative()
+	MountWithLimits(router, provider, binding, Limits{
+		Token: tokenLimit, TokenBurst: tokenBurst,
+		PublicToken: DefaultPublicTokenLimit, PublicTokenBurst: DefaultPublicTokenBurst,
+	})
+}
+
+// Limits are the per-address budgets of the token endpoint: one for requests
+// that carry a client secret, which cost an argon2 verification, and one for
+// public clients, which do not.
+type Limits struct {
+	Token            float64
+	TokenBurst       int
+	PublicToken      float64
+	PublicTokenBurst int
+}
+
+// MountWithLimits is Mount with explicit token endpoint budgets. It also
+// mounts RFC 8414 metadata next to discovery, the RFC 8707 resource gate on
+// the token endpoint, and RFC 9207 iss on every authorization response.
+func MountWithLimits(router chi.Router, provider *op.Provider, binding Binding, limits Limits) {
+	routes := endpointHandlers(provider, binding, limits)
 	for _, path := range Paths(provider) {
-		switch path {
-		case oidc.DiscoveryEndpoint:
-			router.Handle(path, filteredDiscovery(provider))
-		case device:
-			router.With(budget).Handle(path, provider)
-		case token:
-			router.With(tokenBudget, busyAs503).Handle(path, provider)
-		case authorize:
-			router.Handle(path, binding.authorize(provider))
-		case authorize + "/callback":
-			router.Handle(path, binding.callback(provider, provider))
-		default:
-			router.Handle(path, provider)
+		handler, ok := routes[path]
+		if !ok {
+			handler = provider
 		}
+		router.Handle(path, handler)
+	}
+	router.Get(MetadataPath, authorizationServerMetadata(routes[zoidc.DiscoveryEndpoint]).ServeHTTP)
+}
+
+// endpointHandlers are the paths that are not the bare provider.
+func endpointHandlers(provider *op.Provider, binding Binding, budgets Limits) map[string]http.Handler {
+	tokenBudget := splitBudget(limits.PerAddress(budgets.Token, budgets.TokenBurst),
+		limits.PerAddress(budgets.PublicToken, budgets.PublicTokenBurst))
+	authorize := provider.AuthorizationEndpoint().Relative()
+	return map[string]http.Handler{
+		zoidc.DiscoveryEndpoint: filteredDiscovery(provider),
+		provider.DeviceAuthorizationEndpoint().Relative(): limits.PerAddress(
+			DefaultDeviceStartLimit, DefaultDeviceStartBurst)(provider),
+		provider.TokenEndpoint().Relative(): tokenBudget(busyAs503(binding.Storage.targets(provider))),
+		authorize:                           withIssuer(provider.IssuerFromRequest, binding.authorize(provider)),
+		authorize + "/callback": withIssuer(provider.IssuerFromRequest,
+			binding.callback(provider, provider)),
+	}
+}
+
+// PublicPaths are the endpoints a browser-based OAuth client calls across
+// origins, which CORS opens to any origin without credentials.
+func PublicPaths(provider *op.Provider) []string {
+	return []string{
+		zoidc.DiscoveryEndpoint,
+		MetadataPath,
+		provider.KeysEndpoint().Relative(),
+		provider.TokenEndpoint().Relative(),
+		provider.RevocationEndpoint().Relative(),
 	}
 }
 
@@ -189,7 +226,7 @@ func MountWithTokenLimit(router chi.Router, provider *op.Provider, binding Bindi
 // path — an error that says the provider is missing rather than the grant.
 func Paths(provider *op.Provider) []string {
 	return []string{
-		oidc.DiscoveryEndpoint,
+		zoidc.DiscoveryEndpoint,
 		provider.KeysEndpoint().Relative(),
 		provider.TokenEndpoint().Relative(),
 		provider.IntrospectionEndpoint().Relative(),

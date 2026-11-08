@@ -60,6 +60,9 @@ func serve(w http.ResponseWriter, r *http.Request, sub fs.FS, files http.Handler
 	name := strings.TrimPrefix(r.URL.Path, "/")
 	if name != "" && exists(sub, name) {
 		w.Header().Set("Cache-Control", cacheFor(name))
+		if strings.HasSuffix(name, ".html") {
+			refuseFraming(w)
+		}
 		files.ServeHTTP(w, r)
 		return
 	}
@@ -99,6 +102,7 @@ func exists(sub fs.FS, name string) bool {
 // cached copy from a previous deploy asks for chunks that no longer exist and
 // the app fails to boot with nothing in the log to explain it.
 func writeIndex(w http.ResponseWriter, index []byte) {
+	refuseFraming(w)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusOK)
@@ -118,4 +122,14 @@ func missingAPI(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNotFound)
 	_, _ = w.Write([]byte(`{"error":"not_found"}` + "\n"))
+}
+
+// refuseFraming forbids every origin, registre's own included, from showing
+// a page in a frame. The login, consent and device pages each end in one
+// click that grants something, and a page that can be framed can be clicked
+// through an invisible overlay. X-Frame-Options covers browsers that predate
+// frame-ancestors.
+func refuseFraming(w http.ResponseWriter) {
+	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
 }
