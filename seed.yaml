@@ -335,6 +335,21 @@ applications:
     visible_roles: [admin]
     login_providers: [discord]
 
+  # Sonar, the suite's private web search at sonar.facile.studio. A fresh
+  # registration, so the id is its own name. porte is mounted under /api, so
+  # the redirect keeps the prefix. The directory nudge carries the
+  # sonar.searches_daily and ai.access entitlements; the deletion receiver has
+  # its own URL, apart from the nudge.
+  - client_id: sonar
+    name: Sonar
+    directory_sync_uri: https://sonar.facile.studio/api/registre/sync
+    deletion_uri: https://sonar.facile.studio/api/registre/deletions
+    backchannel_logout_uri: https://sonar.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_SONAR_SECRET
+    redirect_uris:
+      - https://sonar.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+
   # Bulle, the suite's coding agent and harness at bulle.facile.studio.
   #
   # token_exchange (RFC 8693) is how Bulle reaches a signed-in user's own mail,
