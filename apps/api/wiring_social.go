@@ -22,6 +22,10 @@ func buildSocial(db *gorm.DB, cfg env.Config, signupOpen bool, log *slog.Logger)
 		providers = append(providers, social.NewDiscord(settings.DiscordClientID, settings.DiscordClientSecret))
 		log.Info("registre: Discord sign-in is configured")
 	}
+	if settings.GitHubEnabled() {
+		providers = append(providers, social.NewGitHub(settings.GitHubClientID, settings.GitHubClientSecret))
+		log.Info("registre: GitHub sign-in is configured")
+	}
 	return social.New(db, providers, social.Config{
 		Issuer: cfg.Issuer, Secure: !cfg.InsecureIssuer(), SignupOpen: signupOpen,
 	}), nil

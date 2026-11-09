@@ -7,7 +7,7 @@
  * ends on a redirect the browser has to follow.
  */
 import type { MessageKey } from '$lib/i18n/en';
-import { DISCORD_ICON } from '$lib/icons';
+import { DISCORD_ICON, GITHUB_ICON } from '$lib/icons';
 
 export { reasonKey, startURL } from '$lib/social-reasons';
 
@@ -21,7 +21,8 @@ export interface SocialProvider {
 
 /** PROVIDERS are the providers the page knows how to draw. */
 export const PROVIDERS: Record<string, SocialProvider> = {
-	discord: { name: 'discord', label: 'login.discord', title: 'connections.discord', icon: DISCORD_ICON }
+	discord: { name: 'discord', label: 'login.discord', title: 'connections.discord', icon: DISCORD_ICON },
+	github: { name: 'github', label: 'login.github', title: 'connections.github', icon: GITHUB_ICON }
 };
 
 /**

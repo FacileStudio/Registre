@@ -77,11 +77,13 @@
 	function announceOutcome() {
 		const outcome = page.url.searchParams.get('connection');
 		if (!outcome) return;
-		if (outcome === 'linked') toast.success(t('connections.linked', { provider: t('connections.discord') }));
+		const provider = page.url.searchParams.get('provider');
+		if (outcome === 'linked') toast.success(t('connections.linked', { provider: label(provider || 'discord') }));
 		else if (outcome === 'taken') toast.danger(t('connections.taken'));
 		else toast.danger(t('connections.failed'));
 		const clean = new URL(window.location.href);
 		clean.searchParams.delete('connection');
+		clean.searchParams.delete('provider');
 		history.replaceState(history.state, '', clean);
 	}
 

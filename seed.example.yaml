@@ -64,11 +64,12 @@ applications:
     visible_roles:
       - admin
     # login_providers opts this client's login page into social sign-in
-    # buttons. Only discord exists, it needs DISCORD_CLIENT_ID and
-    # DISCORD_CLIENT_SECRET in the environment, and leaving the key out
-    # offers none. Add the connections scope to also receive the linked
-    # Discord id as the connections claim.
-    # login_providers: [discord]
+    # buttons. Values are discord and github; each needs its client id and
+    # secret in the environment (DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET,
+    # GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET), and leaving the key out offers
+    # none. Add the connections scope to also receive the linked accounts as
+    # the connections claim.
+    # login_providers: [discord, github]
     # mcp declares the MCP server this app runs (see docs/mcp.md). resource is
     # the exact URL people paste into an MCP client and the exact `resource`
     # the server's protected resource metadata publishes; a token asked for

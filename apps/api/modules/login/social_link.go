@@ -20,7 +20,7 @@ func (s *Service) linkRedirect(w http.ResponseWriter, r *http.Request, row schem
 		http.Redirect(w, r, to, http.StatusFound)
 		return
 	}
-	http.Redirect(w, r, connectionsPage+"?connection="+outcome, http.StatusFound)
+	http.Redirect(w, r, connectionsPage+"?connection="+outcome+"&provider="+row.Provider, http.StatusFound)
 }
 
 // finishLink attaches the profile to the user who started the link, once the

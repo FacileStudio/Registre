@@ -28,16 +28,31 @@ for (const [reason, key] of Object.entries(REASONS)) {
 		expect(key in catalog, `${name} has no "${key}"`);
 	}
 }
+
+for (const [name, catalog] of Object.entries({ en, fr, es, de })) {
+	expect('login.discord' in catalog, `${name} has no login.discord`);
+	expect('login.github' in catalog, `${name} has no login.github`);
+	expect('connections.discord' in catalog, `${name} has no connections.discord`);
+	expect('connections.github' in catalog, `${name} has no connections.github`);
+}
+
 expect(reasonKey('nonsense') === null, 'an unknown reason must map to nothing');
 expect(
 	startURL('discord', 'a b&c') === '/api/login/social/discord/start?auth_request=a%20b%26c',
 	'startURL must escape the auth request'
 );
+expect(
+	startURL('github', 'a b&c') === '/api/login/social/github/start?auth_request=a%20b%26c',
+	'startURL must escape the auth request for github'
+);
 
 const deep = parseDeepLink(new URL('https://x.test/account/security?link=Discord&return_to=https%3A%2F%2Fplace.facile.studio%2Fa%3Fb%3D1').searchParams);
 expect(deep?.provider === 'discord', 'the provider must be lowercased');
 expect(deep?.returnTo === 'https://place.facile.studio/a?b=1', 'return_to must be decoded once');
+const deepGithub = parseDeepLink(new URL('https://x.test/account/security?link=GitHub').searchParams);
+expect(deepGithub?.provider === 'github', 'github provider must be lowercased');
 expect(parseDeepLink(new URLSearchParams('link=discord'))?.returnTo === '', 'return_to is optional');
+expect(parseDeepLink(new URLSearchParams('link=github'))?.returnTo === '', 'return_to is optional for github');
 expect(parseDeepLink(new URLSearchParams('return_to=https%3A%2F%2Fa.test')) === null, 'no link, no deep link');
 expect(parseDeepLink(new URLSearchParams('link=../x')) === null, 'a provider must be a plain name');
 expect(parseDeepLink(new URLSearchParams(`link=discord&return_to=${'a'.repeat(3000)}`))?.returnTo === '', 'an oversized return_to is dropped');

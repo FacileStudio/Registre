@@ -228,11 +228,20 @@ legal pages and GDPR export and deletion work whether or not sign-up is open.
 |---|---|---|
 | `DISCORD_CLIENT_ID` | unset | The Discord application's client ID |
 | `DISCORD_CLIENT_SECRET` | unset | The application's client secret. One without the other refuses boot; both empty turns Discord off everywhere |
+| `GITHUB_CLIENT_ID` | unset | The GitHub OAuth application's client ID |
+| `GITHUB_CLIENT_SECRET` | unset | The application's client secret. One without the other refuses boot; both empty turns GitHub off everywhere |
 
 The redirect URI to register in the Discord Developer Portal (OAuth2) is
 `<REGISTRE_ISSUER>/api/login/social/discord/callback`. The scopes requested are `identify email`.
 A client shows the button only when its seed entry carries `login_providers: [discord]`; the
 account page lists the provider only when at least one enabled client does. A Discord email the
+provider has not verified neither matches nor creates an account, and a sign-in that would create
+one is refused while public sign-up is closed.
+
+The redirect URI to register in GitHub OAuth settings is
+`<REGISTRE_ISSUER>/api/login/social/github/callback`. The scopes requested are `read:user user:email`.
+A client shows the button only when its seed entry carries `login_providers: [github]`; the
+account page lists the provider only when at least one enabled client does. A GitHub email the
 provider has not verified neither matches nor creates an account, and a sign-in that would create
 one is refused while public sign-up is closed.
 

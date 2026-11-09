@@ -16,7 +16,7 @@ import (
 // Known is every provider this build can speak. The seed validates a client's
 // login_providers against it, so a typo fails the boot rather than leaving a
 // button that never appears.
-var Known = []string{"discord"}
+var Known = []string{"discord", "github"}
 
 // IsKnown reports whether name is a provider this build can speak.
 func IsKnown(name string) bool { return slices.Contains(Known, name) }

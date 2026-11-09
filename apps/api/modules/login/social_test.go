@@ -257,7 +257,7 @@ func TestAFinishedLinkWithoutReturnToKeepsTheAccountPage(t *testing.T) {
 	}
 	held := &http.Cookie{Name: svc.Cookie(started.State).Name, Value: started.State}
 	response := f.get("/api/login/social/discord/callback?code=c&state="+url.QueryEscape(started.State), held, f.session(user))
-	if response.Header.Get("Location") != "/account/security?connection=linked" {
+	if response.Header.Get("Location") != "/account/security?connection=linked&provider=discord" {
 		t.Fatalf("Location = %q", response.Header.Get("Location"))
 	}
 }
