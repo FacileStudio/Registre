@@ -6,6 +6,14 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-09
+
+### Added
+
+- Sign in with GitHub via OAuth 2.0 with PKCE (S256), primary verified email resolution, and account linking under security settings.
+- Emits the `connections.github` claim in OIDC userinfo.
+- Environment credentials `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
+
 ## [0.7.2] - 2026-11-08
 
 ### Removed
