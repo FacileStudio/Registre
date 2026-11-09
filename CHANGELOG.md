@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-09
+
+### Added
+
+- Added Place (`https://place.facile.studio`) with its SVG logo to the Suite apps grid on the home dashboard.
+
 ## [0.9.1] - 2026-11-09
 
 ### Fixed

@@ -40,6 +40,7 @@ export const suite: SuiteGroup[] = [
 			{ name: 'Perception', url: 'https://perception.facile.studio', description: 'Mémoire métier et intelligence contextuelle.', logo: logo('perception') },
 			{ name: 'Scribe', url: 'https://scribe.facile.studio', description: 'Transcription de réunions, en temps réel et en local.', logo: logo('scribe') },
 			{ name: 'Echo', url: 'https://echo.facile.studio', description: 'Visioconférence simple et sécurisée.', logo: logo('echo') },
+			{ name: 'Place', url: 'https://place.facile.studio', description: 'Forum de la communauté et échanges de l’équipe.', logo: logo('place') },
 			{ name: 'Casier', url: 'https://casier.facile.studio', description: "Secrets et variables d'environnement.", logo: logo('casier') },
 			{ name: 'Capsule', url: 'https://capsule.facile.studio', description: 'Partage de secrets chiffrés de bout en bout.', logo: logo('capsule') },
 			{ name: 'Journal', url: 'https://journal.facile.studio', description: 'Logs centralisés de la suite.', logo: logo('journal') },
