@@ -103,6 +103,12 @@ services:
       # when its seed entry lists login_providers: [discord].
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      # GitHub sign-in: both or neither. Register
+      # ${REGISTRE_ISSUER}/api/login/social/github/callback as the redirect
+      # URI in GitHub OAuth settings. A client shows the button only
+      # when its seed entry lists login_providers: [github].
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       # Seeding needs the mounted seed.yaml and every secret_env it names
       # added to this block by name. Setting the path alone fails the boot,
       # which is the intended failure but a confusing one.
