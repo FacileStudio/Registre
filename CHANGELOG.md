@@ -6,6 +6,15 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-09
+
+### Fixed
+
+- Added missing Tailwind radius scale and utility classes (`rounded-2xl`, `rounded-3xl`, `rounded-fc-*`) so cards and containers have rounded corners.
+- Fixed button height next to inputs and selects by applying `size="lg"` across passkey, space, and member forms.
+- Fixed 404 error on logout by calling `account.logout()` and wiring GET fallback handlers on `/logout` and `/api/logout`.
+- Harmonized recover, reset, and redeem views with `@facile/muse` components.
+
 ## [0.9.0] - 2026-11-09
 
 ### Changed

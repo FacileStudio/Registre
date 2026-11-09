@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { replaceState } from '$app/navigation';
-	import { Spinner } from '@facile/muse';
+	import { Button, Spinner } from '@facile/muse';
 	import DeviceCodeForm from '$lib/components/DeviceCodeForm.svelte';
 	import DeviceConfirm from '$lib/components/DeviceConfirm.svelte';
 	import DeviceOutcomeView from '$lib/components/DeviceOutcome.svelte';
@@ -22,16 +22,6 @@
 	import { normalise } from '$lib/usercode';
 
 	type Stage = 'entry' | 'confirm' | 'outcome' | 'signed-out';
-
-	const primaryButtonClass =
-		'inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 ' +
-		'text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 ' +
-		'disabled:pointer-events-none disabled:opacity-50';
-	const outlineButtonClass =
-		'inline-flex h-11 w-full items-center justify-center rounded-md ' +
-		'bg-muted px-4 text-sm font-medium text-foreground transition-colors ' +
-		'hover:bg-muted/80 disabled:pointer-events-none ' +
-		'disabled:opacity-50';
 
 	let stage = $state<Stage>('entry');
 	let code = $state('');
@@ -175,23 +165,28 @@
 			<DeviceOutcomeView {outcome} clientName={request?.client_name} {again} />
 		{:else}
 			<div class="mb-6 text-center">
-				<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
+				<h1 class="font-heading text-2xl font-semibold tracking-tight text-fc-fg">
 					{t('device.signInFirst')}
 				</h1>
-				<p class="mt-1.5 text-sm text-muted-foreground">
+				<p class="mt-1.5 text-fc-sm text-fc-fg-muted">
 					{t('device.signInFirstBody')}
 				</p>
 			</div>
-			<a href={device.signInPath} class={primaryButtonClass}>{t('login.submit')}</a>
-			<button
-				type="button"
-				onclick={retry}
-				disabled={busy}
-				aria-busy={busy}
-				class="{outlineButtonClass} mt-3"
-			>
-				{busy ? t('common.checking') : t('device.already')}
-			</button>
+			<div class="flex flex-col gap-3">
+				<Button href={device.signInPath} variant="primary" size="lg" class="w-full">
+					{t('login.submit')}
+				</Button>
+				<Button
+					type="button"
+					variant="secondary"
+					size="lg"
+					onclick={retry}
+					disabled={busy}
+					class="w-full"
+				>
+					{busy ? t('common.checking') : t('device.already')}
+				</Button>
+			</div>
 		{/if}
 	</div>
 {/key}

@@ -55,8 +55,38 @@
 	--color-destructive: var(--color-fc-danger);
 	--color-destructive-foreground: var(--color-fc-danger-fg);
 
-	--radius-sm: var(--radius-fc-sm);
-	--radius-md: var(--radius-fc-md);
-	--radius-lg: var(--radius-fc-lg);
-	--radius-xl: var(--radius-fc-lg);
+	--radius-xs: 4px;
+	--radius-sm: 6px;
+	--radius-md: 10px;
+	--radius-lg: 14px;
+	--radius-xl: 18px;
+	--radius-2xl: 24px;
+	--radius-3xl: 32px;
+	--radius-full: 9999px;
+
+	--radius-fc-xs: 4px;
+	--radius-fc-sm: 6px;
+	--radius-fc-md: 10px;
+	--radius-fc-lg: 14px;
+	--radius-fc-xl: 18px;
+	--radius-fc-2xl: 24px;
+	--radius-fc-3xl: 32px;
+	--radius-fc-pill: 9999px;
+	--radius-fc-full: 9999px;
 }
+
+@utility rounded-fc-xs { border-radius: 4px; }
+@utility rounded-fc-sm { border-radius: 6px; }
+@utility rounded-fc-md { border-radius: 10px; }
+@utility rounded-fc-lg { border-radius: 14px; }
+@utility rounded-fc-xl { border-radius: 18px; }
+@utility rounded-fc-2xl { border-radius: 24px; }
+@utility rounded-fc-3xl { border-radius: 32px; }
+
+@utility rounded-xs { border-radius: 4px; }
+@utility rounded-sm { border-radius: 6px; }
+@utility rounded-md { border-radius: 10px; }
+@utility rounded-lg { border-radius: 14px; }
+@utility rounded-xl { border-radius: 18px; }
+@utility rounded-2xl { border-radius: 20px; }
+@utility rounded-3xl { border-radius: 28px; }

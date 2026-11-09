@@ -136,6 +136,19 @@ func assemble(
 	health.Mount(router, health.DB(sqlDB))
 	mountVersion(router)
 	sessions, cookies := accounts.New(db), accounts.NewCookies(!cfg.InsecureIssuer())
+	logoutFallback := func(w http.ResponseWriter, r *http.Request) {
+		_ = sessions.End(r.Context(), cookies.Read(r))
+		cookies.Clear(w)
+		if r.Method == http.MethodGet {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":"true"}`))
+	}
+	router.HandleFunc("/logout", logoutFallback)
+	router.HandleFunc("/api/logout", logoutFallback)
 	oidc.MountWithLimits(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies},
 		oidc.Limits{
 			Token: cfg.TokenRate, TokenBurst: cfg.TokenBurst,

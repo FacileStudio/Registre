@@ -67,8 +67,9 @@
 		me ? { name: me.name || me.email, email: me.email, avatar: me.picture || undefined } : undefined
 	);
 	const userMenu = $derived({
-		onSignOut: () => {
-			window.location.assign('/api/logout');
+		onSignOut: async () => {
+			await account.logout().catch(() => null);
+			window.location.assign('/');
 		}
 	});
 	/*

@@ -1,15 +1,6 @@
 <script lang="ts">
+	import { Alert, Button, Field, Input, Stack } from '@facile/muse';
 	import { t } from '$lib/i18n/i18n.svelte';
-	const inputClass =
-		'flex h-11 w-full rounded-fc-md bg-fc-field px-3 py-2 text-sm ' +
-		'text-foreground placeholder:text-muted-foreground focus-visible:outline-none ' +
-		'focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed ' +
-		'disabled:opacity-50';
-	const labelClass = 'text-sm font-medium leading-none text-foreground';
-	const primaryButtonClass =
-		'inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 ' +
-		'text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 ' +
-		'disabled:pointer-events-none disabled:opacity-50';
 
 	let email = $state('');
 	let sent = $state(false);
@@ -43,44 +34,40 @@
 	<title>{t('recover.title')} — Facile</title>
 </svelte:head>
 
-<div class="mb-6 text-center">
-	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
-		{t('recover.title')}
-	</h1>
-	<p class="mt-1.5 text-sm text-muted-foreground">
-		{t('recover.subtitle')}
+<Stack>
+	<div class="flex flex-col items-center gap-1.5 text-center">
+		<h1 class="font-heading text-2xl font-semibold tracking-tight text-fc-fg">
+			{t('recover.title')}
+		</h1>
+		<p class="text-fc-sm text-fc-fg-muted">
+			{t('recover.subtitle')}
+		</p>
+	</div>
+
+	{#if sent}
+		<Alert tone="info" title={t('recover.sent')} />
+	{:else}
+		<form onsubmit={submit} class="flex flex-col gap-4">
+			<Field label={t('common.email')}>
+				<Input
+					type="email"
+					bind:value={email}
+					placeholder="you@example.com"
+					required
+					autocomplete="username"
+					disabled={busy}
+				/>
+			</Field>
+
+			<Button type="submit" variant="primary" size="lg" disabled={busy || !email.trim()} class="w-full">
+				{busy ? t('common.sending') : t('recover.send')}
+			</Button>
+		</form>
+	{/if}
+
+	<p class="text-center text-fc-sm text-fc-fg-muted">
+		<a href="/login" class="font-medium text-fc-fg underline underline-offset-2 hover:underline">
+			{t('recover.back')}
+		</a>
 	</p>
-</div>
-
-{#if sent}
-	<p role="status" class="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
-		{t('recover.sent')}
-	</p>
-{:else}
-	<form onsubmit={submit} class="space-y-4">
-		<div class="space-y-1.5">
-			<label for="email" class={labelClass}>{t('common.email')}</label>
-			<input
-				id="email"
-				name="email"
-				type="email"
-				bind:value={email}
-				placeholder="you@example.com"
-				required
-				autocomplete="username"
-				disabled={busy}
-				class={inputClass}
-			/>
-		</div>
-
-		<button type="submit" disabled={busy} aria-busy={busy} class={primaryButtonClass}>
-			{busy ? t('common.sending') : t('recover.send')}
-		</button>
-	</form>
-{/if}
-
-<p class="mt-6 text-center text-sm text-muted-foreground">
-	<a href="/login" class="underline underline-offset-2 transition-colors hover:text-foreground">
-		{t('recover.back')}
-	</a>
-</p>
+</Stack>

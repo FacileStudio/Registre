@@ -1,17 +1,7 @@
 <script lang="ts">
+	import { Alert, Button, Field, Input, Stack } from '@facile/muse';
 	import { t } from '$lib/i18n/i18n.svelte';
 	import { MIN_PASSWORD } from '$lib/policy';
-
-	const inputClass =
-		'flex h-11 w-full rounded-fc-md bg-fc-field px-3 py-2 text-sm ' +
-		'text-foreground placeholder:text-muted-foreground focus-visible:outline-none ' +
-		'focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed ' +
-		'disabled:opacity-50';
-	const labelClass = 'text-sm font-medium leading-none text-foreground';
-	const primaryButtonClass =
-		'inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 ' +
-		'text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 ' +
-		'disabled:pointer-events-none disabled:opacity-50';
 
 	let token = $state('');
 	let password = $state('');
@@ -75,90 +65,76 @@
 	<title>{t('reset.title')} — Facile</title>
 </svelte:head>
 
-<div class="mb-6 text-center">
-	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
-		{t('reset.title')}
-	</h1>
-	<p class="mt-1.5 text-sm text-muted-foreground">
-		{t('reset.subtitle')}
-	</p>
-</div>
+<Stack>
+	<div class="flex flex-col items-center gap-1.5 text-center">
+		<h1 class="font-heading text-2xl font-semibold tracking-tight text-fc-fg">
+			{t('reset.title')}
+		</h1>
+		<p class="text-fc-sm text-fc-fg-muted">
+			{t('reset.subtitle')}
+		</p>
+	</div>
 
-{#if done}
-	<p role="status" class="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
-		{t('reset.done')}
-	</p>
-{:else if !token}
-	<p role="alert" class="rounded-md bg-destructive/10 px-3 py-3 text-sm text-destructive">
-		{t('reset.invalid')}
-	</p>
-{:else}
-	<form onsubmit={submit} class="space-y-4">
-		{#if error}
-			<p role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-				{error}
-			</p>
-		{/if}
+	{#if done}
+		<Alert tone="success" title={t('reset.done')} />
+		<Button href="/login" variant="primary" size="lg" class="w-full">
+			{t('login.title')}
+		</Button>
+	{:else if !token}
+		<Alert tone="danger" title={t('reset.invalid')} />
+	{:else}
+		<form onsubmit={submit} class="flex flex-col gap-4">
+			<div aria-live="polite">
+				{#if error}
+					<Alert tone="danger" title={error} />
+				{/if}
+			</div>
 
-		<div class="space-y-1.5">
-			<label for="password" class={labelClass}>{t('password.new')}</label>
-			<input
-				id="password"
-				name="password"
-				type="password"
-				bind:value={password}
-				placeholder="••••••••"
-				required
-				minlength={MIN_PASSWORD}
-				autocomplete="new-password"
-				aria-invalid={tooShort}
-				aria-describedby="password-hint"
-				disabled={busy}
-				class={inputClass}
-			/>
-			<p
-				id="password-hint"
-				class="text-xs {tooShort ? 'text-destructive' : 'text-muted-foreground'}"
+			<Field
+				label={t('password.new')}
+				helper={t('password.rule', { min: MIN_PASSWORD })}
+				error={tooShort ? t('password.tooShort', { min: MIN_PASSWORD }) : undefined}
 			>
-				{t('password.rule', { min: MIN_PASSWORD })}
-			</p>
-		</div>
+				<Input
+					type="password"
+					bind:value={password}
+					placeholder="••••••••"
+					required
+					minlength={MIN_PASSWORD}
+					autocomplete="new-password"
+					disabled={busy}
+				/>
+			</Field>
 
-		<div class="space-y-1.5">
-			<label for="confirm-password" class={labelClass}>{t('password.confirm')}</label>
-			<input
-				id="confirm-password"
-				name="confirm-password"
-				type="password"
-				bind:value={confirm}
-				placeholder="••••••••"
-				required
-				autocomplete="new-password"
-				aria-invalid={mismatch}
-				aria-describedby={mismatch ? 'confirm-password-error' : undefined}
-				disabled={busy}
-				class={inputClass}
-			/>
-			{#if mismatch}
-				<p id="confirm-password-error" class="text-sm text-destructive">
-					{t('password.mismatch')}
-				</p>
-			{/if}
-		</div>
+			<Field
+				label={t('password.confirm')}
+				error={mismatch ? t('password.mismatch') : undefined}
+			>
+				<Input
+					type="password"
+					bind:value={confirm}
+					placeholder="••••••••"
+					required
+					autocomplete="new-password"
+					disabled={busy}
+				/>
+			</Field>
 
-		<button
-			type="submit"
-			disabled={busy || tooShort || mismatch}
-			aria-busy={busy}
-			class={primaryButtonClass}
-		>
-			{busy ? t('common.saving') : t('reset.submit')}
-		</button>
-	</form>
-{/if}
+			<Button
+				type="submit"
+				variant="primary"
+				size="lg"
+				disabled={busy || tooShort || mismatch || !password || !confirm}
+				class="w-full"
+			>
+				{busy ? t('common.saving') : t('reset.submit')}
+			</Button>
+		</form>
+	{/if}
 
-<p class="mt-6 text-center text-sm text-muted-foreground">
-	<a href="/recover" class="underline underline-offset-2 transition-colors hover:text-foreground">
-		{t('reset.again')}
-	</a>
-</p>
+	<p class="text-center text-fc-sm text-fc-fg-muted">
+		<a href="/recover" class="font-medium text-fc-fg underline underline-offset-2 hover:underline">
+			{t('reset.again')}
+		</a>
+	</p>
+</Stack>

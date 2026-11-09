@@ -159,7 +159,7 @@
 						<option value={user.id}>{displayName(user)} · {user.email}</option>
 					{/each}
 				</Select>
-				<Button type="submit" icon={icons.plus} disabled={!adding || busy}>Give access</Button>
+				<Button type="submit" size="lg" icon={icons.plus} disabled={!adding || busy}>Give access</Button>
 			</form>
 
 			{#each access.grants as grant (grant.user.id)}

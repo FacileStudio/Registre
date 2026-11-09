@@ -60,7 +60,7 @@
 				{/each}
 			</Select>
 		</Field>
-		<Button type="submit" icon={icons.mail} class="w-full sm:w-auto" disabled={inviting || !email.trim()}>
+		<Button type="submit" size="lg" icon={icons.mail} class="w-full sm:w-auto" disabled={inviting || !email.trim()}>
 			{inviting ? t('common.sending') : t('spaces.invite')}
 		</Button>
 	</div>

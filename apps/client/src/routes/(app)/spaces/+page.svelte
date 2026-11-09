@@ -127,7 +127,7 @@
 				<Field label={t('spaces.name')} class="flex-1">
 					<Input required maxlength={80} disabled={creating} bind:value={name} placeholder={t('spaces.namePlaceholder')} />
 				</Field>
-				<Button type="submit" icon={icons.plus} class="w-full sm:w-auto" disabled={creating || !name.trim()}>
+				<Button type="submit" size="lg" icon={icons.plus} class="w-full sm:w-auto" disabled={creating || !name.trim()}>
 					{creating ? t('common.saving') : t('spaces.create')}
 				</Button>
 			</form>

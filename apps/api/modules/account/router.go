@@ -119,6 +119,7 @@ func Mount(router chi.Router, service *Service) {
 		account.Use(guard.CSRF)
 		account.Group(func(open chi.Router) {
 			open.Post("/logout", service.logout)
+			open.Get("/logout", service.logout)
 		})
 		account.Group(func(private chi.Router) {
 			private.Use(guard.Session)

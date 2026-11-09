@@ -133,6 +133,7 @@
 					<Button
 						type="submit"
 						variant="outline"
+						size="lg"
 						icon={icons.edit}
 						class="w-full sm:w-auto"
 						disabled={renaming || !name.trim() || name.trim() === space.name}

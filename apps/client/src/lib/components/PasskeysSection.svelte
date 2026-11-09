@@ -100,7 +100,7 @@
 		<SettingsRow label={t('passkeys.add')} description={t('passkeys.addHint')}>
 			<div class="flex flex-col gap-2 sm:flex-row">
 				<Input aria-label={t('passkeys.name')} placeholder={t('passkeys.namePlaceholder')} maxlength={64} bind:value={label} disabled={busy} />
-				<Button icon={icons.plus} disabled={busy} onclick={add}>{t('passkeys.add')}</Button>
+				<Button size="lg" icon={icons.plus} disabled={busy} onclick={add}>{t('passkeys.add')}</Button>
 			</div>
 		</SettingsRow>
 	{/if}
