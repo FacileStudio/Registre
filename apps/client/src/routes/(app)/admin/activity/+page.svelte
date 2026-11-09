@@ -45,9 +45,9 @@
 	{:else if events.length === 0}
 		<EmptyState icon={icons.history} title="Nothing yet" description="Changes to people, apps and access will show up here." />
 	{:else}
-		<ol class="flex flex-col divide-y divide-fc-border">
+		<ol class="flex flex-col gap-2">
 			{#each events as event (event.id)}
-				<li class="flex items-center gap-3 py-3">
+				<li class="flex items-center gap-3 py-1.5">
 					<Avatar
 						name={event.actor ? displayName(event.actor) : '?'}
 						src={event.actor?.picture_url || undefined}

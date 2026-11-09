@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Alert, Button, Card, Field, Input, Select, Stack, icons } from '@facile/muse';
+	import { Alert, Button, Field, Input, Select, Stack, icons } from '@facile/muse';
 	import TermsCheckbox from '$lib/components/TermsCheckbox.svelte';
 	import { LOCALES, LOCALE_NAMES, isLocale, locale, setLocale, t, type Locale } from '$lib/i18n/i18n.svelte';
 	import { MAX_PASSWORD, MIN_PASSWORD } from '$lib/policy';
@@ -105,10 +105,9 @@
 	<title>{t('signup.title')} — Facile</title>
 </svelte:head>
 
-<Card class="p-8">
-	<Stack>
-		<div class="flex flex-col gap-1">
-			<h1 class="text-fc-lg font-semibold text-fc-fg">{t('signup.title')}</h1>
+<Stack>
+		<div class="flex flex-col items-center gap-1.5 text-center">
+			<h1 class="font-heading text-2xl font-semibold tracking-tight text-fc-fg">{t('signup.title')}</h1>
 			{#if email}
 				<p class="text-fc-sm text-fc-fg-muted">{t('signup.finishFor', { email })}</p>
 			{/if}
@@ -163,4 +162,3 @@
 			{/if}
 		{/if}
 	</Stack>
-</Card>

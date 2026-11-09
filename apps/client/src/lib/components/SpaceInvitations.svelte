@@ -45,7 +45,7 @@
 	<Section title={t('spaces.forYou')}>
 		<div class="flex flex-col gap-3">
 			{#each invitations as invitation (invitation.id)}
-				<div class="flex flex-wrap items-center justify-between gap-3 rounded-fc-md border border-fc-border p-3">
+				<div class="flex flex-wrap items-center justify-between gap-3 rounded-fc-md bg-fc-surface p-3">
 					<div class="min-w-0">
 						<div class="truncate text-fc-sm font-semibold text-fc-fg">{invitation.space_name}</div>
 						<div class="text-fc-xs text-fc-fg-muted">{t('spaces.invitedBy', { name: invitation.invited_by })}</div>

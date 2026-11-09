@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Alert, Button, Card, Divider, Field, Icon, Input, Stack, icons } from '@facile/muse';
+	import { Alert, Button, Field, Icon, Input, Spinner, Stack, icons } from '@facile/muse';
 	import { t } from '$lib/i18n/i18n.svelte';
 	import { getPasskey, passkeysSupported } from '$lib/webauthn';
 	import { signupOpen as isSignupOpen } from '$lib/signup';
@@ -251,150 +251,150 @@
 	<title>{t('login.title')} — Facile</title>
 </svelte:head>
 
-<Card class="p-8">
-	{#if status === 'handed-off'}
-		<div class="stage py-8">
-			<Stack gap="content" class="items-center text-center">
-				<div class="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-					<Icon icon={icons.check} size={24} />
-				</div>
-				<div class="flex flex-col gap-1.5 pt-2">
-					<h1 class="text-base font-medium text-foreground">{t('login.handedOff')}</h1>
-					<p class="text-xs text-muted-foreground">{t('login.handedOffHint')}</p>
-				</div>
-			</Stack>
-		</div>
-	{:else if status === 'checking' || status === 'redirecting'}
-		<div class="stage py-8">
-			<Stack gap="content" class="items-center text-center">
-				<div class="relative flex size-12 items-center justify-center">
-					<div class="absolute inset-0 size-12 animate-ping rounded-full bg-primary/20 opacity-75"></div>
-					<div class="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-				</div>
-				<div class="flex flex-col gap-1.5 pt-2">
-					<h1 class="text-base font-medium text-foreground">
-						{status === 'redirecting' ? t('login.connecting') : t('login.signingIn')}
-					</h1>
-					<p class="text-xs text-muted-foreground">
-						{status === 'redirecting' ? t('login.redirecting') : t('login.reusing')}
-					</p>
-				</div>
-			</Stack>
-		</div>
-	{:else if step === 'password'}
-		<div class="stage">
-			<Stack>
-				<div class="flex flex-col gap-1">
-					<h1 class="text-fc-lg font-semibold text-fc-fg">{t('login.title')}</h1>
-					<p class="text-fc-sm text-fc-fg-muted">
-						{authRequest ? t('login.fromApp') : t('login.subtitle')}
-					</p>
-				</div>
+{#if status === 'handed-off'}
+	<div class="stage py-6">
+		<Stack gap="content" class="items-center text-center">
+			<div class="flex size-12 items-center justify-center rounded-full bg-fc-success/10 text-fc-success">
+				<Icon icon={icons.check} size={24} />
+			</div>
+			<div class="flex flex-col gap-1.5 pt-2">
+				<h1 class="font-heading text-xl font-semibold tracking-tight text-fc-fg">{t('login.handedOff')}</h1>
+				<p class="text-fc-sm text-fc-fg-muted">{t('login.handedOffHint')}</p>
+			</div>
+		</Stack>
+	</div>
+{:else if status === 'checking' || status === 'redirecting'}
+	<div class="stage py-8">
+		<Stack gap="content" class="items-center text-center">
+			<div class="flex size-12 items-center justify-center">
+				<Spinner size="lg" />
+			</div>
+			<div class="flex flex-col gap-1.5 pt-2">
+				<h1 class="font-heading text-xl font-semibold tracking-tight text-fc-fg">
+					{status === 'redirecting' ? t('login.connecting') : t('login.signingIn')}
+				</h1>
+				<p class="text-fc-sm text-fc-fg-muted">
+					{status === 'redirecting' ? t('login.redirecting') : t('login.reusing')}
+				</p>
+			</div>
+		</Stack>
+	</div>
+{:else if step === 'password'}
+	<div class="stage">
+		<Stack gap="content">
+			<div class="flex flex-col items-center gap-1.5 text-center">
+				<h1 class="font-heading text-2xl font-semibold tracking-tight text-fc-fg">{t('login.title')}</h1>
+				<p class="text-fc-sm text-fc-fg-muted">
+					{authRequest ? t('login.fromApp') : t('login.subtitle')}
+				</p>
+			</div>
 
-				{#if canPasskey || providers.length > 0}
-					<div class="flex flex-col gap-2">
-						{#if canPasskey}
-							<Button icon={icons.key} onclick={signInWithPasskey} disabled={status === 'submitting'}>
-								{t('login.passkey')}
-							</Button>
-						{/if}
-						{#each providers as provider (provider.name)}
-							<Button
-								variant="outline"
-								icon={provider.icon}
-								onclick={() => redirect(startURL(provider.name, authRequest))}
-								disabled={status === 'submitting'}
-							>
-								{t(provider.label)}
-							</Button>
-						{/each}
-					</div>
-					<div class="flex items-center gap-3 text-fc-xs text-fc-fg-muted">
-						<Divider class="flex-1" />{t('common.or')}<Divider class="flex-1" />
-					</div>
-				{/if}
+			{#if canPasskey || providers.length > 0}
+				<div class="flex flex-col gap-2.5">
+					{#if canPasskey}
+						<Button icon={icons.key} onclick={signInWithPasskey} disabled={status === 'submitting'} class="w-full">
+							{t('login.passkey')}
+						</Button>
+					{/if}
+					{#each providers as provider (provider.name)}
+						<Button
+							variant="secondary"
+							icon={provider.icon}
+							onclick={() => redirect(startURL(provider.name, authRequest))}
+							disabled={status === 'submitting'}
+							class="w-full"
+						>
+							{t(provider.label)}
+						</Button>
+					{/each}
+				</div>
+				<div class="flex items-center justify-center my-1 text-fc-xs text-fc-fg-muted uppercase tracking-wider">
+					{t('common.or')}
+				</div>
+			{/if}
 
-				<form onsubmit={submitPassword} class="flex flex-col gap-4">
-					<div aria-live="polite">
-						{#if error}
-							<Alert tone="danger" title={error} />
-						{/if}
-					</div>
-					<Field label={t('common.email')}>
-						<Input type="email" autocomplete="username" required bind:value={email} />
-					</Field>
-					<Field label={t('common.password')}>
-						<Input type="password" autocomplete="current-password" required bind:value={password} />
-					</Field>
-					<Button type="submit" variant={canPasskey ? 'outline' : 'primary'} disabled={status === 'submitting'}>
-						{status === 'submitting' ? t('login.submitting') : t('login.submit')}
-					</Button>
+			<form onsubmit={submitPassword} class="flex flex-col gap-4">
+				<div aria-live="polite">
+					{#if error}
+						<Alert tone="danger" title={error} />
+					{/if}
+				</div>
+				<Field label={t('common.email')}>
+					<Input type="email" autocomplete="username" required bind:value={email} />
+				</Field>
+				<Field label={t('common.password')}>
+					<Input type="password" autocomplete="current-password" required bind:value={password} />
+				</Field>
+				<div class="flex items-center justify-end">
 					<a
 						href="/recover"
-						class="self-center rounded-fc-xs text-fc-sm text-fc-fg-muted underline
-							underline-offset-2 transition-colors hover:text-fc-fg focus-visible:outline-2
-							focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+						class="rounded-fc-xs text-fc-sm text-fc-fg-muted underline-offset-2 transition-colors hover:text-fc-fg hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
 					>
 						{t('login.forgot')}
 					</a>
-				</form>
-				{#if signupOpen}
-					<p class="text-center text-fc-sm text-fc-fg-muted">
-						{t('login.noAccount')}
-						<a
-							href={authRequest ? `/signup?auth_request=${encodeURIComponent(authRequest)}` : '/signup'}
-							class="font-medium text-fc-fg underline underline-offset-2"
-						>
-							{t('signup.title')}
-						</a>
-					</p>
-				{/if}
-			</Stack>
-		</div>
-	{:else}
-		<div class="stage">
-			<Stack>
-				<div class="flex flex-col gap-1">
-					<h1 class="text-fc-lg font-semibold text-fc-fg">{t('login.twoStep')}</h1>
-					<p class="text-fc-sm text-fc-fg-muted">
-						{recovery ? t('login.recoveryHint') : t('login.codeHint')}
-					</p>
 				</div>
+				<Button type="submit" variant="primary" disabled={status === 'submitting'} class="w-full">
+					{status === 'submitting' ? t('login.submitting') : t('login.submit')}
+				</Button>
+			</form>
 
-				<form onsubmit={submitCode} class="flex flex-col gap-4">
-					<div aria-live="polite">
-						{#if error}
-							<Alert tone="danger" title={error} />
-						{/if}
-					</div>
-					{#if recovery}
-						<Field label={t('login.recoveryCode')} helper={t('login.recoveryOnce')}>
-							<Input type="text" autocomplete="off" required bind:value={code} />
-						</Field>
-					{:else}
-						<Field label={t('login.code')}>
-							<Input
-								type="text"
-								inputmode="numeric"
-								maxlength={6}
-								pattern={'[0-9]{6}'}
-								required
-								bind:value={code}
-							/>
-						</Field>
+			{#if signupOpen}
+				<p class="text-center text-fc-sm text-fc-fg-muted">
+					{t('login.noAccount')}
+					<a
+						href={authRequest ? `/signup?auth_request=${encodeURIComponent(authRequest)}` : '/signup'}
+						class="font-medium text-fc-fg underline underline-offset-2 hover:underline"
+					>
+						{t('signup.title')}
+					</a>
+				</p>
+			{/if}
+		</Stack>
+	</div>
+{:else}
+	<div class="stage">
+		<Stack gap="content">
+			<div class="flex flex-col items-center gap-1.5 text-center">
+				<h1 class="font-heading text-2xl font-semibold tracking-tight text-fc-fg">{t('login.twoStep')}</h1>
+				<p class="text-fc-sm text-fc-fg-muted">
+					{recovery ? t('login.recoveryHint') : t('login.codeHint')}
+				</p>
+			</div>
+
+			<form onsubmit={submitCode} class="flex flex-col gap-4">
+				<div aria-live="polite">
+					{#if error}
+						<Alert tone="danger" title={error} />
 					{/if}
-					<Button type="submit" disabled={status === 'submitting' || code.trim().length === 0}>
-						{status === 'submitting' ? t('common.checking') : t('common.continue')}
-					</Button>
-					<Button variant="outline" onclick={useRecovery}>
-						{recovery ? t('login.useApp') : t('login.useRecovery')}
-					</Button>
-					<Button variant="ghost" onclick={startOver}>{t('common.startAgain')}</Button>
-				</form>
-			</Stack>
-		</div>
-	{/if}
-</Card>
+				</div>
+				{#if recovery}
+					<Field label={t('login.recoveryCode')} helper={t('login.recoveryOnce')}>
+						<Input type="text" autocomplete="off" required bind:value={code} class="font-mono text-center tracking-widest" />
+					</Field>
+				{:else}
+					<Field label={t('login.code')}>
+						<Input
+							type="text"
+							inputmode="numeric"
+							maxlength={6}
+							pattern={'[0-9]{6}'}
+							required
+							bind:value={code}
+							class="font-mono text-center text-lg tracking-[0.3em]"
+						/>
+					</Field>
+				{/if}
+				<Button type="submit" disabled={status === 'submitting' || code.trim().length === 0} class="w-full">
+					{status === 'submitting' ? t('common.checking') : t('common.continue')}
+				</Button>
+				<Button variant="secondary" onclick={useRecovery} class="w-full">
+					{recovery ? t('login.useApp') : t('login.useRecovery')}
+				</Button>
+				<Button variant="ghost" onclick={startOver} class="w-full">{t('common.startAgain')}</Button>
+			</form>
+		</Stack>
+	</div>
+{/if}
 
 <style>
 	.stage {

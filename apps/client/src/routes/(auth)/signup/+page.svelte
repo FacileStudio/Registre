@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Alert, Button, Card, Field, Input, Stack } from '@facile/muse';
+	import { Alert, Button, Field, Input, Stack } from '@facile/muse';
 	import { fetchAndSolve } from '$lib/altcha';
 	import { t } from '$lib/i18n/i18n.svelte';
 	import { signup, SignupError } from '$lib/signup';
@@ -54,37 +54,35 @@
 	<title>{t('signup.title')} — Facile</title>
 </svelte:head>
 
-<Card class="p-8">
-	<Stack>
-		<div class="flex flex-col gap-1">
-			<h1 class="text-fc-lg font-semibold text-fc-fg">{t('signup.title')}</h1>
-			<p class="text-fc-sm text-fc-fg-muted">{t('signup.subtitle')}</p>
-		</div>
+<Stack>
+	<div class="flex flex-col items-center gap-1.5 text-center">
+		<h1 class="font-heading text-2xl font-semibold tracking-tight text-fc-fg">{t('signup.title')}</h1>
+		<p class="text-fc-sm text-fc-fg-muted">{t('signup.subtitle')}</p>
+	</div>
 
-		{#if status === 'closed'}
-			<Alert tone="info" title={t('signup.closed')} />
-		{:else if status === 'sent'}
-			<Alert tone="success" title={t('signup.sentTitle')}>{t('signup.sentBody', { email: email.trim() })}</Alert>
-		{:else}
-			<form onsubmit={submit} class="flex flex-col gap-4">
-				<div aria-live="polite">
-					{#if error}
-						<Alert tone="danger" title={error} />
-					{/if}
-				</div>
-				<Field label={t('common.email')}>
-					<Input type="email" autocomplete="email" required bind:value={email} disabled={status !== 'ready'} />
-				</Field>
-				<Button type="submit" disabled={status !== 'ready' || !email.trim()}>
-					{status === 'proving' ? t('signup.proving') : status === 'sending' ? t('common.sending') : t('signup.continue')}
-				</Button>
-				<p class="text-fc-xs text-fc-fg-muted">{t('signup.powNote')}</p>
-			</form>
-		{/if}
+	{#if status === 'closed'}
+		<Alert tone="info" title={t('signup.closed')} />
+	{:else if status === 'sent'}
+		<Alert tone="success" title={t('signup.sentTitle')}>{t('signup.sentBody', { email: email.trim() })}</Alert>
+	{:else}
+		<form onsubmit={submit} class="flex flex-col gap-4">
+			<div aria-live="polite">
+				{#if error}
+					<Alert tone="danger" title={error} />
+				{/if}
+			</div>
+			<Field label={t('common.email')}>
+				<Input type="email" autocomplete="email" required bind:value={email} disabled={status !== 'ready'} />
+			</Field>
+			<Button type="submit" disabled={status !== 'ready' || !email.trim()}>
+				{status === 'proving' ? t('signup.proving') : status === 'sending' ? t('common.sending') : t('signup.continue')}
+			</Button>
+			<p class="text-fc-xs text-fc-fg-muted">{t('signup.powNote')}</p>
+		</form>
+	{/if}
 
-		<p class="text-center text-fc-sm text-fc-fg-muted">
-			{t('signup.haveAccount')}
-			<a href="/login" class="font-medium text-fc-fg underline underline-offset-2">{t('login.title')}</a>
-		</p>
-	</Stack>
-</Card>
+	<p class="text-center text-fc-sm text-fc-fg-muted">
+		{t('signup.haveAccount')}
+		<a href="/login" class="font-medium text-fc-fg underline underline-offset-2">{t('login.title')}</a>
+	</p>
+</Stack>

@@ -149,9 +149,9 @@
 	<SettingsSection title={t('connections.title')} description={t('connections.description')}>
 		<ul class="flex flex-col gap-3">
 			{#each items as item (item.provider)}
-				<li class="flex flex-col gap-3 rounded-fc-md border border-fc-border p-4 sm:flex-row sm:items-center sm:justify-between">
+				<li class="flex flex-col gap-3 rounded-fc-md bg-fc-surface p-4 sm:flex-row sm:items-center sm:justify-between">
 					<div class="flex min-w-0 items-center gap-3">
-						<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-fc-md border border-fc-border bg-fc-surface text-fc-fg">
+						<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-fc-md bg-fc-component text-fc-fg">
 							<Icon icon={PROVIDERS[item.provider]?.icon ?? icons.plus} size={20} />
 						</span>
 						<div class="flex min-w-0 flex-col gap-1">

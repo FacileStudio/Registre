@@ -132,7 +132,7 @@
 						{/if}
 					</div>
 					{#if app.visible_roles.length > 0}
-						<div class="flex flex-wrap items-center gap-3 border-t border-fc-border pt-3">
+						<div class="flex flex-wrap items-center gap-3 pt-3">
 							<span class="text-fc-xs text-fc-fg-muted">Roles</span>
 							{#each app.visible_roles as role (role)}
 								<Checkbox
@@ -156,7 +156,7 @@
 			{:else}
 				<div class="flex flex-wrap gap-2">
 					{#each detail.spaces as space (space.id)}
-						<a href="/spaces/{space.id}" class="flex items-center gap-2 rounded-fc-pill border border-fc-border px-3 py-1.5 text-fc-sm text-fc-fg hover:bg-fc-surface">
+						<a href="/spaces/{space.id}" class="flex items-center gap-2 rounded-fc-pill bg-fc-surface px-3 py-1.5 text-fc-sm text-fc-fg hover:bg-fc-component">
 							{space.name}
 							<Badge tone={space.role === 'owner' ? 'owner' : space.role === 'admin' ? 'admin' : 'neutral'}>{space.role}</Badge>
 						</a>

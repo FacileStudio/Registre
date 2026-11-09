@@ -1,18 +1,15 @@
 <script lang="ts">
+	import { Button } from '@facile/muse';
 	import { t } from '$lib/i18n/i18n.svelte';
 	import { CODE_LENGTH, inspect } from '$lib/usercode';
 
 	const inputClass =
-		'flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-center ' +
-		'font-mono text-lg uppercase tracking-[0.3em] text-foreground focus-visible:outline-none ' +
-		'focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed ' +
-		'disabled:opacity-50';
-	const labelClass = 'text-sm font-medium leading-none text-foreground';
-	const primaryButtonClass =
-		'inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 ' +
-		'text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 ' +
-		'disabled:pointer-events-none disabled:opacity-50';
-	const hintClass = 'text-xs leading-relaxed';
+		'flex h-12 w-full rounded-fc-md bg-fc-field px-4 py-2 text-center ' +
+		'font-mono text-xl uppercase tracking-[0.35em] text-fc-fg placeholder:text-fc-fg-muted ' +
+		'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring ' +
+		'disabled:cursor-not-allowed disabled:opacity-50';
+	const labelClass = 'text-sm font-medium leading-none text-fc-fg';
+	const hintClass = 'text-xs leading-relaxed text-center';
 
 	interface Props {
 		code: string;
@@ -103,22 +100,22 @@
 	}
 </script>
 
-<div class="mb-8">
-	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">{t('device.title')}</h1>
-	<p class="mt-1.5 text-sm text-muted-foreground">
+<div class="mb-6 text-center">
+	<h1 class="font-heading text-2xl font-semibold tracking-tight text-fc-fg">{t('device.title')}</h1>
+	<p class="mt-1.5 text-sm text-fc-fg-muted">
 		{prefilled ? t('device.checkMatch') : t('device.typeCode')}
 	</p>
 </div>
 
 <form {onsubmit} class="space-y-4">
 	{#if error}
-		<p role="alert" class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+		<p role="alert" class="rounded-fc-md bg-fc-danger/10 px-3 py-2 text-sm text-fc-danger">
 			{error}
 		</p>
 	{/if}
 
-	<div class="space-y-1.5">
-		<label for="user-code" class={labelClass}>{t('device.code')}</label>
+	<div class="space-y-2">
+		<label for="user-code" class="{labelClass} sr-only">{t('device.code')}</label>
 		<input
 			id="user-code"
 			name="user-code"
@@ -126,6 +123,7 @@
 			value={code}
 			oninput={reshape}
 			required
+			placeholder="ABCD-EFGH"
 			autocomplete="one-time-code"
 			autocapitalize="characters"
 			autocorrect="off"
@@ -137,17 +135,17 @@
 		<p
 			id="user-code-hint"
 			aria-live="polite"
-			class="{hintClass} {stray ? 'text-fc-warning' : 'text-muted-foreground'}"
+			class="{hintClass} {stray ? 'text-fc-warning' : 'text-fc-fg-muted'}"
 		>
 			{hint}
 		</p>
 	</div>
 
-	<button type="submit" disabled={!ready} aria-busy={busy} class={primaryButtonClass}>
+	<Button type="submit" variant="primary" size="lg" disabled={!ready} class="w-full">
 		{busy ? t('common.checking') : t('common.continue')}
-	</button>
+	</Button>
 </form>
 
-<p class="mt-6 text-sm text-muted-foreground">
+<p class="mt-6 text-center text-xs text-fc-fg-muted">
 	{t('device.codesLast')}
 </p>

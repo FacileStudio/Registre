@@ -49,7 +49,7 @@
 	--color-muted-foreground: var(--color-fc-fg-muted);
 	--color-accent: var(--color-fc-surface);
 	--color-accent-foreground: var(--color-fc-fg);
-	--color-border: var(--color-fc-border);
+	--color-border: transparent;
 	--color-input: var(--color-fc-border);
 	--color-ring: var(--color-fc-ring);
 	--color-destructive: var(--color-fc-danger);

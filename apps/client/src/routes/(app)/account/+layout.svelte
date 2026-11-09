@@ -3,7 +3,6 @@
 	import { page } from '$app/state';
 	import {
 		Alert,
-		Divider,
 		EmptyState,
 		Page,
 		PageHeader,
@@ -108,9 +107,8 @@
 		<Alert tone="danger" title={t('account.loadFailed')}>{error}</Alert>
 	{:else}
 		<Stack>
-			<div class="flex flex-col gap-4">
+			<div>
 				<Tabs items={sections} value={active} label={t('account.sections')} />
-				<Divider />
 			</div>
 
 			<PageTransition key={active} distance={8} duration={0.25} class="flex flex-col gap-10">

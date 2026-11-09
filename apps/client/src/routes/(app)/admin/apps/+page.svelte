@@ -250,8 +250,7 @@
 					type="text"
 					bind:value={search}
 					placeholder="Search apps..."
-					class="w-full rounded-fc-md border border-fc-border bg-fc-surface py-1.5 pl-9 pr-3 text-fc-xs
-						text-fc-fg placeholder-fc-fg-muted outline-none transition-colors focus:border-fc-ring"
+					class="w-full rounded-fc-md bg-fc-surface py-1.5 pl-9 pr-3 text-fc-xs text-fc-fg placeholder-fc-fg-muted outline-none transition-colors focus-visible:outline-2 focus-visible:outline-fc-ring"
 				/>
 			</div>
 

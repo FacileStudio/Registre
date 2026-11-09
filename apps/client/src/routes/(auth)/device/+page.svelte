@@ -3,9 +3,11 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { replaceState } from '$app/navigation';
+	import { Spinner } from '@facile/muse';
 	import DeviceCodeForm from '$lib/components/DeviceCodeForm.svelte';
 	import DeviceConfirm from '$lib/components/DeviceConfirm.svelte';
 	import DeviceOutcomeView from '$lib/components/DeviceOutcome.svelte';
+	import { account, type AccountView } from '$lib/account';
 	import {
 		device,
 		isSignedOut,
@@ -26,9 +28,9 @@
 		'text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 ' +
 		'disabled:pointer-events-none disabled:opacity-50';
 	const outlineButtonClass =
-		'inline-flex h-11 w-full items-center justify-center rounded-md border border-border ' +
-		'bg-background px-4 text-sm font-medium text-foreground transition-colors ' +
-		'hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none ' +
+		'inline-flex h-11 w-full items-center justify-center rounded-md ' +
+		'bg-muted px-4 text-sm font-medium text-foreground transition-colors ' +
+		'hover:bg-muted/80 disabled:pointer-events-none ' +
 		'disabled:opacity-50';
 
 	let stage = $state<Stage>('entry');
@@ -38,6 +40,7 @@
 	let outcome = $state<DeviceOutcome>('unusable');
 	let error = $state('');
 	let busy = $state(false);
+	let me = $state<AccountView | null>(null);
 
 	/**
 	 * answered holds the codes this tab has already decided, in canonical form.
@@ -50,6 +53,7 @@
 	const answered = new Set<string>();
 
 	onMount(() => {
+		account.me().then((a) => (me = a)).catch(() => {});
 		const fromLink = page.url.searchParams.get('user_code') ?? '';
 		code = normalise(fromLink || unstash());
 		prefilled = code.length > 0;
@@ -57,6 +61,9 @@
 			const scrubbed = new URL(page.url);
 			scrubbed.searchParams.delete('user_code');
 			replaceState(scrubbed, page.state);
+		}
+		if (code.length > 0) {
+			look();
 		}
 	});
 
@@ -68,7 +75,7 @@
 	function fail(cause: unknown): void {
 		if (isSignedOut(cause)) {
 			stash(code);
-			stage = 'signed-out';
+			window.location.assign(device.signInPath);
 			return;
 		}
 		if (needsConsent(cause)) {
@@ -147,20 +154,27 @@
 {#key stage}
 	<div class="stage">
 		{#if stage === 'entry'}
-			<DeviceCodeForm bind:code {busy} {error} {prefilled} submit={look} />
+			{#if busy && prefilled}
+				<div class="flex flex-col items-center justify-center py-10">
+					<Spinner size="lg" />
+				</div>
+			{:else}
+				<DeviceCodeForm bind:code {busy} {error} {prefilled} submit={look} />
+			{/if}
 		{:else if stage === 'confirm' && request}
 			<DeviceConfirm
 				{request}
 				{code}
 				{busy}
 				{error}
+				{me}
 				approve={() => answer(device.approve, 'approved')}
 				deny={() => answer(device.deny, 'denied')}
 			/>
 		{:else if stage === 'outcome'}
-			<DeviceOutcomeView {outcome} {again} />
+			<DeviceOutcomeView {outcome} clientName={request?.client_name} {again} />
 		{:else}
-			<div class="mb-8">
+			<div class="mb-6 text-center">
 				<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">
 					{t('device.signInFirst')}
 				</h1>

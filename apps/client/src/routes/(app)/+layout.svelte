@@ -63,7 +63,14 @@
 		}))
 	);
 	const onAccount = $derived(page.url.pathname.startsWith('/account'));
-	const user = $derived.by(() => ({ name: me?.name || me?.email || t('nav.account'), avatar: me?.picture || undefined }));
+	const user = $derived(
+		me ? { name: me.name || me.email, email: me.email, avatar: me.picture || undefined } : undefined
+	);
+	const userMenu = $derived({
+		onSignOut: () => {
+			window.location.assign('/api/logout');
+		}
+	});
 	/*
 	 * The shell transitions between sections, never within one. Keying on the
 	 * full path remounted /admin's layout on every tab switch, which flashed
@@ -92,6 +99,7 @@
 				{user}
 				userHref="/account"
 				userActive={onAccount}
+				{userMenu}
 				class="h-full"
 			/>
 		</div>
@@ -108,6 +116,6 @@
 			</PageTransition>
 		</main>
 
-		<MobileNav items={navPages} {user} profileHref="/account" profileActive={onAccount} />
+		<MobileNav items={navPages} {user} profileHref="/account" profileActive={onAccount} {userMenu} />
 	</div>
 {/if}

@@ -4,7 +4,6 @@
 		Alert,
 		Button,
 		Card,
-		Divider,
 		Field,
 		Input,
 		Page,
@@ -129,9 +128,8 @@
 		/>
 
 		<Stack>
-			<div class="flex flex-col gap-4">
+			<div>
 				<Tabs items={sections} value={active} label="Administration sections" />
-				<Divider />
 			</div>
 
 			<PageTransition key={active} distance={8} duration={0.25} class="flex flex-col gap-10">

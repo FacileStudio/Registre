@@ -61,7 +61,7 @@
 		</article>
 	{/if}
 
-	<footer class="border-t border-fc-border pt-6">
+	<footer class="pt-6">
 		<LegalLinks />
 	</footer>
 </main>

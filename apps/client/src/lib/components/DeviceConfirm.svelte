@@ -1,87 +1,97 @@
 <script lang="ts">
+	import { Button, Avatar, Icon, icons } from '@facile/muse';
 	import { t } from '$lib/i18n/i18n.svelte';
 	import { describeScopes, expiresAtLabel, type DeviceRequestView } from '$lib/device';
-
-	const choiceClass =
-		'inline-flex h-11 flex-1 items-center justify-center rounded-md px-4 text-sm ' +
-		'font-medium transition-colors disabled:pointer-events-none disabled:opacity-50';
-	const approveClass = `${choiceClass} bg-primary text-primary-foreground hover:bg-primary/90`;
-	const denyClass = `${choiceClass} bg-destructive/10 text-destructive hover:bg-destructive/20`;
+	import type { AccountView } from '$lib/account';
 
 	interface Props {
 		request: DeviceRequestView;
 		code: string;
 		busy: boolean;
 		error: string;
+		me?: AccountView | null;
 		approve: () => void;
 		deny: () => void;
 	}
 
-	let { request, code, busy, error, approve, deny }: Props = $props();
+	let { request, code, busy, error, me, approve, deny }: Props = $props();
 
 	const scopes = $derived(describeScopes(request.scopes ?? []));
 	const deadline = $derived(expiresAtLabel(request.expires_at));
 </script>
 
-<div class="mb-8">
-	<h1 class="font-heading text-2xl font-bold tracking-tight text-foreground">{t('device.isThisYou')}</h1>
-	<p class="mt-1.5 text-sm text-muted-foreground">
-		{t('device.onlyIfYou')}
-	</p>
-</div>
+<div class="flex flex-col gap-6 text-center">
+	{#if error}
+		<p role="alert" class="rounded-fc-md bg-fc-danger/10 px-3 py-2 text-sm text-fc-danger">
+			{error}
+		</p>
+	{/if}
 
-{#if error}
-	<p role="alert" class="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-		{error}
-	</p>
-{/if}
-
-<div class="space-y-3 rounded-md border border-border bg-muted p-4">
-	<div class="space-y-1">
-		<span class="block text-xs text-muted-foreground">{t('device.signingInTo')}</span>
-		<span class="block truncate text-base font-semibold text-foreground">
+	<div class="flex flex-col items-center gap-2">
+		<div class="flex size-14 items-center justify-center rounded-fc-2xl bg-fc-field text-fc-fg">
+			<Icon icon={icons.code} size={28} />
+		</div>
+		<h1 class="font-heading text-2xl font-semibold tracking-tight text-fc-fg">
 			{request.client_name}
-		</span>
+		</h1>
+		<p class="text-sm text-fc-fg-muted">
+			{t('device.signingInTo')}
+		</p>
 	</div>
 
-	<div class="flex items-baseline justify-between gap-3 border-t border-border pt-3">
-		<span class="text-xs text-muted-foreground">{t('device.code')}</span>
-		<span class="font-mono text-sm tracking-widest text-foreground">{code}</span>
-	</div>
-
-	{#if deadline}
-		<div class="flex items-baseline justify-between gap-3">
-			<span class="text-xs text-muted-foreground">{t('device.runsOut')}</span>
-			<span class="text-sm text-foreground">{deadline}</span>
+	{#if me}
+		<div class="flex items-center justify-center gap-2.5 rounded-fc-pill bg-fc-field px-3.5 py-1.5 self-center">
+			<Avatar size="sm" src={me.picture} name={me.name || me.email} />
+			<div class="flex flex-col text-left">
+				<span class="text-fc-xs font-medium text-fc-fg">{me.name || me.email}</span>
+				{#if me.name && me.email}
+					<span class="text-[11px] text-fc-fg-muted">{me.email}</span>
+				{/if}
+			</div>
 		</div>
 	{/if}
-</div>
 
-<div class="mt-6 space-y-2">
-	<p class="text-sm font-medium text-foreground">{t('device.asking')}</p>
-	{#if scopes.length === 0}
-		<p class="text-sm text-muted-foreground">{t('device.nothingMore')}</p>
-	{:else}
-		<ul class="space-y-2">
-			{#each scopes as scope (scope.name)}
-				<li class="flex items-start gap-3 text-sm text-foreground">
-					<span class="mt-2 size-1.5 shrink-0 rounded-full bg-muted-foreground"></span>
-					<span class="min-w-0">{scope.label}</span>
-				</li>
-			{/each}
-		</ul>
-	{/if}
-</div>
+	<div class="flex flex-col gap-3 rounded-fc-xl bg-fc-field p-4 text-left">
+		<div class="flex items-center justify-between text-xs text-fc-fg-muted">
+			<span>{t('device.code')}</span>
+			<span class="font-mono text-sm tracking-widest text-fc-fg">{code}</span>
+		</div>
+		{#if deadline}
+			<div class="flex items-center justify-between text-xs text-fc-fg-muted">
+				<span>{t('device.runsOut')}</span>
+				<span class="text-fc-fg">{deadline}</span>
+			</div>
+		{/if}
+	</div>
 
-<div class="mt-8 flex gap-3">
-	<button type="button" disabled={busy} aria-busy={busy} onclick={deny} class={denyClass}>
-		{t('device.deny')}
-	</button>
-	<button type="button" disabled={busy} aria-busy={busy} onclick={approve} class={approveClass}>
-		{t('device.approve')}
-	</button>
-</div>
+	<div class="flex flex-col gap-2 text-left">
+		<p class="text-xs font-semibold uppercase tracking-wider text-fc-fg-muted">
+			{t('device.asking')}
+		</p>
+		{#if scopes.length === 0}
+			<p class="text-sm text-fc-fg-muted">{t('device.nothingMore')}</p>
+		{:else}
+			<ul class="flex flex-col gap-2.5">
+				{#each scopes as scope (scope.name)}
+					<li class="flex items-start gap-2.5 text-sm text-fc-fg">
+						<span class="mt-1 size-2 shrink-0 rounded-full bg-fc-accent"></span>
+						<span class="min-w-0">{scope.label}</span>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
 
-<p class="mt-6 text-sm text-muted-foreground">
-	{t('device.footer')}
-</p>
+	<div class="flex flex-col gap-2.5 pt-2">
+		<Button type="button" variant="primary" size="lg" disabled={busy} onclick={approve} class="w-full">
+			{t('device.approve')}
+		</Button>
+		<Button type="button" variant="secondary" size="lg" disabled={busy} onclick={deny} class="w-full">
+			{t('device.deny')}
+		</Button>
+	</div>
+
+	<p class="text-xs text-fc-fg-muted">
+		{t('device.footer')}
+	</p>
+</div>

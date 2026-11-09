@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Alert, Button, Card, Stack } from '@facile/muse';
+	import { Alert, Button, Stack } from '@facile/muse';
 	import TermsCheckbox from '$lib/components/TermsCheckbox.svelte';
 	import { request } from '$lib/account';
 	import { t } from '$lib/i18n/i18n.svelte';
@@ -55,19 +55,17 @@
 	<title>{t('consent.title')} — Facile</title>
 </svelte:head>
 
-<Card class="p-8">
-	<Stack>
-		<div class="flex flex-col gap-1">
-			<h1 class="text-fc-lg font-semibold text-fc-fg">{t('consent.title')}</h1>
-			<p class="text-fc-sm text-fc-fg-muted">{t('consent.body')}</p>
-		</div>
-		{#if error}
-			<Alert tone="danger" title={error} />
-		{/if}
-		<TermsCheckbox bind:checked={accepted} disabled={busy} />
-		<Button onclick={accept} disabled={!accepted || busy}>{busy ? t('common.saving') : t('common.continue')}</Button>
-		<a href="/account" class="self-center text-fc-sm text-fc-fg-muted underline underline-offset-2">
-			{t('consent.decline')}
-		</a>
-	</Stack>
-</Card>
+<Stack>
+	<div class="flex flex-col items-center gap-1.5 text-center">
+		<h1 class="font-heading text-2xl font-semibold tracking-tight text-fc-fg">{t('consent.title')}</h1>
+		<p class="text-fc-sm text-fc-fg-muted">{t('consent.body')}</p>
+	</div>
+	{#if error}
+		<Alert tone="danger" title={error} />
+	{/if}
+	<TermsCheckbox bind:checked={accepted} disabled={busy} />
+	<Button onclick={accept} disabled={!accepted || busy}>{busy ? t('common.saving') : t('common.continue')}</Button>
+	<a href="/account" class="self-center text-fc-sm text-fc-fg-muted underline underline-offset-2">
+		{t('consent.decline')}
+	</a>
+</Stack>

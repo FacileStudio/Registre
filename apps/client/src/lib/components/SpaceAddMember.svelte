@@ -75,7 +75,7 @@
 	<div class="mt-4 flex flex-col gap-2">
 		<h3 class="text-fc-sm font-semibold text-fc-fg">{t('spaces.pending')}</h3>
 		{#each space.invitations as invitation (invitation.id)}
-			<div class="flex flex-wrap items-center justify-between gap-2 rounded-fc-md border border-fc-border px-3 py-2">
+			<div class="flex flex-wrap items-center justify-between gap-2 rounded-fc-md bg-fc-surface px-3 py-2">
 				<div class="min-w-0">
 					<div class="truncate font-fc-mono text-fc-sm text-fc-fg">{invitation.email}</div>
 					<div class="text-fc-xs text-fc-fg-muted">
