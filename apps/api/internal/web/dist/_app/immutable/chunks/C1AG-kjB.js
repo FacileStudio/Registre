@@ -1,1 +1,0 @@
-import{ao as t,u,N as e,F as c}from"./CQW9QF18.js";function f(n){e===null&&t(),u(()=>{const o=c(n);if(typeof o=="function")return o})}function s(n){e===null&&t(),f(()=>()=>c(n))}export{s as a,f as o};
