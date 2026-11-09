@@ -6,7 +6,14 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
-## [0.8.0] - 2026-11-09
+## [0.9.0] - 2026-11-09
+
+### Changed
+
+- Harmonized the user interface with `@facile/muse` v0.16.1 and stripped decorative border lines and dividers across all views.
+- Redesigned the SSO login page into a clean, centered Google-style authentication card.
+- Streamlined CLI OAuth / device authorization (`/device`): automatic code detection on load without manual entry, clean confirmation card, and seamless return to device flow after sign-in.
+- Redesigned the public landing page with modern muse `LandingHeader` and `LandingFooter` components, sticky floating header, and borderless feature cards.
 
 ### Added
 
