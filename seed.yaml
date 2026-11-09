@@ -339,7 +339,7 @@ applications:
       - https://place.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access, connections, roles]
     visible_roles: [admin]
-    login_providers: [discord]
+    login_providers: [discord, github]
 
   # Sonar, the suite's private web search at sonar.facile.studio. A fresh
   # registration, so the id is its own name. porte is mounted under /api, so
