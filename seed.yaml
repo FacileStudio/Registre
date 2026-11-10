@@ -68,6 +68,9 @@ applications:
       - https://sablier.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access, roles]
     visible_roles: [admin]
+    mcp:
+      resource: https://sablier.facile.studio/mcp
+      scopes: [sablier.read, sablier.write]
     token_exchange:
       - audience: bulle
         scopes: [bulle.read, bulle.write]
