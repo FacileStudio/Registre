@@ -66,11 +66,12 @@ func TestAnMCPBlockThatCouldNotWorkFailsTheBoot(t *testing.T) {
 	}
 }
 
-func TestTheProductionSeedDeclaresTheFirstTwoMCPServers(t *testing.T) {
+func TestTheProductionSeedDeclaresTheSuiteMCPServers(t *testing.T) {
 	file := loadProductionSeed(t)
 	want := map[string]string{
 		"Courrier": "https://courrier.facile.studio/mcp",
 		"Agenda":   "https://agenda.facile.studio/mcp",
+		"Nuage":    "https://nuage.facile.studio/mcp",
 	}
 	for _, application := range file.Applications {
 		resource, ok := want[application.Name]

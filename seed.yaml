@@ -200,6 +200,9 @@ applications:
     redirect_uris:
       - https://nuage.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://nuage.facile.studio/mcp
+      scopes: [nuage.read, nuage.write]
     token_exchange:
       - audience: bulle
         scopes: [bulle.read, bulle.write]
