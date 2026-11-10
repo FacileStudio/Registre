@@ -100,8 +100,9 @@ func TestUnknownAddressesGetTheSameAnswer(t *testing.T) {
 		if open && !strings.Contains(got, "Facile") {
 			t.Fatalf("sign-up open: the stranger got %q, want the join-Facile mail", got)
 		}
-		if body := mails.bodies["stranger@example.com"]; open && (strings.Contains(body, "owner@facile.studio") || strings.Contains(body, "&#34;Facile&#34;")) {
-			t.Fatalf("the join mail carries the sender's words: %s", body)
+		if body := mails.bodies["stranger@example.com"]; open && (!strings.Contains(body, "owner@facile.studio") ||
+			!strings.Contains(body, "/signup?invitation=")) {
+			t.Fatalf("the join mail does not name the inviter or carry the invitation: %s", body)
 		}
 		if !open && got != "" {
 			t.Fatalf("sign-up closed: the stranger got %q, want nothing", got)
@@ -261,20 +262,26 @@ func TestAnInvitationIsOnlyAsGoodAsItsSender(t *testing.T) {
 	}
 }
 
-// TestInvitationMailCarriesNoSenderTextAndIsCappedPerInviter.
-func TestInvitationMailCarriesNoSenderTextAndIsCappedPerInviter(t *testing.T) {
+// TestInvitationMailEscapesTheSenderTextAndIsCappedPerInviter names the
+// inviter and the space, but only as escaped text, and still caps one
+// inviter's mails per day.
+func TestInvitationMailEscapesTheSenderTextAndIsCappedPerInviter(t *testing.T) {
 	w := invitationWorld(t, true)
 	ctx := context.Background()
 	owner := w.sub["owner@facile.studio"]
 	w.svc.db.Exec("UPDATE users SET name = 'Eve <script>' WHERE id = ?", owner)
-	w.svc.db.Exec("UPDATE spaces SET name = 'Click http://evil.example' WHERE id = ?", w.spaceID)
+	w.svc.db.Exec("UPDATE spaces SET name = 'Click <a href=\"http://evil.example\">here</a>' WHERE id = ?", w.spaceID)
 	if err := w.svc.Invite(ctx, owner, w.spaceID, "bob@facile.studio", "member"); err != nil {
 		t.Fatal(err)
 	}
-	for _, leak := range []string{"Eve", "evil.example", "owner@facile.studio"} {
-		if strings.Contains(w.mails.bodies["bob@facile.studio"], leak) {
-			t.Fatalf("the invitation mail carries %q: %s", leak, w.mails.bodies["bob@facile.studio"])
+	body := w.mails.bodies["bob@facile.studio"]
+	for _, markup := range []string{"<script>", `<a href="http://evil.example"`} {
+		if strings.Contains(body, markup) {
+			t.Fatalf("the invitation mail carries raw %q: %s", markup, body)
 		}
+	}
+	if !strings.Contains(body, "Eve &lt;script&gt;") || !strings.Contains(w.mails.to("bob@facile.studio"), "Eve <script>") {
+		t.Fatalf("the mail does not name the inviter: %q %s", w.mails.to("bob@facile.studio"), body)
 	}
 	sent := 1
 	for i := 0; i < MaxMailsPerInviter+5; i++ {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
+	"github.com/FacileStudio/Registre/apps/api/internal/i18n"
 	"github.com/FacileStudio/Registre/apps/api/internal/recovery"
 
 	mailer "github.com/FacileStudio/facteur"
@@ -51,7 +52,7 @@ func outboundMail(cfg mailer.Config, log *slog.Logger) (recovery.Mailer, bool) {
 func deliver(sender *mailer.Mailer, log *slog.Logger, to, subject, html string) {
 	ctx, cancel := context.WithTimeout(context.Background(), mailHandoff)
 	defer cancel()
-	err := sender.Send(ctx, mailer.Message{To: []string{to}, Subject: subject, HTML: html})
+	err := sender.Send(ctx, mailer.Message{To: []string{to}, Subject: subject, HTML: html, Text: i18n.PlainText(html)})
 	if err != nil {
 		log.Error("registre: failed to deliver a recovery mail", slog.Any("error", err))
 	}

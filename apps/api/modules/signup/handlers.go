@@ -50,6 +50,7 @@ func (s *Service) start(w http.ResponseWriter, r *http.Request) {
 		Altcha      string `json:"altcha"`
 		Locale      string `json:"locale"`
 		AuthRequest string `json:"auth_request"`
+		Invitation  string `json:"invitation"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		encode(w, map[string]string{"error": "invalid"}, http.StatusBadRequest)
@@ -61,6 +62,7 @@ func (s *Service) start(w http.ResponseWriter, r *http.Request) {
 	}
 	err := s.Flow.Start(r.Context(), flow.Request{
 		Email: body.Email, Proof: body.Altcha, Locale: locale, AuthRequest: s.bound(r, body.AuthRequest),
+		Invitation: body.Invitation,
 	})
 	switch {
 	case errors.Is(err, flow.ErrProof):

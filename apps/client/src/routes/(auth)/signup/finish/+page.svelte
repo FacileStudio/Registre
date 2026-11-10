@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { invitationPath, landing, rememberNext } from '$lib/next';
 	import { onMount } from 'svelte';
 	import { Alert, Button, Field, Input, Select, Stack, icons } from '@facile/muse';
 	import TermsCheckbox from '$lib/components/TermsCheckbox.svelte';
@@ -32,6 +33,7 @@
 		canPasskey = passkeysSupported();
 		usePassword = !canPasskey;
 		token = new URLSearchParams(window.location.search).get('token') ?? '';
+		rememberNext(invitationPath(new URLSearchParams(window.location.search).get('invitation')));
 		history.replaceState(history.state, '', window.location.pathname);
 		try {
 			const pending = await signup.verify(token);
@@ -82,7 +84,7 @@
 	async function finish(factor: { password?: string; ceremony?: string; credential?: Record<string, unknown> }) {
 		const answer = await signup.finish({ token, name: name.trim(), locale: language, accept_terms: accepted, ...factor });
 		status = 'done';
-		window.location.assign(answer.redirect || '/');
+		window.location.assign(landing(answer.redirect || '/'));
 	}
 
 	/** fail explains a refusal. */

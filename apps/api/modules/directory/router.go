@@ -2,8 +2,9 @@
 //
 // Every route authenticates the calling app with HTTP Basic, its own OIDC
 // client id and secret, verified under the same argon2 ceiling as the token
-// endpoint. Only application clients may call: a service account has no
-// users and no spaces to keep in step.
+// endpoint. Only first-party confidential application clients may call: a
+// service account has no users and no spaces to keep in step, and a public
+// or third-party client (CIMD, dynamic registration) is not a suite app.
 package directory
 
 import (
@@ -46,6 +47,7 @@ func Mount(router chi.Router, s *Service) {
 	router.Post("/api/directory/import", s.importSpaces)
 	router.Put("/api/directory/entitlements", s.setEntitlements)
 	router.Get("/api/directory/deletions", s.deletions)
+	router.Get("/api/directory/invitations", s.invitations)
 }
 
 // snapshot answers every shared space with its members.
@@ -88,7 +90,7 @@ func (s *Service) app(w http.ResponseWriter, r *http.Request) (schemas.Client, b
 	id, secret, ok := r.BasicAuth()
 	if ok {
 		row, err := s.register.Authenticate(r.Context(), id, secret)
-		if err == nil && row.Kind == schemas.KindApplication && row.DisabledAt == nil {
+		if err == nil && row.Kind == schemas.KindApplication && row.DisabledAt == nil && !row.Public && !row.ThirdParty() {
 			return row, true
 		}
 		if err != nil && !errors.Is(err, clients.ErrUnknownClient) {

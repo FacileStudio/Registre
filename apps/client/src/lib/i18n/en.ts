@@ -379,7 +379,27 @@ export const en = {
 	"connections.connecting": "Connecting to {provider}…",
 	"connections.connectingHint": "You will be redirected automatically. Nothing else to do.",
 	"connections.statusLinked": "Linked",
-	"connections.alreadyLinked": "{provider} is already linked."
+	"connections.alreadyLinked": "{provider} is already linked.",
+	"invitation.title": "Invitation",
+	"invitation.lead": "{inviter} invited you to join {space}.",
+	"invitation.invitedBy": "Invited by",
+	"invitation.role": "Role",
+	"invitation.expires": "Expires on {date}",
+	"invitation.safety": "Nothing changes until you accept. You can leave the space at any time.",
+	"invitation.declined": "Invitation declined.",
+	"invitation.signInTitle": "Sign in to see this invitation",
+	"invitation.signInHint": "Sign in with the address the invitation was sent to, then accept or decline it.",
+	"invitation.signIn": "Sign in",
+	"invitation.signUp": "Create an account",
+	"invitation.wrongTitle": "This invitation is for another account",
+	"invitation.wrongHint": "You are signed in as {email}. Sign out, then sign in with the address the invitation was sent to.",
+	"invitation.switch": "Sign in with another account",
+	"invitation.expiredTitle": "This invitation has expired",
+	"invitation.expiredHint": "Ask the person who invited you to send a new one.",
+	"invitation.goneTitle": "This invitation is no longer available",
+	"invitation.goneHint": "It was withdrawn, already answered, or its space no longer exists.",
+	"invitation.mySpaces": "See my spaces",
+	"invitation.openSpace": "Open the space"
 } as const;
 
 /** MessageKey is every key the catalogs carry. */
