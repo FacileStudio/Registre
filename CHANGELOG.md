@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.10.7] - 2026-11-10
+
 ### Added
 
 - Opus's MCP server is a registered resource: `https://opus.facile.studio/mcp` with scopes `opus.read` and `opus.write`.
