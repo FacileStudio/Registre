@@ -9,6 +9,7 @@ All notable changes to Registre are recorded here. The format follows
 ### Added
 
 - Sonar declares its MCP server: resource `https://sonar.facile.studio/mcp` with the one scope `sonar.read`, since search and fetch are reads.
+- Access tokens bound to an MCP resource (browser flow, refresh, and Bulle's exchange with `resource`) carry the claims an app's web login creates the account from: `email` with `email_verified: true` (only for a verified address), `name`, `picture` and `locale`. porte/mcpauth v0.2.0 uses them to create the local account at the first MCP call, so a new Registre user no longer has to open an app on the web before using its MCP server. A disabled person gets none; plain access tokens are unchanged. See `docs/mcp.md`.
 
 ## [0.10.1] - 2026-11-10
 
