@@ -160,7 +160,7 @@ func TestDiscoveryAdvertisesOnlyMountedEndpoints(t *testing.T) {
 		t.Errorf("issuer = %v, want %s", document["issuer"], fixture.issuer)
 	}
 
-	mounted := map[string]bool{}
+	mounted := map[string]bool{fixture.issuer + RegistrationPath: true}
 	for _, path := range Paths(fixture.provider) {
 		mounted[fixture.issuer+path] = true
 	}

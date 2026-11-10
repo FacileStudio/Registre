@@ -27,12 +27,15 @@ func (s *Storage) resourceScopes(ctx context.Context) (map[string]bool, error) {
 }
 
 // refuseStrayResourceScopes refuses a flow that asks for a resource scope
-// without the resource. The scope would land in a token whose audience is the
+// without the resource, and a third-party flow without one at all. The scope would land in a token whose audience is the
 // client itself, where it means nothing and reads as if it did.
 func (s *Storage) refuseStrayResourceScopes(ctx context.Context, clientID string, scopes []string) error {
 	row, err := s.svc.Register.ByClientID(ctx, clientID)
 	if err != nil {
 		return zoidc.ErrServerError().WithParent(err)
+	}
+	if err := refuseResourceless(row); err != nil {
+		return err
 	}
 	extra, err := s.resourceScopes(ctx)
 	if err != nil {

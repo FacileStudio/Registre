@@ -10,6 +10,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/avatars"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
+	"github.com/FacileStudio/Registre/apps/api/internal/grants"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
@@ -58,6 +59,13 @@ type Services struct {
 	// Connections reads the linked external accounts the connections claim
 	// carries, per client. Nil omits the claim.
 	Connections ConnectionReader
+
+	// Documents fetches client ID metadata documents. Nil turns CIMD off.
+	Documents DocumentFetcher
+
+	// Grants holds what people allowed third-party clients. Nil means no
+	// third-party client can finish a flow, because none can be consented.
+	Grants *grants.Service
 }
 
 // ConnectionReader answers the provider-to-subject map of one user.
@@ -75,6 +83,8 @@ type Storage struct {
 	cfg    Config
 	logger *slog.Logger
 	now    func() time.Time
+
+	fetches chan struct{}
 }
 
 // NewStorage builds the storage over the register, the key service and the
@@ -84,7 +94,10 @@ func NewStorage(db *gorm.DB, svc Services, cfg Config, logger *slog.Logger) *Sto
 	if clock == nil {
 		clock = func() time.Time { return time.Now().UTC() }
 	}
-	return &Storage{db: db, svc: svc, cfg: cfg, logger: logger, now: clock}
+	return &Storage{
+		db: db, svc: svc, cfg: cfg, logger: logger, now: clock,
+		fetches: make(chan struct{}, maxConcurrentFetches),
+	}
 }
 
 // Health reports whether the register is reachable.
@@ -116,7 +129,7 @@ func (s *Storage) KeySet(ctx context.Context) ([]op.Key, error) {
 // against. It never returns a disabled row, so disabling a client in the
 // register takes effect on the next request rather than the next restart.
 func (s *Storage) GetClientByClientID(ctx context.Context, clientID string) (op.Client, error) {
-	row, err := s.svc.Register.ByClientID(ctx, clientID)
+	row, err := s.lookupClient(ctx, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -241,6 +254,7 @@ func (s *Storage) mintAccessToken(
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return "", time.Time{}, fmt.Errorf("oidc: record the token: %w", err)
 	}
+	s.touchGrant(ctx, row)
 	return id, expires, nil
 }
 

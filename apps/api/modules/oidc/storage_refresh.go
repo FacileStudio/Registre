@@ -179,6 +179,9 @@ func (s *Storage) TokenRequestByRefreshToken(ctx context.Context, refreshToken s
 	if err := requireGrantAccess(ctx, access.New(s.db, ""), row); err != nil {
 		return nil, fmt.Errorf("oidc: refresh refused: %w", err)
 	}
+	if err := s.requireLiveGrant(ctx, row); err != nil {
+		return nil, fmt.Errorf("oidc: refresh refused: %w", err)
+	}
 	return &refreshRequest{row: row}, nil
 }
 

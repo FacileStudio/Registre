@@ -392,6 +392,14 @@ func Reference() apiref.Config {
 							ResponseBody: DiscoveryResponse{},
 						},
 						{
+							Method:       "POST",
+							Path:         "/register",
+							Summary:      "Dynamic client registration (RFC 7591) for public MCP clients; no secret is issued",
+							RequestBody:  map[string]any{"redirect_uris": []string{}, "client_name": ""},
+							Status:       http.StatusCreated,
+							ResponseBody: map[string]any{"client_id": "", "token_endpoint_auth_method": "none"},
+						},
+						{
 							Method:       "GET",
 							Path:         "/oauth/v2/keys",
 							Summary:      "JSON Web Key Set (JWKS)",

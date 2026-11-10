@@ -68,7 +68,8 @@
 	const sections = $derived([
 		{ id: 'profile', label: t('account.tab.profile'), icon: icons.userCircle, href: '/account' },
 		{ id: 'security', label: t('account.tab.security'), icon: icons.shield, href: '/account/security' },
-		{ id: 'privacy', label: t('account.tab.privacy'), icon: icons.download, href: '/account/privacy' }
+		{ id: 'privacy', label: t('account.tab.privacy'), icon: icons.download, href: '/account/privacy' },
+		{ id: 'apps', label: t('account.tab.apps'), icon: icons.plug, href: '/account/apps' }
 	]);
 
 	const active = $derived(
@@ -76,7 +77,9 @@
 			? 'security'
 			: page.url.pathname.startsWith('/account/privacy')
 				? 'privacy'
-				: 'profile'
+				: page.url.pathname.startsWith('/account/apps')
+					? 'apps'
+					: 'profile'
 	);
 </script>
 

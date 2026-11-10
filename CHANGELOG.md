@@ -6,6 +6,21 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- MCP authorization, second half (see `docs/mcp.md`): third-party MCP clients such as Claude, ChatGPT, Cursor and VS Code.
+- Client ID metadata documents (CIMD): a `client_id` that is an https URL is fetched through an SSRF guard (public addresses only, no redirects, 5 s, 16 KiB), must name itself as `client_id`, and is cached per `Cache-Control` (5 min to 24 h). AS metadata advertises `client_id_metadata_document_supported`.
+- Dynamic client registration (RFC 7591) at `POST /register` for public clients, `application_type` defaulting to native, 20 per address then one a minute.
+- A consent screen at `/connect`: a third-party client gets a code only after the person allows it. It shows the redirect host, the app and the scopes, and warns when every redirect is on the person's own machine.
+- Connected apps in the account (`/account/apps`): list and disconnect. Disconnecting ends the client's refresh tokens at once (migration 00022 adds `client_grants`).
+- Third-party clients get 10-minute access tokens and must name a registered MCP resource.
+
+### Fixed
+
+- Deleting a user from the admin dashboard now runs the same erasure as a person's own deletion: sessions ended, back-channel logout, spaces handed over, and one deletion notice per suite app (pushed to its `deletion_uri` or listed for polling). Before, apps kept orphaned accounts.
+- Deletion notices are queued for suite apps only, never for third-party clients.
+- `/logout` and `/api/logout` answer GET and POST only and are documented, so the API reference test passes again.
+
 ## [0.9.2] - 2026-11-09
 
 ### Added
@@ -56,6 +71,7 @@ All notable changes to Registre are recorded here. The format follows
 
 ### Added
 
+- The `sonar` client in the seed, with its compose secret forwarding (PR #12).
 - MCP authorization, first half (see `docs/mcp.md`). `GET /.well-known/oauth-authorization-server` serves RFC 8414 metadata. `/authorize`, the code and refresh grants and token exchange accept the RFC 8707 `resource`: the access token's `aud` becomes the resource URI alone and it carries a space-separated `scope` claim with the resource's scopes. Unknown resources, two resources, or another app's scopes answer `invalid_target`.
 - Applications declare their MCP server in the seed with an `mcp` block (resource URI and `<app>.read`/`<app>.write` scopes; migration 00021). Courrier (`https://courrier.facile.studio/mcp`) and Agenda (`https://agenda.facile.studio/mcp`) are the first two.
 - Token exchange accepts `resource` and maps it to the app that declares it, so Bulle's existing grant for an app covers its MCP server.

@@ -30,10 +30,13 @@ const MetadataPath = "/.well-known/oauth-authorization-server"
 // authorization_response_iss_parameter_supported is RFC 9207: every
 // authorization response carries iss, which is what lets a client that talks
 // to several servers tell a mix-up attack from a real answer. ChatGPT picks
-// its redirect URI on this flag.
+// its redirect URI on this flag. client_id_metadata_document_supported says a
+// client may use the URL of its metadata document as its client_id; Claude
+// uses CIMD only when this and auth method none are both advertised.
 func metadataExtras() map[string]any {
 	return map[string]any{
 		"authorization_response_iss_parameter_supported": true,
+		"client_id_metadata_document_supported":          true,
 		"response_types_supported":                       []string{string(zoidc.ResponseTypeCode)},
 	}
 }
@@ -91,6 +94,9 @@ func honestDocument(raw []byte) ([]byte, error) {
 	}
 	for name, value := range metadataExtras() {
 		doc[name] = value
+	}
+	if issuer, ok := doc["issuer"].(string); ok {
+		doc["registration_endpoint"] = issuer + RegistrationPath
 	}
 	return json.Marshal(doc)
 }

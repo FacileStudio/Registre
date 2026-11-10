@@ -19,10 +19,13 @@ import (
 	spacesdir "github.com/FacileStudio/Registre/apps/api/internal/directory"
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
 	"github.com/FacileStudio/Registre/apps/api/internal/gdpr"
+	"github.com/FacileStudio/Registre/apps/api/internal/grants"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
+	"github.com/FacileStudio/Registre/apps/api/internal/metadoc"
+	"github.com/FacileStudio/Registre/apps/api/internal/netguard"
 	"github.com/FacileStudio/Registre/apps/api/internal/seed"
 	"github.com/FacileStudio/Registre/apps/api/internal/social"
 	"github.com/FacileStudio/Registre/apps/api/internal/throttle"
@@ -31,6 +34,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/modules/account"
 	"github.com/FacileStudio/Registre/apps/api/modules/admin"
 	"github.com/FacileStudio/Registre/apps/api/modules/avatar"
+	"github.com/FacileStudio/Registre/apps/api/modules/connect"
 	"github.com/FacileStudio/Registre/apps/api/modules/device"
 	"github.com/FacileStudio/Registre/apps/api/modules/directory"
 	"github.com/FacileStudio/Registre/apps/api/modules/docs"
@@ -106,6 +110,7 @@ func assemble(
 		Keys: keyring, Register: register, Users: users,
 		Logout:  logout.New(keyring, register, cfg.Issuer, svc.log),
 		Devices: deviceFlows, Avatars: pictures, Connections: connections,
+		Documents: documentFetcher(), Grants: grants.New(db),
 	}, oidc.Config{
 		Issuer:          cfg.Issuer,
 		AccessTokenTTL:  cfg.AccessTokenTTL,
@@ -136,19 +141,7 @@ func assemble(
 	health.Mount(router, health.DB(sqlDB))
 	mountVersion(router)
 	sessions, cookies := accounts.New(db), accounts.NewCookies(!cfg.InsecureIssuer())
-	logoutFallback := func(w http.ResponseWriter, r *http.Request) {
-		_ = sessions.End(r.Context(), cookies.Read(r))
-		cookies.Clear(w)
-		if r.Method == http.MethodGet {
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"ok":"true"}`))
-	}
-	router.HandleFunc("/logout", logoutFallback)
-	router.HandleFunc("/api/logout", logoutFallback)
+	mountLogout(router, sessions, cookies)
 	oidc.MountWithLimits(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies},
 		oidc.Limits{
 			Token: cfg.TokenRate, TokenBurst: cfg.TokenBurst,
@@ -166,6 +159,9 @@ func assemble(
 		WithDeletions(func(ctx context.Context, clientID string, since time.Time, after *gdpr.Cursor) ([]gdpr.Deleted, string, error) {
 			return gdpr.DeletedFor(ctx, db, clientID, since, after)
 		}))
+	connect.Mount(router, connect.New(connect.Services{
+		DB: db, Register: register, Grants: grants.New(db), Sessions: sessions, Cookies: cookies, Issuer: cfg.Issuer,
+	}, svc.log))
 	docs.Mount(router)
 	client, err := web.Handler()
 	if err != nil {
@@ -212,6 +208,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 	factors := totp.New(p.db, p.root)
 	pending := challenges.New(p.db)
 	pending.StartPurge(p.ctx, challengeRetention, p.log)
+	rights := buildRights(cfg, p)
 
 	login.MountWithLimits(router, login.New(p.users, p.log).
 		WithThrottle(throttle.New(p.db).StartPurge(p.ctx, p.log)).
@@ -227,7 +224,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 		Sessions: p.sessions, TOTP: factors, Users: p.users, Passwords: p.verifier,
 		DB: p.db, Cookies: p.cookies, Issuer: cfg.Issuer,
 		Logout:  logout.New(p.keyring, p.register, cfg.Issuer, p.log),
-		Avatars: p.pictures, Self: accountSelf(cfg, p),
+		Avatars: p.pictures, Self: accountSelf(p, rights),
 	}, p.log))
 	mountSignup(router, p, p.sessions, p.cookies)
 	spaces.Mount(router, spaces.New(p.teams, p.sessions, p.cookies, p.log).WithBilling(billing.FromConfig(p.billing, p.log), cfg.Issuer))
@@ -237,7 +234,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 		Logout:   logout.New(p.keyring, p.register, cfg.Issuer, p.log),
 		Sessions: p.sessions, Cookies: p.cookies,
 		Access: access.New(p.db, clients.SelfClientID), Audit: audit.New(p.db),
-		Avatars: p.pictures, Directory: p.teams, Self: clients.SelfClientID,
+		Avatars: p.pictures, Directory: p.teams, Self: clients.SelfClientID, Eraser: rights,
 	}, p.log))
 	device.Mount(router, device.New(device.Services{
 		Devices: p.deviceFlows, Sessions: p.sessions, Register: p.register, Cookies: p.cookies,
@@ -250,6 +247,32 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 // proven, which is not a fact worth keeping once the flow it belonged to is
 // over, and the table would otherwise grow with every second-factor login.
 const challengeRetention = time.Hour
+
+// mountLogout answers /logout and /api/logout: GET ends the account session
+// and goes home, POST ends it and answers JSON.
+func mountLogout(router chi.Router, sessions *accounts.Service, cookies accounts.Cookies) {
+	logout := func(w http.ResponseWriter, r *http.Request) {
+		_ = sessions.End(r.Context(), cookies.Read(r))
+		cookies.Clear(w)
+		if r.Method == http.MethodGet {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":"true"}`))
+	}
+	for _, path := range []string{"/logout", "/api/logout"} {
+		router.Get(path, logout)
+		router.Post(path, logout)
+	}
+}
+
+// documentFetcher reads client ID metadata documents through the SSRF guard:
+// public addresses only, checked again at connect time, no proxy, no redirect.
+func documentFetcher() *metadoc.Fetcher {
+	return &metadoc.Fetcher{Client: (&netguard.Guard{}).Client(5*time.Second, nil)}
+}
 
 // guardedCORS is the credentialed cross-origin policy of registre's own API,
 // or no policy at all when no origin is configured, which is what the router
