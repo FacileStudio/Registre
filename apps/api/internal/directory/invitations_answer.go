@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/url"
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/i18n"
@@ -16,6 +17,9 @@ import (
 // transaction and sent after it commits.
 type invitationNotice struct {
 	to, locale, kind, inviter string
+	invitation, space, role   string
+	inviterName               string
+	expires                   time.Time
 }
 
 // noticeFor picks the mail: the invitation to a person with an account, the
@@ -29,16 +33,27 @@ func (s *Service) noticeFor(tx *gorm.DB, row schemas.SpaceInvitation) (invitatio
 	return logMail(tx, notice)
 }
 
-// pickNotice decides which mail, if any, an invitation would send.
+// pickNotice decides which mail, if any, an invitation would send, and
+// gathers what it says: the inviter's display name (else their address),
+// the space's name, the role and the expiry.
 func (s *Service) pickNotice(tx *gorm.DB, row schemas.SpaceInvitation) (invitationNotice, error) {
 	var inviter schemas.User
 	if err := tx.Where("id = ?", row.InvitedBy).Take(&inviter).Error; err != nil {
 		return invitationNotice{}, err
 	}
+	var space schemas.Space
+	if err := tx.Where("id = ?", row.SpaceID).Take(&space).Error; err != nil {
+		return invitationNotice{}, err
+	}
+	notice := invitationNotice{
+		inviter: inviter.ID, invitation: row.ID, space: space.Name, role: row.Role,
+		inviterName: displayName(inviter), expires: row.ExpiresAt,
+	}
 	var invitee schemas.User
 	err := tx.Where("lower(email) = ? AND disabled_at IS NULL", row.Email).Take(&invitee).Error
 	if err == nil {
-		return invitationNotice{to: invitee.Email, locale: invitee.Locale, kind: i18n.MailSpaceInvite, inviter: inviter.ID}, nil
+		notice.to, notice.locale, notice.kind = invitee.Email, invitee.Locale, i18n.MailSpaceInvite
+		return notice, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return invitationNotice{}, err
@@ -46,7 +61,8 @@ func (s *Service) pickNotice(tx *gorm.DB, row schemas.SpaceInvitation) (invitati
 	if !s.invitations.SignupOpen {
 		return invitationNotice{}, nil
 	}
-	return invitationNotice{to: row.Email, locale: inviter.Locale, kind: i18n.MailSpaceJoin, inviter: inviter.ID}, nil
+	notice.to, notice.locale, notice.kind = row.Email, inviter.Locale, i18n.MailSpaceJoin
+	return notice, nil
 }
 
 // logMail counts the invitation mails actually sent, to this address in the
@@ -81,15 +97,21 @@ func logMail(tx *gorm.DB, notice invitationNotice) (invitationNotice, error) {
 }
 
 // notify hands the notice to the mailer, which delivers asynchronously.
+// The invitation mail links to the invitation's own page; the join mail to
+// sign-up with the invitation attached, so the new account lands on it.
 func (s *Service) notify(ctx context.Context, notice invitationNotice) {
 	if notice.to == "" || s.invitations.Mailer == nil {
 		return
 	}
-	link := s.invitations.Issuer + "/spaces"
+	link := s.InvitationURL(notice.invitation)
 	if notice.kind == i18n.MailSpaceJoin {
-		link = s.invitations.Issuer + "/signup?lang=" + i18n.Normalize(notice.locale)
+		query := url.Values{"lang": {i18n.Normalize(notice.locale)}, "invitation": {notice.invitation}}
+		link = s.invitations.Issuer + "/signup?" + query.Encode()
 	}
-	subject, body := i18n.Mail(notice.kind, notice.locale, link, nil)
+	subject, body := i18n.Mail(notice.kind, notice.locale, link, map[string]string{
+		"inviter": notice.inviterName, "space": notice.space,
+		"role": i18n.RoleName(notice.role, notice.locale), "date": i18n.Date(notice.expires, notice.locale),
+	})
 	if err := s.invitations.Mailer.Send(ctx, notice.to, subject, body); err != nil {
 		s.logger.Warn("registre: space invitation mail failed", slog.Any("error", err))
 	}
@@ -102,7 +124,7 @@ func (s *Service) Invited(ctx context.Context, userID string) ([]MyInvitation, e
 			COALESCE(NULLIF(inviter.name, ''), inviter.email) AS invited_by, i.expires_at
 		FROM space_invitations i
 		JOIN spaces s ON s.id = i.space_id AND s.deleted_at IS NULL
-		JOIN users me ON me.id = ? AND lower(me.email) = lower(i.email)
+		JOIN users me ON me.id = ? AND me.disabled_at IS NULL AND lower(me.email) = lower(i.email)
 		JOIN users inviter ON inviter.id = i.invited_by
 		WHERE i.expires_at > ? ORDER BY i.created_at`, userID, time.Now().UTC()).Scan(&out).Error
 	return out, err
@@ -152,13 +174,4 @@ func (s *Service) claimInvitation(tx *gorm.DB, userID, invitationID string) (sch
 		return row, ErrInvitationNotFound
 	}
 	return row, nil
-}
-
-// PurgeInvitations deletes invitations that expired before cutoff and the
-// mail log older than a day before it.
-func (s *Service) PurgeInvitations(ctx context.Context, cutoff time.Time) error {
-	if err := s.db.WithContext(ctx).Where("expires_at < ?", cutoff).Delete(&schemas.SpaceInvitation{}).Error; err != nil {
-		return err
-	}
-	return s.db.WithContext(ctx).Exec("DELETE FROM invitation_mails WHERE sent_at < ?", cutoff.Add(-24*time.Hour)).Error
 }

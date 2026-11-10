@@ -116,6 +116,7 @@ func legalModule() Module {
 func invitationModule() Module {
 	return Module{Name: "space invitations", Description: "Pending invitations into spaces; membership exists only after acceptance", Routes: []Route{
 		{Method: "GET", Path: "/api/spaces/invitations", Summary: "Invitations addressed to me", Auth: "cookie", ResponseBody: map[string]any{"invitations": []any{}}},
+		{Method: "GET", Path: "/api/spaces/invitations/{invitationID}", Summary: "One invitation for its page; changes nothing. 403 when it is for another address, 410 when expired, 404 when withdrawn or answered", Auth: "cookie", ResponseBody: map[string]any{"id": "", "space_id": "", "space_name": "", "role": "", "invited_by": "", "expires_at": ""}},
 		{Method: "POST", Path: "/api/spaces/invitations/{invitationID}/accept", Summary: "Join the space at the offered role", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: SpaceSummary{}},
 		{Method: "POST", Path: "/api/spaces/invitations/{invitationID}/decline", Summary: "Decline an invitation", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]bool{"ok": true}},
 		{Method: "DELETE", Path: "/api/spaces/{spaceID}/invitations/{invitationID}", Summary: "Revoke a pending invitation (admin or owner)", Auth: "cookie", ResponseBody: map[string]bool{"ok": true}},
@@ -125,6 +126,7 @@ func invitationModule() Module {
 func deletionsModule() Module {
 	return Module{Name: "deletions", Description: "Accounts erased in the last 60 days, for the calling app (HTTP Basic, application clients)", Routes: []Route{
 		{Method: "GET", Path: "/api/directory/deletions", Summary: "Subjects erased since ?since= (RFC 3339), 1000 per page; next_cursor, when present, goes back as ?cursor= for the next page; apps erase them within 30 days", Auth: "basic", ResponseBody: map[string]any{"deleted": []map[string]string{{"sub": "", "deleted_at": ""}}, "next_cursor": ""}},
+		{Method: "GET", Path: "/api/directory/invitations", Summary: "The live space invitations waiting for ?sub= (count 0 for an unknown subject), for an app's user menu; see docs/invitations.md", Auth: "basic", ResponseBody: map[string]any{"count": 0, "invitations": []map[string]any{{"id": "", "space_name": "", "role": "", "invited_by": "", "expires_at": "", "url": ""}}}},
 	}}
 }
 

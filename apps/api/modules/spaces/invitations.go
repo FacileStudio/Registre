@@ -60,6 +60,13 @@ func (s *Service) myInvitations(w http.ResponseWriter, r *http.Request) {
 	s.answer(w, err, map[string]any{"invitations": out})
 }
 
+// invitation reads one invitation for its page. It is a GET and changes
+// nothing: mail scanners follow links, so only the POSTs below answer one.
+func (s *Service) invitation(w http.ResponseWriter, r *http.Request) {
+	out, err := s.spaces.Invitation(r.Context(), holderID(r), chi.URLParam(r, "invitationID"))
+	s.answer(w, err, out)
+}
+
 // acceptInvitation joins the space at the offered role.
 func (s *Service) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 	out, err := s.spaces.Accept(r.Context(), holderID(r), chi.URLParam(r, "invitationID"))

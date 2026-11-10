@@ -7,6 +7,7 @@
 | [Development](development.md) | Local setup, the database the tests need, the quality gate |
 | [Deployment](deployment.md) | Docker Compose, Traefik, the migration and the seed at boot |
 | [API](api.md) | Endpoints, OIDC protocol routes, and OpenAPI spec |
+| [Space invitations](invitations.md) | The invitation mail, the invitation page, and the endpoint apps call for a user's pending invitations |
 | [MCP authorization](mcp.md) | RFC 8414/8707/9207 for MCP clients, the token shape, and how an app adds its MCP server |
 
 [SPEC.md](../SPEC.md) is the source of truth for what registre must do and why. These pages

@@ -22,7 +22,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -91,11 +90,17 @@ func New(deps Deps, key, issuer string) *Service {
 // passes AuthRequest only once it has proven the starting browser holds
 // that login's flow cookie (internal/flows); Finish checks the finishing
 // browser again, so a link opened elsewhere lands on Registre's home.
+//
+// Invitation is the space invitation the person came from, if any. It only
+// rides along on the mailed link, so the new account lands on that
+// invitation's page; it grants nothing, and anything that is not an
+// invitation id is dropped.
 type Request struct {
 	Email       string
 	Proof       string
 	Locale      string
 	AuthRequest string
+	Invitation  string
 }
 
 // Start spends the proof of work, then writes one row and hands one mail to
@@ -123,11 +128,10 @@ func (s *Service) Start(ctx context.Context, in Request) error {
 		return err
 	}
 	if known {
-		subject, body := i18n.Mail(i18n.MailSignupExisting, existing.Locale, s.issuer+"/login", nil)
+		subject, body := i18n.Mail(i18n.MailSignupExisting, existing.Locale, s.loginLink(in.Invitation), nil)
 		return s.Mailer.Send(ctx, existing.Email, subject, body)
 	}
-	link := s.issuer + "/signup/finish?token=" + url.QueryEscape(token)
-	subject, body := i18n.Mail(i18n.MailSignupVerify, in.Locale, link, nil)
+	subject, body := i18n.Mail(i18n.MailSignupVerify, in.Locale, s.finishLink(token, in.Invitation), nil)
 	return s.Mailer.Send(ctx, email, subject, body)
 }
 

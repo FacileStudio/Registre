@@ -5,6 +5,7 @@
 	import { getPasskey, passkeysSupported } from '$lib/webauthn';
 	import { signupOpen as isSignupOpen } from '$lib/signup';
 	import { loadProviders, reasonKey, startURL, type SocialProvider } from '$lib/social';
+	import { landing, rememberNext } from '$lib/next';
 
 	type Step = 'password' | 'second-factor';
 	type AuthStatus = 'checking' | 'redirecting' | 'handed-off' | 'ready' | 'submitting';
@@ -65,7 +66,7 @@
 	 */
 	function redirect(target: string) {
 		status = 'redirecting';
-		window.location.assign(target);
+		window.location.assign(authRequest ? target : landing(target));
 		setTimeout(() => {
 			if (status === 'redirecting') status = 'handed-off';
 		}, HAND_OFF_MS);
@@ -87,6 +88,7 @@
 		const query = new URLSearchParams(window.location.search);
 		const req = query.get('auth_request') ?? '';
 		authRequest = req;
+		rememberNext(query.get('next'));
 		error = refusal(query.get('error') ?? '');
 		canPasskey = passkeysSupported();
 		isSignupOpen().then((open) => (signupOpen = open));

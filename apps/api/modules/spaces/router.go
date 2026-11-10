@@ -58,6 +58,7 @@ func Mount(router chi.Router, s *Service) {
 		r.Get("/{spaceID}", s.get)
 		r.Post("/{spaceID}/rename", s.rename)
 		r.Get("/invitations", s.myInvitations)
+		r.Get("/invitations/{invitationID}", s.invitation)
 		r.Post("/invitations/{invitationID}/accept", s.acceptInvitation)
 		r.Post("/invitations/{invitationID}/decline", s.declineInvitation)
 		r.With(inviteBudget()...).Post("/{spaceID}/members", s.invite)
@@ -118,8 +119,10 @@ func (s *Service) answer(w http.ResponseWriter, err error, body any) {
 	case errors.Is(err, directory.ErrNotFound), errors.Is(err, directory.ErrNoSuchUser),
 		errors.Is(err, directory.ErrInvitationNotFound):
 		status = http.StatusNotFound
-	case errors.Is(err, directory.ErrForbidden):
+	case errors.Is(err, directory.ErrForbidden), errors.Is(err, directory.ErrInvitationWrongAccount):
 		status = http.StatusForbidden
+	case errors.Is(err, directory.ErrInvitationExpired):
+		status = http.StatusGone
 	case errors.Is(err, directory.ErrNameTaken), errors.Is(err, directory.ErrLastOwner),
 		errors.Is(err, directory.ErrAlreadyMember):
 		status = http.StatusConflict

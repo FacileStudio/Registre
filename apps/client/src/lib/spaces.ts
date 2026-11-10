@@ -75,6 +75,8 @@ export const spaces = {
 	revokeInvitation: (id: string, invitationID: string) =>
 		send<{ ok: boolean }>(`${base(id)}/invitations/${encodeURIComponent(invitationID)}`, 'DELETE'),
 	invitations: () => request<{ invitations: MyInvitation[] }>('/api/spaces/invitations'),
+	invitation: (invitationID: string) =>
+		request<MyInvitation>(`/api/spaces/invitations/${encodeURIComponent(invitationID)}`),
 	accept: (invitationID: string) =>
 		request<SpaceSummary>(`/api/spaces/invitations/${encodeURIComponent(invitationID)}/accept`, {}),
 	decline: (invitationID: string) =>
