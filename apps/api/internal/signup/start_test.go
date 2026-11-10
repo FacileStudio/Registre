@@ -128,3 +128,34 @@ func TestAMalformedAddressIsRefusedAfterTheProof(t *testing.T) {
 		t.Fatalf("Start = %v, want ErrEmail", err)
 	}
 }
+
+// TestTheSignupLinkCarriesOnlyAnInvitationID lets a space invitation ride
+// along on the mailed link, so the new account lands on it, and drops
+// anything that is not an invitation id.
+func TestTheSignupLinkCarriesOnlyAnInvitationID(t *testing.T) {
+	w := newWorld(t, map[string]bool{})
+	ctx := context.Background()
+	id := "0b9c1a2e-3f4d-4a5b-8c6d-7e8f9a0b1c2d"
+	if err := w.svc.Start(ctx, Request{Email: "new@example.com", Proof: solve(t, w.svc), Invitation: id}); err != nil {
+		t.Fatal(err)
+	}
+	if html := w.inbox.last(t).html; !strings.Contains(html, "&amp;invitation="+id) {
+		t.Fatalf("the link does not carry the invitation: %s", html)
+	}
+	err := w.svc.Start(ctx, Request{Email: "other@example.com", Proof: solve(t, w.svc), Invitation: `x"><script>`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if html := w.inbox.last(t).html; strings.Contains(html, "invitation=") {
+		t.Fatalf("a malformed invitation reached the link: %s", html)
+	}
+	if err := w.db.Create(&schemas.User{ID: "known", Email: "known@example.com", Locale: "en"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := w.svc.Start(ctx, Request{Email: "known@example.com", Proof: solve(t, w.svc), Invitation: id}); err != nil {
+		t.Fatal(err)
+	}
+	if html := w.inbox.last(t).html; !strings.Contains(html, "/login?next=%2Finvitations%2F"+id) {
+		t.Fatalf("the known address's link does not lead to the invitation: %s", html)
+	}
+}

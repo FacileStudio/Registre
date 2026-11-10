@@ -126,11 +126,12 @@ func (s *Service) offer(tx *gorm.DB, actorID, spaceID, email, role string) (invi
 		ID: id, SpaceID: spaceID, Email: email, Role: role, InvitedBy: actorID,
 		CreatedAt: now, ExpiresAt: now.Add(InvitationTTL),
 	}
-	err = tx.Exec(`INSERT INTO space_invitations (id, space_id, email, role, invited_by, created_at, expires_at)
+	err = tx.Raw(`INSERT INTO space_invitations (id, space_id, email, role, invited_by, created_at, expires_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (space_id, lower(email)) DO UPDATE SET role = EXCLUDED.role,
-			invited_by = EXCLUDED.invited_by, created_at = EXCLUDED.created_at, expires_at = EXCLUDED.expires_at`,
-		row.ID, row.SpaceID, row.Email, row.Role, row.InvitedBy, row.CreatedAt, row.ExpiresAt).Error
+			invited_by = EXCLUDED.invited_by, created_at = EXCLUDED.created_at, expires_at = EXCLUDED.expires_at
+		RETURNING id`,
+		row.ID, row.SpaceID, row.Email, row.Role, row.InvitedBy, row.CreatedAt, row.ExpiresAt).Scan(&row.ID).Error
 	if err != nil {
 		return invitationNotice{}, fmt.Errorf("directory: record the invitation: %w", err)
 	}

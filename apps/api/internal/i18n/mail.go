@@ -27,27 +27,36 @@ type mailText struct {
 }
 
 // Mail renders kind in locale around link, falling back to English for an
-// unknown locale. Every piece of text is escaped after substitution, so a
-// space name or a person's name in vars can never become markup.
+// unknown locale. Every value in vars is cleaned first (control and
+// direction-override characters dropped, length capped), substituted into
+// the subject and the paragraphs, and only then escaped, so a space name or
+// a person's name can never become markup or a header line.
 func Mail(kind, locale, link string, vars map[string]string) (subject, body string) {
 	byLocale := mailCatalog()[kind]
 	text, ok := byLocale[Normalize(locale)]
 	if !ok {
 		text = byLocale[Fallback]
 	}
+	clean := make(map[string]string, len(vars))
+	for key, value := range vars {
+		clean[key] = Clean(value)
+	}
 	var out strings.Builder
 	for _, paragraph := range text.paragraphs {
-		for key, value := range vars {
-			paragraph = strings.ReplaceAll(paragraph, "{"+key+"}", value)
-		}
-		out.WriteString("<p>" + html.EscapeString(paragraph) + "</p>")
+		out.WriteString("<p>" + html.EscapeString(fill(paragraph, clean)) + "</p>")
 	}
 	if link != "" {
-		out.WriteString(`<p><a href="` + html.EscapeString(link) + `">` + html.EscapeString(text.action) + `</a></p>`)
+		out.WriteString(`<p><a href="` + html.EscapeString(link) + `" style="` + buttonStyle + `">` +
+			html.EscapeString(text.action) + `</a></p>`)
 	}
 	out.WriteString("<p>Facile</p>")
-	return text.subject, out.String()
+	return fill(text.subject, clean), out.String()
 }
+
+// buttonStyle draws the one link a mail carries as a button. Mail clients
+// drop style sheets, so it is inline.
+const buttonStyle = "display:inline-block;padding:10px 18px;border-radius:8px;" +
+	"background:#111111;color:#ffffff;text-decoration:none;font-weight:600"
 
 // mailCatalog is every mail in every language. It is a function rather than
 // a package variable so nothing can mutate it at runtime.

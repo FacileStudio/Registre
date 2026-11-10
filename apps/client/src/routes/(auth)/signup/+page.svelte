@@ -4,16 +4,21 @@
 	import { fetchAndSolve } from '$lib/altcha';
 	import { t } from '$lib/i18n/i18n.svelte';
 	import { signup, SignupError } from '$lib/signup';
+	import { invitationPath, rememberNext } from '$lib/next';
 
 	type Status = 'ready' | 'proving' | 'sending' | 'sent' | 'closed';
 
 	let email = $state('');
 	let authRequest = $state('');
+	let invitation = $state('');
 	let status = $state<Status>('ready');
 	let error = $state('');
 
 	onMount(async () => {
-		authRequest = new URLSearchParams(window.location.search).get('auth_request') ?? '';
+		const query = new URLSearchParams(window.location.search);
+		authRequest = query.get('auth_request') ?? '';
+		invitation = invitationPath(query.get('invitation')) ? (query.get('invitation') ?? '') : '';
+		rememberNext(invitationPath(invitation));
 		const config = await fetch('/api/config')
 			.then((r) => r.json())
 			.catch(() => null);
@@ -33,7 +38,7 @@
 		try {
 			const proof = await fetchAndSolve();
 			status = 'sending';
-			await signup.start(email.trim(), proof, authRequest);
+			await signup.start(email.trim(), proof, authRequest, invitation);
 			status = 'sent';
 		} catch (cause) {
 			error = explain(cause);

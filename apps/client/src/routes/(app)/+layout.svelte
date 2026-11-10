@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { setContext } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { MobileNav, PageTransition, SideBar, Spinner, Topbar, icons } from '@facile/muse';
 	import { account, SESSION_CONTEXT, type AccountView, type ShellSession } from '$lib/account';
 	import { isLocale, pinnedByURL, setLocale, t } from '$lib/i18n/i18n.svelte';
+	import { landing } from '$lib/next';
 
 	let { children } = $props();
 
@@ -24,6 +26,8 @@
 			.then((view) => {
 				me = view;
 				if (isLocale(view.locale) && !pinnedByURL()) setLocale(view.locale);
+				const next = page.url.pathname === '/' ? landing('/') : '/';
+				if (next !== '/') goto(next);
 			})
 			.catch(() => (me = null))
 			.finally(() => (loaded = true));

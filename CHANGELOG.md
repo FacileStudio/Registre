@@ -6,9 +6,18 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Space invitation mails name who invited you, the space, the role and the expiry date, in your language, with a "View invitation" button. Names are cleaned (no control or direction-override characters, 80 characters at most) and escaped, and every mail now has a plain-text part that spells out its link. The anti-abuse caps are unchanged.
+- An invitation page at `/invitations/{id}`: inviter, space, role and expiry with Accept and Decline. Opening it changes nothing; only the POSTs answer. It says clearly when the invitation is expired, withdrawn, or for another account, and signs you in with `?next=` back to it. `GET /api/spaces/invitations/{id}` drives it.
+- The join mail for an address without an account opens sign-up with the invitation attached, so the new account lands on the invitation.
+- `GET /api/directory/invitations?sub=` (HTTP Basic, first-party application clients) answers `{count, invitations[{id, space_name, role, invited_by, expires_at, url}]}` for a suite app's user menu. See docs/invitations.md.
+
 ### Changed
 
 - Licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`). See `LICENSE`.
+- Expired invitations are kept 30 days so their page can say "expired".
+- The directory routes refuse public and third-party clients outright.
 
 ## [0.10.7] - 2026-11-10
 
