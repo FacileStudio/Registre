@@ -6,6 +6,10 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Sonar declares its MCP server: resource `https://sonar.facile.studio/mcp` with the one scope `sonar.read`, since search and fetch are reads.
+
 ## [0.10.1] - 2026-11-10
 
 ### Changed
