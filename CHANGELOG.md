@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.10.4] - 2026-11-10
+
 ### Added
 
 - Nuage's MCP server is a registered resource: `https://nuage.facile.studio/mcp` with scopes `nuage.read` and `nuage.write`.
