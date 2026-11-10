@@ -6,6 +6,10 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`). See `LICENSE`.
+
 ## [0.10.7] - 2026-11-10
 
 ### Added

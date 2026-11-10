@@ -120,3 +120,7 @@ Part of the [Facile Suite](https://facile.studio) — self-hosted tools for crea
 and freelancers. One login, zero cloud dependency.
 # rebuild trigger Fri Sep  4 16:58:34 CEST 2026
 # Manual rebuild trigger 1788536391
+
+## License
+
+Registre is licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`); see [LICENSE](LICENSE). A commercial license is available from Facile Studio for use that cannot meet the AGPL's terms.
