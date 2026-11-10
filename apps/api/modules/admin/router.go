@@ -14,6 +14,7 @@
 package admin
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/access"
@@ -58,6 +59,17 @@ type Services struct {
 	// Self is registre's own client id, the one application the dashboard
 	// refuses to restrict.
 	Self string
+
+	// Eraser deletes an account the way a person's own deletion does.
+	Eraser Eraser
+}
+
+// Eraser deletes an account now, with every side effect of the
+// self-service deletion: sessions ended, back-channel logout, one deletion
+// notice per app (pushed to its deletion_uri and listed for polling), and
+// the spaces it alone owned handed over. *gdpr.Service is the one in use.
+type Eraser interface {
+	Erase(ctx context.Context, userID string) error
 }
 
 // Service serves the dashboard's API over the register, the accounts, the
@@ -77,6 +89,7 @@ type Service struct {
 	avatars   *avatars.Service
 	directory *directory.Service
 	self      string
+	eraser    Eraser
 }
 
 // New builds the admin service over the process's services.
@@ -86,6 +99,7 @@ func New(deps Services, logger *slog.Logger) *Service {
 		invites: deps.Invites, logout: deps.Logout, sessions: deps.Sessions,
 		cookies: deps.Cookies, logger: logger,
 		access: deps.Access, audit: deps.Audit, avatars: deps.Avatars, directory: deps.Directory, self: deps.Self,
+		eraser: deps.Eraser,
 	}
 }
 

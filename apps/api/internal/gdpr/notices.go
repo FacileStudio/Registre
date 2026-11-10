@@ -41,12 +41,14 @@ type pendingNotice struct {
 	URI      string
 }
 
-// queueNotices writes a notice for every enabled application, inside the
+// queueNotices writes a notice for every enabled suite application (never a
+// third-party client, which has no deletion endpoint and cannot poll), inside the
 // erasure's transaction, so a crash between the delete and the push cannot
 // lose the event.
 func queueNotices(tx *gorm.DB, subject string) error {
 	err := tx.Exec(`INSERT INTO deletion_notices (client_id, subject)
-		SELECT client_id, ? FROM clients WHERE kind = 'application' AND disabled_at IS NULL`, subject).Error
+		SELECT client_id, ? FROM clients
+		WHERE kind = 'application' AND registration = '' AND disabled_at IS NULL`, subject).Error
 	if err != nil {
 		return fmt.Errorf("gdpr: queue the deletion notices: %w", err)
 	}

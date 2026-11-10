@@ -176,9 +176,7 @@ func (s *Service) deleteUser(w http.ResponseWriter, r *http.Request) {
 		encode(w, map[string]string{"error": "cannot delete your own account"}, http.StatusBadRequest)
 		return
 	}
-	reached, _ := s.users.EndSessions(r.Context(), id, now())
-	s.fireLogout(r, id, reached)
-	if err := s.users.Delete(r.Context(), id); err != nil {
+	if err := s.eraser.Erase(r.Context(), id); err != nil {
 		serverError(w, err)
 		return
 	}
