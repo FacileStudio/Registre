@@ -6,6 +6,10 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Agenda, Opus, Sablier, Nuage and Mycelium may exchange a signed-in user's token for audience `bulle` with `bulle.read` and `bulle.write`, like Courrier and Glouton, so each app's Ideas page can call Bulle as that user.
+
 ## [0.10.0] - 2026-11-10
 
 ### Added
