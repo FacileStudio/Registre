@@ -122,7 +122,9 @@ func (s *Storage) CreateTokenExchangeRequest(context.Context, op.TokenExchangeRe
 // own account by address, and an unverified one must never be the key that
 // does it. Only exchanged tokens carry it; a plain access token and an ID token
 // are unchanged. roles are left out on purpose: a delegated token carries the
-// least that works, and an app that wants a role asks for a scope.
+// least that works, and an app that wants a role asks for a scope. An exchange
+// for an MCP resource also carries the provisioning claims, so Bulle's first
+// call to an app's MCP server can create the account there.
 func (s *Storage) GetPrivateClaimsFromTokenExchangeRequest(
 	ctx context.Context, request op.TokenExchangeRequest,
 ) (map[string]any, error) {
@@ -137,7 +139,7 @@ func (s *Storage) GetPrivateClaimsFromTokenExchangeRequest(
 	if user.EmailVerified && user.Email != "" {
 		claims["email"] = user.Email
 	}
-	return claims, nil
+	return s.withProvisioningClaims(ctx, claims, request.GetAudience(), request.GetSubject())
 }
 
 // SetUserinfoFromTokenExchangeRequest is never reached, because an ID token is
