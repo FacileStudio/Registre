@@ -228,6 +228,9 @@ applications:
       - https://opus.facile.studio/api/auth/callback/custom
       - https://opus.facile.studio/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://opus.facile.studio/mcp
+      scopes: [opus.read, opus.write]
     token_exchange:
       - audience: bulle
         scopes: [bulle.read, bulle.write]
