@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-10
+
 ### Added
 
 - Space invitation mails name who invited you, the space, the role and the expiry date, in your language, with a "View invitation" button. Names are cleaned (no control or direction-override characters, 80 characters at most) and escaped, and every mail now has a plain-text part that spells out its link. The anti-abuse caps are unchanged.
