@@ -6,6 +6,10 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Bulle may exchange a user's token for Sonar (`sonar.read`), so it can call Sonar's MCP server for web search and fetch.
+
 ## [0.10.4] - 2026-11-10
 
 ### Added
