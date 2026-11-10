@@ -373,6 +373,10 @@ applications:
     redirect_uris:
       - https://sonar.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    # Search and fetch are reads, so the MCP server has no write scope.
+    mcp:
+      resource: https://sonar.facile.studio/mcp
+      scopes: [sonar.read]
 
   # Bulle, the suite's coding agent and harness at bulle.facile.studio.
   #

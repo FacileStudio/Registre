@@ -57,9 +57,20 @@ A token minted for `https://courrier.facile.studio/mcp`:
   "client_id": "<the client that asked>",
   "scope": "courrier.read courrier.write",
   "exp": 1762600000, "iat": 1762599400, "nbf": 1762599400,
-  "jti": "<token id>"
+  "jti": "<token id>",
+  "email": "person@example.com", "email_verified": true,
+  "name": "Person", "picture": "https://sso.facile.studio/avatars/<sub>", "locale": "fr"
 }
 ```
+
+- `email`, `email_verified`, `name`, `picture` and `locale` are the provisioning claims: what an
+  app's web login creates the account from, so porte/mcpauth (`Provision: true`) can create it on
+  the first MCP call. `email` and `email_verified: true` ride together and only when Registre holds
+  the address as verified; an unverified address is never sent, and porte then refuses to create
+  the account. A disabled person gets none. They are on every resource-bound token, from a browser
+  flow, a refresh or a Bulle exchange, and on no other token. They are not gated on the `email` and
+  `profile` scopes: the audience is the app itself, and the token's holder can already read them
+  from userinfo with this token.
 
 - `scope` lists only the scopes the resource declares. `openid` and `offline_access` never appear.
 - A token Bulle obtained by token exchange also carries `act: {"sub": "bulle"}` and, when verified,

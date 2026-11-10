@@ -12,8 +12,8 @@ import (
 
 var _ op.CanGetPrivateClaimsFromRequest = (*Storage)(nil)
 
-// GetPrivateClaimsFromRequest is GetPrivateClaimsFromScopes plus the scope
-// claim of a token bound to an MCP resource.
+// GetPrivateClaimsFromRequest is GetPrivateClaimsFromScopes plus, on a token
+// bound to an MCP resource, the scope claim and the provisioning claims.
 //
 // zitadel prefers this method over GetPrivateClaimsFromScopes whenever the
 // storage has it, so the roles claim is still computed here exactly as before.
@@ -37,7 +37,7 @@ func (s *Storage) GetPrivateClaimsFromRequest(
 		claims = map[string]any{}
 	}
 	claims["scope"] = strings.Join(scope, " ")
-	return claims, nil
+	return s.withProvisioningClaims(ctx, claims, request.GetAudience(), request.GetSubject())
 }
 
 // resourceScope is the scope claim's content for a token whose only audience
