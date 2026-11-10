@@ -52,7 +52,9 @@ func (b Binding) authorize(next http.Handler) http.Handler {
 
 // callback refuses to turn a finished auth request into a code for any browser
 // but the one that started and finished it, and refuses a request that already
-// has a code. The library re-reads the same row afterwards, which is safe: a
+// has a code. A third-party client's flow is sent to the consent page instead
+// until a live grant covers it; the flow cookie stays set so the browser can
+// come back here once the person has answered. The library re-reads the same row afterwards, which is safe: a
 // finished request cannot be finished again by someone else, and SaveAuthCode
 // refuses a second code atomically.
 func (b Binding) callback(provider *op.Provider, next http.Handler) http.Handler {
@@ -75,6 +77,15 @@ func (b Binding) callback(provider *op.Provider, next http.Handler) http.Handler
 		if !ok {
 			op.AuthRequestError(w, r, request,
 				zoidc.ErrAccessDenied().WithDescription("this sign-in was not finished in this browser"), provider)
+			return
+		}
+		owed, err := b.Storage.consentOwed(r.Context(), request.row)
+		if err != nil {
+			op.AuthRequestError(w, r, request, zoidc.ErrServerError().WithParent(err), provider)
+			return
+		}
+		if owed {
+			http.Redirect(w, r, consentURL(request.row.ID), http.StatusFound)
 			return
 		}
 		http.SetCookie(w, b.flowCookie(name, "", -1))

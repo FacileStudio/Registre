@@ -173,10 +173,11 @@ type Limits struct {
 }
 
 // MountWithLimits is Mount with explicit token endpoint budgets. It also
-// mounts RFC 8414 metadata next to discovery, the RFC 8707 resource gate on
-// the token endpoint, and RFC 9207 iss on every authorization response.
-func MountWithLimits(router chi.Router, provider *op.Provider, binding Binding, limits Limits) {
-	routes := endpointHandlers(provider, binding, limits)
+// mounts RFC 8414 metadata next to discovery, RFC 7591 registration, the
+// RFC 8707 resource gate on the token endpoint, and RFC 9207 iss on every
+// authorization response.
+func MountWithLimits(router chi.Router, provider *op.Provider, binding Binding, budgets Limits) {
+	routes := endpointHandlers(provider, binding, budgets)
 	for _, path := range Paths(provider) {
 		handler, ok := routes[path]
 		if !ok {
@@ -185,6 +186,8 @@ func MountWithLimits(router chi.Router, provider *op.Provider, binding Binding, 
 		router.Handle(path, handler)
 	}
 	router.Get(MetadataPath, authorizationServerMetadata(routes[zoidc.DiscoveryEndpoint]).ServeHTTP)
+	router.With(limits.PerAddress(DefaultRegisterLimit, DefaultRegisterBurst)).
+		Post(RegistrationPath, binding.Storage.register)
 }
 
 // endpointHandlers are the paths that are not the bare provider.
@@ -212,6 +215,7 @@ func PublicPaths(provider *op.Provider) []string {
 		provider.KeysEndpoint().Relative(),
 		provider.TokenEndpoint().Relative(),
 		provider.RevocationEndpoint().Relative(),
+		RegistrationPath,
 	}
 }
 

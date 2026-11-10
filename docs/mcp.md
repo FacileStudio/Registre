@@ -13,11 +13,37 @@ at that server only.
 | RFC 9207 | Every authorization response, success or error, carries `iss` |
 | RFC 7636 | PKCE is S256 only. `code_challenge_method=plain` is refused with `invalid_request` |
 | RFC 9068 | A resource-bound access token carries `scope`, space separated |
+| CIMD | A `client_id` that is an https URL is the client's metadata document, fetched through the SSRF guard |
+| RFC 7591 | `POST /register` registers a public client, for clients without CIMD |
 
 The token endpoint, discovery, AS metadata, JWKS and revocation answer CORS from any origin, with
 no credentials. Token requests without a client secret have their own per-address budget
 (`REGISTRE_PUBLIC_TOKEN_RATE`, default 20/s burst 200), because claude.ai users all refresh from
 Anthropic's egress range.
+
+## Third-party clients
+
+A client registered through CIMD or DCR is a third party: public (PKCE S256, no secret),
+code and refresh grants only, 10-minute access tokens, and it must name a registered resource.
+
+1. **Registration.** CIMD: registre fetches the `client_id` URL from public addresses only
+   (`internal/netguard`: every resolved address checked, the connected address checked again, no
+   proxy, no redirects), within 5 s and 16 KiB. The document must name itself as `client_id`, carry
+   redirect URIs (https, http on loopback, or an app scheme for native clients), and ask for auth
+   method `none`. It is re-read when its `Cache-Control` lifetime ends (5 min to 24 h). DCR applies
+   the same rules to the request body and answers a `dcr-` client id.
+2. **Consent.** After sign-in, the callback sends the browser to `/connect?auth_request=…` until a
+   live grant covers the client, the resource and every requested scope. The page shows the
+   redirect host first (the client name is the client's own claim), the app, the scopes, and a
+   warning when every redirect is on the person's machine. Only the session that signed in to the
+   flow can read or answer it; answers need `X-Facile-CSRF`; pages refuse framing. Refusing sends
+   `error=access_denied` with `state` and `iss` to the client.
+3. **Revocation.** `/account/apps` lists live grants. Disconnecting revokes the grant and the
+   client's refresh tokens at once; its access tokens die within 10 minutes. A refresh also needs a
+   live grant, and the resource app's access policy.
+
+Claude's client ids: `https://claude.ai/oauth/claude-code-client-metadata` (Claude Code, loopback
+redirect on any port). claude.ai uses `https://claude.ai/api/mcp/auth_callback`.
 
 ## Token shape
 
@@ -39,6 +65,8 @@ A token minted for `https://courrier.facile.studio/mcp`:
 - A token Bulle obtained by token exchange also carries `act: {"sub": "bulle"}` and, when verified,
   `email`. A token without `act` came from a browser flow.
 - A plain access token (no `resource`) is unchanged: `aud` is the client, and it has no `scope`.
+- `client_id` tells a third party from Bulle: a third party's is its metadata URL or a `dcr-` id,
+  and it has no `act`. Its `exp - iat` is 600 s.
 
 ## How an app adds its MCP server
 

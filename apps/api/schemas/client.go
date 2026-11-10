@@ -105,6 +105,17 @@ type Client struct {
 	// MCPScopes are the scopes a token for MCPResource may carry.
 	MCPScopes StringList `gorm:"type:jsonb"`
 
+	// Registration is where a client came from: empty for the seed and the
+	// dashboard, RegistrationDocument or RegistrationDynamic for a third
+	// party, which needs a person's consent before it gets a code.
+	Registration string
+
+	// ClientURI is a third party's home page, as its metadata states it.
+	ClientURI string
+
+	// MetadataExpiresAt is when a fetched metadata document must be read again.
+	MetadataExpiresAt *time.Time
+
 	// Managed marks a row the YAML seed owns. The seed rewrites it at every
 	// boot, so an edit made anywhere else is lost on the next restart.
 	Managed bool
@@ -115,7 +126,17 @@ type Client struct {
 }
 
 // TableName is the table this model reads.
+// Where a third-party client came from.
+const (
+	RegistrationDocument = "metadata_document"
+	RegistrationDynamic  = "dynamic"
+)
+
 func (Client) TableName() string { return "clients" }
+
+// ThirdParty reports whether the client registered itself rather than being
+// declared by the suite, which is what makes consent required.
+func (c Client) ThirdParty() bool { return c.Registration != "" }
 
 // Enabled reports whether the client may still be issued tokens.
 func (c Client) Enabled() bool { return c.DisabledAt == nil }

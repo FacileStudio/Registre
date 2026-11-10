@@ -88,13 +88,19 @@ func (s *selfServices) invitationsFor(cfg env.Config) spacesdir.Invitations {
 	return spacesdir.Invitations{Mailer: s.mailer, Issuer: cfg.Issuer, SignupOpen: s.flow != nil}
 }
 
-// accountSelf builds the account pages' sign-up era services, including the
-// GDPR service, and starts the hourly housekeeping.
-func accountSelf(cfg env.Config, p people) account.SelfService {
-	rights := gdpr.New(gdpr.Deps{
+// buildRights is the GDPR service: exports and deletions, for a person's own
+// account pages and for an operator deleting an account from the dashboard,
+// so both erase the same way.
+func buildRights(cfg env.Config, p people) *gdpr.Service {
+	return gdpr.New(gdpr.Deps{
 		DB: p.db, Sessions: p.users, Audit: p.self.audit, Mailer: p.self.mailer,
 		Notifier: logout.New(p.keyring, p.register, cfg.Issuer, p.log), Directory: p.teams, Logger: p.log,
 	}, cfg.Issuer)
+}
+
+// accountSelf builds the account pages' sign-up era services over rights and
+// starts the hourly housekeeping.
+func accountSelf(p people, rights *gdpr.Service) account.SelfService {
 	rights.Start(p.ctx, housekeepingEvery, func(ctx context.Context) {
 		cutoff := time.Now().UTC().Add(-time.Hour)
 		purge(ctx, p.log, p.self.passkeys.Purge, cutoff)

@@ -18,11 +18,13 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/devices"
+	"github.com/FacileStudio/Registre/apps/api/internal/grants"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/keys"
 	"github.com/FacileStudio/Registre/apps/api/internal/logout"
 	"github.com/FacileStudio/Registre/apps/api/internal/social"
 	"github.com/FacileStudio/Registre/apps/api/internal/testdb"
+	"github.com/FacileStudio/Registre/apps/api/modules/connect"
 	"github.com/FacileStudio/Registre/apps/api/modules/login"
 
 	"github.com/go-chi/chi/v5"
@@ -56,6 +58,8 @@ type fixture struct {
 	server   *httptest.Server
 	issuer   string
 	clock    *clock
+
+	documents stubDocuments
 }
 
 // clock is the shared, movable now the fixture hands to every service. It is
@@ -106,6 +110,7 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	server := httptest.NewUnstartedServer(nil)
 	issuer := "http://" + server.Listener.Addr().String()
 	ticking := &clock{at: time.Now().UTC()}
+	documents := stubDocuments{}
 
 	cfg.Now = ticking.now
 	keyring := keys.New(db, rootKey, cfg, logs)
@@ -120,6 +125,7 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 		Logout:  logout.New(keyring, register, issuer, logs),
 		Devices: deviceFlows, Avatars: avatars.New(db, issuer),
 		Connections: social.New(db, []social.Provider{discordStub{}}, social.Config{}),
+		Documents:   documents, Grants: grants.New(db),
 	}, Config{
 		Issuer: issuer, AccessTokenTTL: time.Hour,
 		RefreshTokenTTL: 24 * time.Hour, Now: ticking.now,
@@ -136,6 +142,9 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 		Accounts: sessions,
 		Cookies:  cookies,
 	}), 1000, 1000)
+	connect.Mount(router, connect.New(connect.Services{
+		DB: db, Register: register, Grants: grants.New(db), Sessions: sessions, Cookies: cookies, Issuer: issuer,
+	}, logs))
 	router.Get("/login", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(
 			`<form method="post"><input type="hidden" name="auth_request" value="` +
@@ -148,6 +157,7 @@ func newFixture(t *testing.T, cfg keys.Config) *fixture {
 	return &fixture{
 		t: t, db: db, keys: keyring, register: register, users: users, devices: deviceFlows,
 		storage: storage, provider: provider, server: server, issuer: issuer, clock: ticking,
+		documents: documents,
 	}
 }
 
