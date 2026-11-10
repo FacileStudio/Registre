@@ -422,4 +422,6 @@ applications:
         scopes: [mycelium.read, mycelium.write]
       - audience: 1IdqK3bA2LWI-zuWVLqFpnIlCTVu117F
         scopes: [glouton.read, glouton.write]
+      - audience: sonar
+        scopes: [sonar.read]
 

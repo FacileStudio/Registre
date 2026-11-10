@@ -131,7 +131,7 @@ func TestApplyWritesTheAllowanceAndAReapplyRewritesIt(t *testing.T) {
 	}
 }
 
-func TestTheProductionSeedLetsBulleReadAndWriteSevenApps(t *testing.T) {
+func TestTheProductionSeedLetsBulleReadSevenAppsAndSearchWithSonar(t *testing.T) {
 	file := loadProductionSeed(t)
 	var bulle Application
 	for _, app := range file.Applications {
@@ -148,11 +148,17 @@ func TestTheProductionSeedLetsBulleReadAndWriteSevenApps(t *testing.T) {
 		"mycelium":                         "mycelium",
 		"1IdqK3bA2LWI-zuWVLqFpnIlCTVu117F": "glouton",
 	}
-	if len(bulle.TokenExchange) != len(want) {
-		t.Fatalf("bulle declares %d exchange entries, want courrier, agenda, opus, sablier, nuage, mycelium and glouton",
+	if len(bulle.TokenExchange) != len(want)+1 {
+		t.Fatalf("bulle declares %d exchange entries, want courrier, agenda, opus, sablier, nuage, mycelium, glouton and sonar",
 			len(bulle.TokenExchange))
 	}
 	for _, grant := range bulle.TokenExchange {
+		if grant.Audience == "sonar" {
+			if !slices.Equal(grant.Scopes, []string{"sonar.read"}) {
+				t.Errorf("sonar allows %v, want only sonar.read: search and fetch are reads", grant.Scopes)
+			}
+			continue
+		}
 		prefix, ok := want[grant.Audience]
 		if !ok || !slices.Equal(grant.Scopes, []string{prefix + ".read", prefix + ".write"}) {
 			t.Errorf("%s allows %v, want exactly that app's read and write scopes", grant.Audience, grant.Scopes)
