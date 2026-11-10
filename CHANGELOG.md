@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-10
+
 ### Added
 
 - MCP authorization, second half (see `docs/mcp.md`): third-party MCP clients such as Claude, ChatGPT, Cursor and VS Code.
