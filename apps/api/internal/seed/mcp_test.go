@@ -72,6 +72,7 @@ func TestTheProductionSeedDeclaresTheSuiteMCPServers(t *testing.T) {
 		"Courrier": "https://courrier.facile.studio/mcp",
 		"Agenda":   "https://agenda.facile.studio/mcp",
 		"Nuage":    "https://nuage.facile.studio/mcp",
+		"Sablier":  "https://sablier.facile.studio/mcp",
 	}
 	for _, application := range file.Applications {
 		resource, ok := want[application.Name]
