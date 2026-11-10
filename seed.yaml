@@ -40,6 +40,9 @@ applications:
     secret_env: REGISTRE_SEED_MYCELIUM_SECRET
     redirect_uris:
       - https://mycelium.facile.studio/api/auth/oidc/callback
+    token_exchange:
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   # The seven suite apps, cut over from Authentik on 2026-08-25.
   #
@@ -65,6 +68,9 @@ applications:
       - https://sablier.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access, roles]
     visible_roles: [admin]
+    token_exchange:
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   - client_id: b0f6NMJbVkZ89jgWOjfWYICAwCDb4jTCTMMDAonW
     name: Casier
@@ -99,6 +105,9 @@ applications:
     mcp:
       resource: https://agenda.facile.studio/mcp
       scopes: [agenda.read, agenda.write]
+    token_exchange:
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   - client_id: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
     name: Courrier
@@ -191,6 +200,9 @@ applications:
     redirect_uris:
       - https://nuage.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    token_exchange:
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   - client_id: outline
     name: Docs
@@ -210,6 +222,9 @@ applications:
       - https://opus.facile.studio/api/auth/callback/custom
       - https://opus.facile.studio/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    token_exchange:
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   - client_id: u2byAQpWBGWFMWJDpmgZSuakPwtsT4nhw41KhRgK
     name: Perception
