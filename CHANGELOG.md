@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.10.6] - 2026-11-10
+
 ### Added
 
 - Sablier's MCP server is a registered resource: `https://sablier.facile.studio/mcp` with scopes `sablier.read` and `sablier.write`.
