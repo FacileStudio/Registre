@@ -6,6 +6,22 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Go 1.26.11 (builder image `golang:1.26.11-alpine`), tronc v0.21.0, porte v0.18.3 and porte/directory v0.4.0. porte's password hashing and spaces ladder are byte-identical across the range, and the directory wire types are unchanged.
+- Every response carries tronc's security headers: a report-only Content-Security-Policy, an enforced `frame-ancestors 'none'; object-src 'none'; base-uri 'self'`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, a `Permissions-Policy` denying camera, microphone and geolocation, and HSTS behind a trusted proxy. `Cross-Origin-Opener-Policy` is `unsafe-none`, so a sign-in opened in a popup keeps its opener.
+- The per-address rate limits use tronc's `/64` key and remember at most 50,000 addresses.
+- `golang.org/x/crypto` v0.56.0, `golang.org/x/text` v0.41.0 and `go-jose` v4.1.6, clearing what douane reports.
+- filet v0.19.3 with `preset: facile` (same findings as before), `filet gate .` in the pre-push hook beside `scripts/check.sh`, and a douane job in CI (`-fail critical -scope prod`, one dated permit in `douane.yml`).
+
+### Fixed
+
+- The staticcheck findings `filet gate` reports: an unused admin helper, two unused test values, and four literal U+202E characters in tests, now escaped.
+
+### Added
+
+- Golden tests pin discovery, the key set, the token endpoint, userinfo, introspection, the directory snapshot, the deletion feed and the signed `user.deleted` push (`apps/api/testdata/wire`).
+
 ## [0.11.0] - 2026-11-10
 
 ### Added

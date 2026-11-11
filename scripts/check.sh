@@ -127,7 +127,7 @@ else
   # to run on a machine with nothing but go. CI pins the version and is the
   # authority — see .github/workflows/filet.yml.
   echo "check: no 'filet' on PATH, skipping the style gate" >&2
-  echo "check: GOBIN=\$HOME/go/bin go install github.com/FacileStudio/filet@v0.3.0" >&2
+  echo "check: GOBIN=\$HOME/go/bin go install github.com/FacileStudio/filet@v0.19.3" >&2
 fi
 
 if [ "$status" -ne 0 ]; then

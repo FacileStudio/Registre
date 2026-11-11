@@ -1,65 +1,16 @@
-# The Go family's coding standard, enforced by filet.
+# The Facile suite's coding standard, enforced by filet.
 # https://github.com/FacileStudio/filet
 #
 #   filet check .     the rules
+#   filet gate .      the rules plus the formatter, tests and builds (pre-push)
 #   filet roast .     the rules, with commentary
-#   filet docker .    the Dockerfile
 #
-# Inherited from the Go family's shared configuration. The limits are the
-# published defaults of the tools they come from, so they are numbers to point
-# at rather than numbers picked to make a count go away.
+# `preset: facile` is the suite's shared configuration: the limits are the
+# published defaults of the tools they come from, gen.line.long is off because
+# the formatters own line breaking, and the architecture block requires a
+# router.go in every module. Registre carries no exception to it, deliberately:
+# a package under modules/ owns HTTP and says so in router.go; a domain service
+# that owns no routes lives under internal/ (SPEC §5).
 
 kind: app
-
-ignore:
-  - node_modules
-  - vendor
-  - build
-  - dist
-  - testdata
-  - coverage
-
-# Go, shell, and the SvelteKit client. The client was promised to this list
-# "with the login page in phase 1" and phase 1 shipped, so it joins now: a
-# gate that names a directory it never reads is the erosion the architecture
-# block below exists to prevent.
-extensions: [.go, .sh, .ts, .svelte]
-
-limits:
-  fileLines: 250        # filet's own default: split the file
-  funcsPerFile: 8
-  funcLines: 30         # filet's own default
-  funcStatements: 25    # filet's own default
-  lineLength: 120       # lll default
-  params: 5
-  returns: 3
-  nesting: 4            # filet's own default
-  complexity: 10        # filet's own default
-  structFields: 12      # filet's own default
-  interfaceMethods: 4   # filet's own default
-
-architecture:
-  requiredDirs: [apps/api, apps/client]
-  # No exceptions, deliberately. A package under modules/ owns HTTP and says so
-  # in router.go; a domain service that owns no routes lives under internal/.
-  # keys and clients were briefly under modules/ with an exception written here
-  # to excuse them, which is the erosion this file exists to prevent — they were
-  # moved instead. SPEC §5 carries the rule.
-  requiredFiles:
-    "apps/api/modules/*": [router.go]
-
-style:
-  banInlineComments: true
-  banTODO: true
-  requireDocComments: true
-  banGlobalMutable: true
-  banInit: true
-  banTrailingSpace: true
-
-disabled:
-  # gofmt/rustfmt/prettier owns line breaking; every survivor is a line no
-  # formatter could have wrapped. Flagging it is noise that teaches people to
-  # stop reading the output. Nothing else is disabled: a rule turned off here
-  # must be an argument, not a habit.
-  - gen.line.long
-failOn: error
+preset: facile

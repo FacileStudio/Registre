@@ -1,0 +1,36 @@
+name: douane
+
+# The dependency gate: fails on a critical finding that reaches the production
+# binary. Permits for fixes that exist only as unreleased commits live in
+# douane.yml at the repository root, each with a reason and an expiry.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  douane:
+    runs-on: ubuntu-latest
+    env:
+      DOUANE_VERSION: 0.7.2
+      DOUANE_SHA256: 2a8875196d61111d01004fd2e7bf52fb92ebac9dc62015694c52f0251591d7a1
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: install douane
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -eu
+          archive="douane_${DOUANE_VERSION}_linux_amd64.tar.gz"
+          curl -fsSLO "https://github.com/FacileStudio/douane/releases/download/v${DOUANE_VERSION}/$archive"
+          echo "${DOUANE_SHA256}  $archive" | sha256sum -c -
+          tar xzf "$archive" douane
+          ./douane --version
+
+      - name: scan
+        run: |
+          "$RUNNER_TEMP/douane" scan -fail critical -scope prod .

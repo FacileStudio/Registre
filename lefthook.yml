@@ -9,3 +9,5 @@ pre-push:
   jobs:
     - name: check
       run: sh scripts/check.sh
+    - name: gate
+      run: filet gate .
