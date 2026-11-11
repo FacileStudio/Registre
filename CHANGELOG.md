@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-11
+
 ### Changed
 
 - Go 1.26.11 (builder image `golang:1.26.11-alpine`), tronc v0.21.0, porte v0.18.3 and porte/directory v0.4.0. porte's password hashing and spaces ladder are byte-identical across the range, and the directory wire types are unchanged.
