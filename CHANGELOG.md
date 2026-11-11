@@ -6,6 +6,16 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-11
+
+### Changed
+
+- The landing header, footer, sign-in screens and legal pages show the catalog `solar:key-square-bold-duotone` mark, registered in `src/lib/icons.ts`, instead of the shield and the old key glyph.
+
+### Fixed
+
+- The favicon, touch and manifest icons, link preview image and web manifest come from the muse v0.19.0 brand generator, and the head carries the suite's canonical title, description, theme colours and Open Graph and Twitter tags. The signed-out landing title matches the suite catalog.
+
 ## [0.12.4] - 2026-11-11
 
 ### Added
