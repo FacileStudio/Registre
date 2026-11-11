@@ -53,7 +53,7 @@ func TestAUserPasswordIsUpdatedByAdmin(t *testing.T) {
 	}
 	userID, _ := body["id"].(string)
 
-	response, body = f.call(t, http.MethodPost, "/api/admin/users/"+userID+"/password", map[string]any{
+	response, _ = f.call(t, http.MethodPost, "/api/admin/users/"+userID+"/password", map[string]any{
 		"password": "short",
 	}, true)
 	if response.StatusCode != http.StatusBadRequest {

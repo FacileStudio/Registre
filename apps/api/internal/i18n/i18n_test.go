@@ -54,15 +54,15 @@ func TestAcceptLanguagePicksTheBestSupportedLanguage(t *testing.T) {
 func TestTypedTextCannotBreakOutOfAMail(t *testing.T) {
 	vars := map[string]string{
 		"inviter": "Eve\r\nBcc: victim@example.com <img src=x onerror=alert(1)>",
-		"space":   "\"><script>alert(1)</script>‮gnp.exe",
+		"space":   "\"><script>alert(1)</script>\u202egnp.exe",
 		"role":    RoleName("admin", "de"),
 		"date":    Date(time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC), "de"),
 	}
 	subject, body := Mail(MailSpaceInvite, "de", "https://sso.example.com/invitations/abc", vars)
-	if strings.ContainsAny(subject, "\r\n‮") {
+	if strings.ContainsAny(subject, "\r\n\u202e") {
 		t.Fatalf("the subject can carry a header line or an override: %q", subject)
 	}
-	for _, raw := range []string{"<img", "<script>", "‮"} {
+	for _, raw := range []string{"<img", "<script>", "\u202e"} {
 		if strings.Contains(body, raw) {
 			t.Fatalf("the body carries raw %q: %s", raw, body)
 		}

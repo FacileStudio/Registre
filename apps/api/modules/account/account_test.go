@@ -199,14 +199,14 @@ func TestEnrolmentRunsFromBeginToRecoveryCodesAndCannotBeRebegun(t *testing.T) {
 	f := newFixture(t)
 	f.enrol(t)
 
-	response, body := f.send(t, http.MethodGet, "/api/account", nil)
+	_, body := f.send(t, http.MethodGet, "/api/account", nil)
 	if enrolled, _ := body["totp_enrolled"].(bool); !enrolled {
 		t.Fatalf("the account view does not show the factor: %v", body)
 	}
 	if left, _ := body["recovery_codes_remaining"].(float64); int(left) != totp.RecoveryCodeCount {
 		t.Fatalf("the account view counts %v recovery codes", body["recovery_codes_remaining"])
 	}
-	response, _ = f.send(t, http.MethodPost, "/api/account/totp/begin", nil)
+	response, _ := f.send(t, http.MethodPost, "/api/account/totp/begin", nil)
 	if response.StatusCode != http.StatusConflict {
 		t.Fatalf("re-beginning a confirmed factor answered %d, want 409", response.StatusCode)
 	}

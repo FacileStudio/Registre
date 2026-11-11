@@ -17,7 +17,7 @@ import (
 
 func TestValidateKeepsOnlyAPublicCodeFlowClient(t *testing.T) {
 	ok := Metadata{RedirectURIs: []string{"https://claude.ai/api/mcp/auth_callback", "http://localhost/callback",
-		"http://127.0.0.1/callback", "com.example.app:/oauth"}, ClientName: "  Claude‮\u0000 "}
+		"http://127.0.0.1/callback", "com.example.app:/oauth"}, ClientName: "  Claude\u202e\u0000 "}
 	got, err := Validate(ok)
 	if err != nil {
 		t.Fatalf("a valid client was refused: %v", err)

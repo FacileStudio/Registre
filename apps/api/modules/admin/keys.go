@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -9,19 +8,10 @@ import (
 
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
-	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
 
 // now is the clock the handlers read.
 func now() time.Time { return time.Now().UTC() }
-
-func operatorEmail(ctx context.Context) string {
-	operator, ok := ctx.Value(operatorKey).(schemas.User)
-	if !ok {
-		return ""
-	}
-	return operator.Email
-}
 
 // keyStatus reports the signing keys' lifecycle positions. Rotation runs on
 // its own loop; this endpoint exists so the dashboard can see the state SPEC
