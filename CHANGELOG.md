@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.12.4] - 2026-11-11
+
+### Added
+
+- Toile, the suite's whiteboard at `https://toile.facile.studio`, is a registered application open to every account, with its MCP resource at `https://toile.facile.studio/mcp` (`toile.read`, `toile.write`). Toile may exchange a user's token for Nuage, Opus, Docs, Feuilles, Agenda and Bulle with read and write, and Bulle may exchange one for Toile. Its secret comes from `REGISTRE_SEED_TOILE_SECRET`, which the compose file now forwards.
+
 ## [0.12.3] - 2026-11-11
 
 ### Fixed

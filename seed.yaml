@@ -430,6 +430,37 @@ applications:
       resource: https://sonar.facile.studio/mcp
       scopes: [sonar.read]
 
+  # Toile, the suite's collaborative whiteboard at toile.facile.studio, built
+  # on the Docs template: porte-rs mounts under /api, so the redirect keeps the
+  # prefix. Toile reads the other apps' items for live cards, uploads images to
+  # the user's Nuage and runs its AI through Bulle, each with an exchanged token
+  # for exactly one audience.
+  - client_id: T4hFpaWirBnY4mjxFF7XRk8dR8vY8QWJbV0p5XYs
+    name: Toile
+    directory_sync_uri: https://toile.facile.studio/api/registre/sync
+    deletion_uri: https://toile.facile.studio/api/registre/deletions
+    backchannel_logout_uri: https://toile.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_TOILE_SECRET
+    redirect_uris:
+      - https://toile.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://toile.facile.studio/mcp
+      scopes: [toile.read, toile.write]
+    token_exchange:
+      - audience: 9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH
+        scopes: [nuage.read, nuage.write]
+      - audience: aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D
+        scopes: [opus.read, opus.write]
+      - audience: QiMfQwgz9P1hz3MQZz7hkVSWoQwfk1tAPxeUzl03
+        scopes: [docs.read, docs.write]
+      - audience: Gb2SWxwPQQ6bFjsqu24RnvR9PciQjLzb9SQNWRrs
+        scopes: [feuilles.read, feuilles.write]
+      - audience: vvVAmcun8BFuAxMdNrp6lhqs2anzvz3vnzkeZh3U
+        scopes: [agenda.read, agenda.write]
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
+
   # Bulle, the suite's coding agent and harness at bulle.facile.studio.
   #
   # token_exchange (RFC 8693) is how Bulle reaches a signed-in user's own mail,
@@ -490,4 +521,5 @@ applications:
         scopes: [vision.read, vision.write]
       - audience: echo
         scopes: [echo.read, echo.write]
-
+      - audience: T4hFpaWirBnY4mjxFF7XRk8dR8vY8QWJbV0p5XYs
+        scopes: [toile.read, toile.write]
