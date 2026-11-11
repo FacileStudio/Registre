@@ -1,0 +1,46 @@
+name: test
+
+# The Go gate against a real Postgres. Without TEST_DATABASE_URL the database
+# tests skip, the wire goldens in apps/api/testdata/wire among them, and a red
+# TestWireOIDC sat on main after b67658d with filet and douane both green.
+# It runs scripts/check.sh, the same gate as the pre-push hook; filet is not on
+# PATH here and has its own workflow. The health check probes over TCP so it
+# stays red while the image's init server, which listens on the socket only,
+# is still up.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: registre_test
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/registre_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+
+      - name: check
+        run: sh scripts/check.sh
