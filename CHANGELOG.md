@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-11-11
+
 ### Added
 
 - `registre user-erase --email <address>` erases one account at once, through the same erasure the grace-period sweeper and the dashboard delete run: sessions end, the account goes, and every suite app gets its back-channel logout and deletion notice. It takes exactly one bare address, prints only `erased`, `not found` or `failed`, and sends no farewell mail. It is meant for throwaway smoke accounts.
