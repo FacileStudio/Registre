@@ -46,7 +46,7 @@ func TestAnOrdinaryRefusalPassesThroughUntouched(t *testing.T) {
 func TestTheTokenEndpointHasAPerAddressBudget(t *testing.T) {
 	f := newFixture(t, defaultKeyConfig())
 	router := chi.NewRouter()
-	MountWithTokenLimit(router, f.provider, Binding{Storage: f.storage}, 1, 2)
+	MountWithTokenLimit(router, f.provider, Binding{Storage: f.storage}, 1.0/3600, 2)
 	server := httptest.NewServer(router)
 	t.Cleanup(server.Close)
 

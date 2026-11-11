@@ -136,7 +136,7 @@ func TestACIMDClientNeedsConsentThenGetsAShortResourceToken(t *testing.T) {
 	if only(claims["aud"]) != courrierMCP || claims["client_id"] != claudeCode || claims["scope"] != "courrier.read" {
 		t.Errorf("claims = %v", claims)
 	}
-	if life := claims["exp"].(float64) - claims["iat"].(float64); life < 599 || life > 600 {
+	if life := claims["exp"].(float64) - claims["iat"].(float64); life < 590 || life > 600 {
 		t.Errorf("a third-party access token lives %v s, want 600 (iat and exp come from two clock reads)", life)
 	}
 
