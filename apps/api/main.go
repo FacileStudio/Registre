@@ -9,10 +9,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"strconv"
 	"syscall"
 	"time"
@@ -42,7 +45,38 @@ func main() {
 	if healthcheck.Handle(os.Args) {
 		return
 	}
+	if !knownSubcommand(os.Args, os.Stderr) {
+		os.Exit(2)
+	}
 	os.Exit(run())
+}
+
+// subcommands are the first arguments the binary answers. Anything else used to
+// fall through to a normal start: `/api help` inside the running container
+// re-ran the seed and fought the live process for :4000.
+var subcommands = []string{"user-create", "user-disable", "user-erase", "break-glass", "migrate", "healthcheck"}
+
+const usage = `usage: registre [subcommand]
+
+With no subcommand, registre runs the migrations and serves.
+
+  user-create --email <address>    create a password user (REGISTRE_USER_PASSWORD)
+  user-disable --email <address>   disable a user and end their sessions
+  user-erase --email <address>     erase one account now
+  break-glass --email <address>    restore an operator (REGISTRE_BREAK_GLASS_PASSWORD)
+  migrate [up|status|version|baseline <n>]
+  healthcheck                      probe /health on the local server
+`
+
+// knownSubcommand reports whether args name no subcommand or a real one. For
+// anything else it writes the usage to stderr and reports false, before any
+// configuration, database or listener is touched.
+func knownSubcommand(args []string, stderr io.Writer) bool {
+	if len(args) < 2 || args[1] == "" || slices.Contains(subcommands, args[1]) {
+		return true
+	}
+	fmt.Fprintf(stderr, "registre: unknown subcommand %q\n\n%s", args[1], usage)
+	return false
 }
 
 // observe builds the process logger, ships it to Journal when the instance is
