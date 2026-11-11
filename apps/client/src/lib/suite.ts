@@ -50,7 +50,7 @@ export const suite: SuiteGroup[] = [
 	{
 		title: 'Workspace',
 		apps: [
-			{ name: 'Docs', url: 'https://docs.facile.studio', description: 'Documents collaboratifs, propulsé par Outline.', icon: icons.text },
+			{ name: 'Docs', url: 'https://docs.facile.studio', description: 'Documents collaboratifs, édités à plusieurs en direct.', icon: icons.text },
 			{ name: 'Ardoise', url: 'https://ardoise.facile.studio', description: 'Factures, devis et contrats freelance.', logo: logo('ardoise') }
 		]
 	},
