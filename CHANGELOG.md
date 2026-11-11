@@ -6,6 +6,16 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.12.3] - 2026-11-11
+
+### Fixed
+
+- An unknown first argument, such as `registre help`, prints the usage to stderr and exits 2 instead of starting a second server. With no argument the binary still runs the migrations and serves, and `user-create`, `user-disable`, `user-erase`, `break-glass`, `migrate` and `healthcheck` are unchanged.
+
+### Added
+
+- A `test` CI job runs `scripts/check.sh` against a `postgres:16` service, so the database tests, the wire goldens in `apps/api/testdata/wire` among them, run on every push and pull request. The wire tests pin the process zone to UTC, the zone of the production image, so `directory.golden` records `deleted_at` as production sends it rather than in the recording machine's offset.
+
 ## [0.12.2] - 2026-11-11
 
 ### Added
@@ -18,6 +28,7 @@ All notable changes to Registre are recorded here. The format follows
 
 - Nine more MCP servers are registered resources, each at `https://<app>.facile.studio/mcp` with `<app>.read` and `<app>.write`: Mycelium, Glouton, Plume, Casier, Capsule, Journal, Antenne, Vision and Echo.
 - Bulle may exchange a user's token for Plume, Casier, Capsule, Journal, Antenne, Vision and Echo with read and write. Its existing grants for Mycelium and Glouton already cover their new resources.
+- Added Feuilles (`https://feuilles.facile.studio`) to the Suite apps grid on the home dashboard.
 
 ## [0.12.0] - 2026-11-11
 
