@@ -1,6 +1,6 @@
 module github.com/FacileStudio/Registre/apps/api
 
-go 1.26.10
+go 1.26.11
 
 require (
 	github.com/FacileStudio/Journal/sdk/journal v0.0.0-20260708221941-db985ad2b1ba
@@ -12,11 +12,11 @@ require (
 	github.com/FacileStudio/tronc/testdb v0.1.1
 	github.com/altcha-org/altcha-lib-go v1.0.0
 	github.com/go-chi/chi/v5 v5.3.1
-	github.com/go-jose/go-jose/v4 v4.1.4
+	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/go-webauthn/webauthn v0.16.0
 	github.com/pquerna/otp v1.5.0
 	github.com/zitadel/oidc/v3 v3.49.2
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
@@ -54,7 +54,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/crypto v0.56.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

@@ -1,0 +1,5 @@
+permits:
+  - id: GO-2026-5932
+    package: golang.org/x/crypto
+    reason: openpgp deprecation notice; the fix exists only as an unreleased x/crypto commit, and Registre links argon2, blake2b and ocsp from x/crypto, never openpgp
+    expires: 2027-02-07
