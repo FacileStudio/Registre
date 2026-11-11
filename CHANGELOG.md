@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-11-11
+
 ### Removed
 
 - Bulle may no longer exchange a user's token for Casier. An assistant must not handle a person's secrets, and v0.12.1 granted it by mistake. Casier keeps its MCP resource, so third-party clients a person connects can still reach it.
