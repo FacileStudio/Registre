@@ -136,6 +136,7 @@ func assemble(
 		CDNProxies:     cfg.CDNProxies,
 		CDNHeader:      cfg.CDNHeader,
 		Logger:         svc.log,
+		Security:       troncmiddleware.SecurityConfig{CrossOriginOpenerPolicy: openerPolicy},
 	})
 	router.Use(oidc.CORS(oidc.PublicPaths(provider), guardedCORS(cfg.CORSAllowedOrigins)))
 	health.Mount(router, health.DB(sqlDB))
@@ -241,6 +242,14 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 		AuthorizeURL: p.authorizeURL, RedirectURI: p.verificationURL, Consent: p.users.ConsentOwed,
 	}, p.log))
 }
+
+// openerPolicy keeps the sign-in pages reachable from a popup. tronc's
+// same-origin default puts a page opened from another origin in a browsing
+// context group of its own, so the app or MCP client that opened the popup
+// loses it: window.closed reads true at once and nothing it waits on arrives.
+// An identity provider is that popup, so it opts out, as it did before tronc
+// sent the header.
+const openerPolicy = "unsafe-none"
 
 // challengeRetention is how long a spent or expired login challenge row
 // outlives the challenge itself. Short: the row records that a password was

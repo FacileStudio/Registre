@@ -1,7 +1,7 @@
 # Development
 
 ```sh
-mise install          # go 1.25, lefthook
+mise install          # go 1.26, lefthook
 cd apps/api && cp .env.example .env
 ```
 

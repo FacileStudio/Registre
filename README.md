@@ -30,7 +30,7 @@ Planned, in the order it will be built ([SPEC §4](SPEC.md)):
 
 | Layer | Tech |
 |---|---|
-| API | Go 1.25, Chi v5, GORM, PostgreSQL 16, [tronc](https://github.com/FacileStudio/tronc) |
+| API | Go 1.26, Chi v5, GORM, PostgreSQL 16, [tronc](https://github.com/FacileStudio/tronc) |
 | OIDC | [`zitadel/oidc`](https://github.com/zitadel/oidc) — the protocol is not hand-rolled |
 | Deploy | One distroless container behind Traefik, on la ruche |
 

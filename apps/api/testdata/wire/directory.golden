@@ -2,7 +2,14 @@
 GET /api/directory/snapshot
 200 OK
 Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
+Cross-Origin-Opener-Policy: unsafe-none
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Referrer-Policy: strict-origin-when-cross-origin
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
 
 {"version":2,"spaces":[{"id":"{space}","name":"Golden","members":[{"sub":"{user}","email":"golden@facile.studio","name":"Golden Person","picture":"{issuer}/avatars/{user}","role":"owner"}]}]}
 
@@ -11,8 +18,15 @@ Content-Type: application/json
 GET /api/directory/snapshot
 401 Unauthorized
 Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
+Cross-Origin-Opener-Policy: unsafe-none
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Referrer-Policy: strict-origin-when-cross-origin
 Www-Authenticate: Basic realm="registre directory"
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
 
 {"error":"unauthorized"}
 
@@ -21,7 +35,14 @@ Www-Authenticate: Basic realm="registre directory"
 GET /api/directory/deletions?since=2026-10-01T00:00:00Z
 200 OK
 Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
+Cross-Origin-Opener-Policy: unsafe-none
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Referrer-Policy: strict-origin-when-cross-origin
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
 
 {"deleted":[{"sub":"erased-one","deleted_at":"2026-11-01T13:00:00.123456+01:00"},{"sub":"erased-two","deleted_at":"2026-11-01T13:00:00.123456+01:00"}]}
 
@@ -30,7 +51,14 @@ Content-Type: application/json
 GET /api/directory/deletions?since=2026-11-02T00:00:00Z
 200 OK
 Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
+Cross-Origin-Opener-Policy: unsafe-none
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Referrer-Policy: strict-origin-when-cross-origin
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
 
 {"deleted":[]}
 
@@ -39,7 +67,14 @@ Content-Type: application/json
 GET /api/directory/deletions?since=yesterday
 400 Bad Request
 Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
+Cross-Origin-Opener-Policy: unsafe-none
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Referrer-Policy: strict-origin-when-cross-origin
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
 
 {"error":"since must be RFC 3339"}
 
@@ -48,7 +83,14 @@ Content-Type: application/json
 GET /api/directory/deletions?cursor=%%%
 200 OK
 Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
+Cross-Origin-Opener-Policy: unsafe-none
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Referrer-Policy: strict-origin-when-cross-origin
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
 
 {"deleted":[{"sub":"erased-one","deleted_at":"2026-11-01T13:00:00.123456+01:00"},{"sub":"erased-two","deleted_at":"2026-11-01T13:00:00.123456+01:00"}]}
 
@@ -57,8 +99,15 @@ Content-Type: application/json
 GET /api/directory/deletions
 401 Unauthorized
 Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
+Cross-Origin-Opener-Policy: unsafe-none
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Referrer-Policy: strict-origin-when-cross-origin
 Www-Authenticate: Basic realm="registre directory"
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
 
 {"error":"unauthorized"}
 
@@ -67,8 +116,15 @@ Www-Authenticate: Basic realm="registre directory"
 GET /api/directory/deletions
 401 Unauthorized
 Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
+Cross-Origin-Opener-Policy: unsafe-none
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Referrer-Policy: strict-origin-when-cross-origin
 Www-Authenticate: Basic realm="registre directory"
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
 
 {"error":"unauthorized"}
 
@@ -77,8 +133,15 @@ Www-Authenticate: Basic realm="registre directory"
 GET /api/directory/deletions
 401 Unauthorized
 Cache-Control: no-store
+Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
+Cross-Origin-Opener-Policy: unsafe-none
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Referrer-Policy: strict-origin-when-cross-origin
 Www-Authenticate: Basic realm="registre directory"
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
 
 {"error":"unauthorized"}
 

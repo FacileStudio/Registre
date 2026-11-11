@@ -1,6 +1,6 @@
 # registre — API
 
-The OpenID Provider itself. Go 1.25, Chi, GORM, PostgreSQL 16, on
+The OpenID Provider itself. Go 1.26, Chi, GORM, PostgreSQL 16, on
 [tronc](https://github.com/FacileStudio/tronc), with the protocol handled by
 [`zitadel/oidc`](https://github.com/zitadel/oidc).
 
