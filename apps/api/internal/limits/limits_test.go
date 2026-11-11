@@ -3,14 +3,17 @@ package limits
 import (
 	"net/http/httptest"
 	"testing"
+
+	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 )
 
-// TestAnIPv6HostIsOneAddress folds a /64 into one key and keeps IPv4 whole.
+// TestAnIPv6HostIsOneAddress pins what PerAddress keys on: a /64 is one
+// key and IPv4 stays whole.
 func TestAnIPv6HostIsOneAddress(t *testing.T) {
 	key := func(remote string) string {
 		r := httptest.NewRequest("GET", "/", nil)
 		r.RemoteAddr = remote
-		return AddressKey(r)
+		return troncmiddleware.RemoteAddrKey64(r)
 	}
 	if key("[2001:db8:1:2::1]:443") != key("[2001:db8:1:2:ffff::9]:80") {
 		t.Fatal("two addresses in one /64 got two budgets")
