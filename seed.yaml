@@ -509,8 +509,6 @@ applications:
         scopes: [sonar.read]
       - audience: 6FkN7WYS9xtKNMJMdKRtBWPLfLoS35EWELHIjgkf
         scopes: [plume.read, plume.write]
-      - audience: b0f6NMJbVkZ89jgWOjfWYICAwCDb4jTCTMMDAonW
-        scopes: [casier.read, casier.write]
       - audience: capsule
         scopes: [capsule.read, capsule.write]
       - audience: 8bf0bcb5-e1c4-4e1e-830d-a39eb4b7c9a3
