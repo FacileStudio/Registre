@@ -44,7 +44,7 @@ Referrer-Policy: strict-origin-when-cross-origin
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
 
-{"deleted":[{"sub":"erased-one","deleted_at":"2026-11-01T13:00:00.123456+01:00"},{"sub":"erased-two","deleted_at":"2026-11-01T13:00:00.123456+01:00"}]}
+{"deleted":[{"sub":"erased-one","deleted_at":"2026-11-01T12:00:00.123456Z"},{"sub":"erased-two","deleted_at":"2026-11-01T12:00:00.123456Z"}]}
 
 
 ### deletions after the last
@@ -92,7 +92,7 @@ Referrer-Policy: strict-origin-when-cross-origin
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
 
-{"deleted":[{"sub":"erased-one","deleted_at":"2026-11-01T13:00:00.123456+01:00"},{"sub":"erased-two","deleted_at":"2026-11-01T13:00:00.123456+01:00"}]}
+{"deleted":[{"sub":"erased-one","deleted_at":"2026-11-01T12:00:00.123456Z"},{"sub":"erased-two","deleted_at":"2026-11-01T12:00:00.123456Z"}]}
 
 
 ### deletions without credentials

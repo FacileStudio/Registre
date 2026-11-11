@@ -56,9 +56,13 @@ var wireScrubs = []struct {
 }
 
 // newWire boots registre on a fresh schema with the budgets opened wide, so
-// a golden run never meets a rate limit.
+// a golden run never meets a rate limit. It pins time.Local to UTC, the zone
+// of the distroless production image: timestamps read back from Postgres
+// carry the process zone, and a golden recorded on a +01:00 laptop failed in
+// CI and pinned an offset production never sends.
 func newWire(t *testing.T) *wire {
 	t.Helper()
+	time.Local = time.UTC
 	db := wireDB(t)
 	slog.SetDefault(slog.New(slog.DiscardHandler))
 	server := httptest.NewUnstartedServer(nil)
