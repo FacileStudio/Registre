@@ -119,6 +119,9 @@ func run() int {
 	if len(os.Args) > 1 && os.Args[1] == "user-disable" {
 		return runUserDisable(context.Background(), db, verifier, log)
 	}
+	if len(os.Args) > 1 && os.Args[1] == "user-erase" {
+		return runUserErase(context.Background(), db, verifier, log)
+	}
 	if len(os.Args) > 1 && os.Args[1] == "break-glass" {
 		return runBreakGlass(context.Background(), db, verifier, log)
 	}
