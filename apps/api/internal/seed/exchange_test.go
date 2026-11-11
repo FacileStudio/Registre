@@ -131,7 +131,7 @@ func TestApplyWritesTheAllowanceAndAReapplyRewritesIt(t *testing.T) {
 	}
 }
 
-func TestTheProductionSeedLetsBulleReadAndWriteFourteenAppsAndSearchWithSonar(t *testing.T) {
+func TestTheProductionSeedLetsBulleReadAndWriteFifteenAppsAndSearchWithSonar(t *testing.T) {
 	file := loadProductionSeed(t)
 	var bulle Application
 	for _, app := range file.Applications {
@@ -154,9 +154,10 @@ func TestTheProductionSeedLetsBulleReadAndWriteFourteenAppsAndSearchWithSonar(t 
 		"JnT6bwkiBXL9pqZKRdUHgYpK0hG7apupsUtCpl8A": "antenne",
 		"RLy72hckdFTa9eIFwCmV5MtDOWny1fLeTLpM5LUD": "vision",
 		"echo": "echo",
+		"T4hFpaWirBnY4mjxFF7XRk8dR8vY8QWJbV0p5XYs": "toile",
 	}
 	if len(bulle.TokenExchange) != len(want)+1 {
-		t.Fatalf("bulle declares %d exchange entries, want read and write on fourteen apps plus sonar",
+		t.Fatalf("bulle declares %d exchange entries, want read and write on fifteen apps plus sonar",
 			len(bulle.TokenExchange))
 	}
 	for _, grant := range bulle.TokenExchange {
