@@ -40,6 +40,9 @@ applications:
     secret_env: REGISTRE_SEED_MYCELIUM_SECRET
     redirect_uris:
       - https://mycelium.facile.studio/api/auth/oidc/callback
+    mcp:
+      resource: https://mycelium.facile.studio/mcp
+      scopes: [mycelium.read, mycelium.write]
     token_exchange:
       - audience: bulle
         scopes: [bulle.read, bulle.write]
@@ -83,6 +86,9 @@ applications:
     redirect_uris:
       - https://casier.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://casier.facile.studio/mcp
+      scopes: [casier.read, casier.write]
 
   - client_id: JnT6bwkiBXL9pqZKRdUHgYpK0hG7apupsUtCpl8A
     name: Antenne
@@ -93,6 +99,9 @@ applications:
     redirect_uris:
       - https://antenne.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://antenne.facile.studio/mcp
+      scopes: [antenne.read, antenne.write]
 
   # agenda's deployed OIDC_REDIRECT_URL was missing the /api prefix, which is
   # why its callback returned HTML. The env is corrected to match this entry.
@@ -137,6 +146,9 @@ applications:
     redirect_uris:
       - https://plume.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://plume.facile.studio/mcp
+      scopes: [plume.read, plume.write]
     token_exchange:
       - audience: 9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH
         scopes: [nuage.write]
@@ -150,6 +162,9 @@ applications:
     redirect_uris:
       - https://vision.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://vision.facile.studio/mcp
+      scopes: [vision.read, vision.write]
 
   # facile-cli, the suite's own command line, and the first client that logs a
   # human in without a browser on the same machine.
@@ -194,6 +209,9 @@ applications:
     redirect_uris:
       - https://journal.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://journal.facile.studio/mcp
+      scopes: [journal.read, journal.write]
 
   - client_id: 9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH
     name: Nuage
@@ -278,6 +296,9 @@ applications:
     redirect_uris:
       - https://glouton.facile.studio/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://glouton.facile.studio/mcp
+      scopes: [glouton.read, glouton.write]
     token_exchange:
       - audience: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
         scopes: [courrier.read, courrier.write]
@@ -345,6 +366,9 @@ applications:
     redirect_uris:
       - https://capsule.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://capsule.facile.studio/mcp
+      scopes: [capsule.read, capsule.write]
 
   # Echo, the suite's video calls at echo.facile.studio. A fresh registration,
   # so the id is its own name, like Sonde and Prisme. Guests join by link with
@@ -362,6 +386,9 @@ applications:
     redirect_uris:
       - https://echo.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://echo.facile.studio/mcp
+      scopes: [echo.read, echo.write]
 
   # Place, the suite's unified forum at place.facile.studio.
   #
@@ -449,4 +476,18 @@ applications:
         scopes: [glouton.read, glouton.write]
       - audience: sonar
         scopes: [sonar.read]
+      - audience: 6FkN7WYS9xtKNMJMdKRtBWPLfLoS35EWELHIjgkf
+        scopes: [plume.read, plume.write]
+      - audience: b0f6NMJbVkZ89jgWOjfWYICAwCDb4jTCTMMDAonW
+        scopes: [casier.read, casier.write]
+      - audience: capsule
+        scopes: [capsule.read, capsule.write]
+      - audience: 8bf0bcb5-e1c4-4e1e-830d-a39eb4b7c9a3
+        scopes: [journal.read, journal.write]
+      - audience: JnT6bwkiBXL9pqZKRdUHgYpK0hG7apupsUtCpl8A
+        scopes: [antenne.read, antenne.write]
+      - audience: RLy72hckdFTa9eIFwCmV5MtDOWny1fLeTLpM5LUD
+        scopes: [vision.read, vision.write]
+      - audience: echo
+        scopes: [echo.read, echo.write]
 

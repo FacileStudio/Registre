@@ -6,6 +6,11 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Nine more MCP servers are registered resources, each at `https://<app>.facile.studio/mcp` with `<app>.read` and `<app>.write`: Mycelium, Glouton, Plume, Casier, Capsule, Journal, Antenne, Vision and Echo.
+- Bulle may exchange a user's token for Plume, Casier, Capsule, Journal, Antenne, Vision and Echo with read and write. Its existing grants for Mycelium and Glouton already cover their new resources.
+
 ## [0.12.0] - 2026-11-11
 
 ### Changed

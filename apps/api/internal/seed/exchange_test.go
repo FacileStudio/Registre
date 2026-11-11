@@ -131,7 +131,7 @@ func TestApplyWritesTheAllowanceAndAReapplyRewritesIt(t *testing.T) {
 	}
 }
 
-func TestTheProductionSeedLetsBulleReadSevenAppsAndSearchWithSonar(t *testing.T) {
+func TestTheProductionSeedLetsBulleReadAndWriteFourteenAppsAndSearchWithSonar(t *testing.T) {
 	file := loadProductionSeed(t)
 	var bulle Application
 	for _, app := range file.Applications {
@@ -145,11 +145,18 @@ func TestTheProductionSeedLetsBulleReadSevenAppsAndSearchWithSonar(t *testing.T)
 		"aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D": "opus",
 		"5TVdL3zCbhhh7XCs3MvaIr5nqoV2ZIMLeEdjnVYu": "sablier",
 		"9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH": "nuage",
-		"mycelium":                         "mycelium",
-		"1IdqK3bA2LWI-zuWVLqFpnIlCTVu117F": "glouton",
+		"mycelium":                                 "mycelium",
+		"1IdqK3bA2LWI-zuWVLqFpnIlCTVu117F":         "glouton",
+		"6FkN7WYS9xtKNMJMdKRtBWPLfLoS35EWELHIjgkf": "plume",
+		"b0f6NMJbVkZ89jgWOjfWYICAwCDb4jTCTMMDAonW": "casier",
+		"capsule":                                  "capsule",
+		"8bf0bcb5-e1c4-4e1e-830d-a39eb4b7c9a3":     "journal",
+		"JnT6bwkiBXL9pqZKRdUHgYpK0hG7apupsUtCpl8A": "antenne",
+		"RLy72hckdFTa9eIFwCmV5MtDOWny1fLeTLpM5LUD": "vision",
+		"echo": "echo",
 	}
 	if len(bulle.TokenExchange) != len(want)+1 {
-		t.Fatalf("bulle declares %d exchange entries, want courrier, agenda, opus, sablier, nuage, mycelium, glouton and sonar",
+		t.Fatalf("bulle declares %d exchange entries, want read and write on fourteen apps plus sonar",
 			len(bulle.TokenExchange))
 	}
 	for _, grant := range bulle.TokenExchange {

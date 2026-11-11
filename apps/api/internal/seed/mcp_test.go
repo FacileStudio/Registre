@@ -74,6 +74,15 @@ func TestTheProductionSeedDeclaresTheSuiteMCPServers(t *testing.T) {
 		"Nuage":    "https://nuage.facile.studio/mcp",
 		"Sablier":  "https://sablier.facile.studio/mcp",
 		"Opus":     "https://opus.facile.studio/mcp",
+		"Mycelium": "https://mycelium.facile.studio/mcp",
+		"Glouton":  "https://glouton.facile.studio/mcp",
+		"Plume":    "https://plume.facile.studio/mcp",
+		"Casier":   "https://casier.facile.studio/mcp",
+		"Capsule":  "https://capsule.facile.studio/mcp",
+		"Journal":  "https://journal.facile.studio/mcp",
+		"Antenne":  "https://antenne.facile.studio/mcp",
+		"Vision":   "https://vision.facile.studio/mcp",
+		"Echo":     "https://echo.facile.studio/mcp",
 	}
 	for _, application := range file.Applications {
 		resource, ok := want[application.Name]
