@@ -12,6 +12,7 @@
 	import { getContext } from 'svelte';
 	import { SESSION_CONTEXT, type ShellSession } from '$lib/account';
 	import SuiteHome from '$lib/components/SuiteHome.svelte';
+	import { REGISTRE_ICON } from '$lib/icons';
 
 	const shell = getContext<ShellSession>(SESSION_CONTEXT);
 
@@ -80,14 +81,14 @@
 </script>
 
 <svelte:head>
-	<title>{shell.me ? `${t('nav.apps')} — Facile` : t('landing.title')}</title>
+	<title>{shell.me ? `${t('nav.apps')} — Facile` : 'Registre · One account for the whole suite'}</title>
 </svelte:head>
 
 {#if shell.me}
 	<SuiteHome me={shell.me} />
 {:else}
 	<div class="flex min-h-dvh flex-col bg-fc-page text-fc-fg">
-		<LandingHeader appName="Registre" icon={icons.shield} homeHref="/" {links} skipHref="#main">
+		<LandingHeader appName="Registre" icon={REGISTRE_ICON} homeHref="/" {links} skipHref="#main">
 			{#snippet brand()}
 				<a href="/" class="flex items-center gap-2.5 font-heading text-fc-lg font-semibold tracking-tight text-fc-fg">
 					<img src="/logo.svg" alt="" width={22} height={22} class="block shrink-0" />
@@ -217,7 +218,7 @@
 
 		<LandingFooter
 			appName="Registre"
-			icon={icons.shield}
+			icon={REGISTRE_ICON}
 			homeHref="/"
 			tagline={t('landing.pitch')}
 			{columns}
