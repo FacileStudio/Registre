@@ -1,0 +1,85 @@
+### snapshot
+GET /api/directory/snapshot
+200 OK
+Cache-Control: no-store
+Content-Type: application/json
+
+{"version":2,"spaces":[{"id":"{space}","name":"Golden","members":[{"sub":"{user}","email":"golden@facile.studio","name":"Golden Person","picture":"{issuer}/avatars/{user}","role":"owner"}]}]}
+
+
+### snapshot without credentials
+GET /api/directory/snapshot
+401 Unauthorized
+Cache-Control: no-store
+Content-Type: application/json
+Www-Authenticate: Basic realm="registre directory"
+
+{"error":"unauthorized"}
+
+
+### deletions
+GET /api/directory/deletions?since=2026-10-01T00:00:00Z
+200 OK
+Cache-Control: no-store
+Content-Type: application/json
+
+{"deleted":[{"sub":"erased-one","deleted_at":"2026-11-01T13:00:00.123456+01:00"},{"sub":"erased-two","deleted_at":"2026-11-01T13:00:00.123456+01:00"}]}
+
+
+### deletions after the last
+GET /api/directory/deletions?since=2026-11-02T00:00:00Z
+200 OK
+Cache-Control: no-store
+Content-Type: application/json
+
+{"deleted":[]}
+
+
+### deletions bad since
+GET /api/directory/deletions?since=yesterday
+400 Bad Request
+Cache-Control: no-store
+Content-Type: application/json
+
+{"error":"since must be RFC 3339"}
+
+
+### deletions bad cursor
+GET /api/directory/deletions?cursor=%%%
+200 OK
+Cache-Control: no-store
+Content-Type: application/json
+
+{"deleted":[{"sub":"erased-one","deleted_at":"2026-11-01T13:00:00.123456+01:00"},{"sub":"erased-two","deleted_at":"2026-11-01T13:00:00.123456+01:00"}]}
+
+
+### deletions without credentials
+GET /api/directory/deletions
+401 Unauthorized
+Cache-Control: no-store
+Content-Type: application/json
+Www-Authenticate: Basic realm="registre directory"
+
+{"error":"unauthorized"}
+
+
+### deletions wrong secret
+GET /api/directory/deletions
+401 Unauthorized
+Cache-Control: no-store
+Content-Type: application/json
+Www-Authenticate: Basic realm="registre directory"
+
+{"error":"unauthorized"}
+
+
+### deletions as a service account
+GET /api/directory/deletions
+401 Unauthorized
+Cache-Control: no-store
+Content-Type: application/json
+Www-Authenticate: Basic realm="registre directory"
+
+{"error":"unauthorized"}
+
+

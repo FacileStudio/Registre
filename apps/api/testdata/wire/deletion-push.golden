@@ -1,0 +1,5 @@
+POST /api/registre/deletions
+Content-Type: application/secevent+jwt
+
+{"alg":"RS256","kid":"{kid}","typ":"secevent+jwt"}
+{"aud":["golden-app"],"events":{"https://schemas.facile.studio/event/user-deleted":{"erase_within_days":30}},"exp":0,"iat":0,"iss":"{issuer}","jti":"{jti}","sub":"erased-one"}
