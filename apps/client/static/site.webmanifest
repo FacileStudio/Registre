@@ -1,7 +1,7 @@
 {
   "name": "Registre",
   "short_name": "Registre",
-  "description": "The Facile Suite's identity provider.",
+  "description": "Standard OpenID Connect sign-in with one session shared across every Facile app. Sign in once.",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -12,15 +12,10 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
-    },
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
     }
   ],
-  "theme_color": "#0a0a0a",
-  "background_color": "transparent",
+  "theme_color": "#fafafa",
+  "background_color": "#fafafa",
   "display": "standalone",
   "start_url": "/"
 }
