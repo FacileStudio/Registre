@@ -210,6 +210,32 @@ applications:
       - audience: bulle
         scopes: [bulle.read, bulle.write]
 
+  - client_id: Gb2SWxwPQQ6bFjsqu24RnvR9PciQjLzb9SQNWRrs
+    name: Feuilles
+    directory_sync_uri: https://feuilles.facile.studio/api/registre/sync
+    deletion_uri: https://feuilles.facile.studio/api/registre/deletions
+    backchannel_logout_uri: https://feuilles.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_FEUILLES_SECRET
+    redirect_uris:
+      - https://feuilles.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://feuilles.facile.studio/mcp
+      scopes: [feuilles.read, feuilles.write]
+
+  - client_id: QiMfQwgz9P1hz3MQZz7hkVSWoQwfk1tAPxeUzl03
+    name: Docs
+    directory_sync_uri: https://docs.facile.studio/api/registre/sync
+    deletion_uri: https://docs.facile.studio/api/registre/deletions
+    backchannel_logout_uri: https://docs.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_DOCS_SECRET
+    redirect_uris:
+      - https://docs.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+    mcp:
+      resource: https://docs.facile.studio/mcp
+      scopes: [docs.read, docs.write]
+
   - client_id: aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D
     name: Opus
     directory_sync_uri: https://opus.facile.studio/api/registre/sync
