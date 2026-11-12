@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-11-12
+
+### Fixed
+
+- The signed-in apps overview page and the admin client listings render the authentic Solar duotone icons used across the Facile suite, matching the vitrine at facile.studio. Glyphs are bundled locally in `icons-data.json` and registered with muse rather than masked through monochrome SVGs.
+
 ## [0.13.1] - 2026-11-11
 
 ### Removed
