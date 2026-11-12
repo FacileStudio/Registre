@@ -7,7 +7,7 @@
  * It exits non-zero on the first disagreement.
  */
 
-import { matchesUser, relativeTime, toggleRole } from './access';
+import { appIcon, appLogo, matchesUser, relativeTime, toggleRole } from './access';
 import type { UserView } from './admin';
 
 let failed = 0;
@@ -35,6 +35,11 @@ const now = new Date('2026-11-03T12:00:00Z');
 expect('never', relativeTime(undefined, now), 'Never');
 expect('minutes', relativeTime('2026-11-03T11:55:00Z', now), '5 minutes ago');
 expect('one day', relativeTime('2026-11-02T11:00:00Z', now), '1 day ago');
+
+expect('appIcon agenda', appIcon('Agenda'), 'solar:calendar-add-bold-duotone');
+expect('appIcon unknown', appIcon('Unknown'), undefined);
+expect('appLogo agenda', appLogo('Agenda'), '/logos/agenda.svg');
+expect('appLogo unknown', appLogo('Unknown'), undefined);
 
 if (failed) process.exit(1);
 console.log('access rules hold');

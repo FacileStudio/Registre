@@ -16,7 +16,7 @@
 	import ClientActionModals from '$lib/components/ClientActionModals.svelte';
 	import { admin, errorMessage, formatDate, type ClientView } from '$lib/admin';
 	import AppLogo from '$lib/components/AppLogo.svelte';
-	import { appLogo } from '$lib/access';
+	import { appIcon, appLogo } from '$lib/access';
 
 	let clients = $state<ClientView[]>([]);
 	let loading = $state(true);
@@ -271,7 +271,7 @@
 						<tr class={app.disabled_at ? 'opacity-55' : ''}>
 							<td>
 								<div class="flex items-center gap-3">
-									<AppLogo app={{ logo: appLogo(app.name), icon: icons.widget }} />
+									<AppLogo app={{ icon: appIcon(app.name) ?? icons.widget, logo: appLogo(app.name) }} />
 									<a href="/admin/apps/{encodeURIComponent(app.client_id)}" class="flex min-w-0 flex-col">
 										<span class="font-medium text-fc-fg hover:underline">{app.name}</span>
 										<span class="truncate font-fc-mono text-fc-xs text-fc-fg-muted" title={(app.redirect_uris || []).join(', ')}>

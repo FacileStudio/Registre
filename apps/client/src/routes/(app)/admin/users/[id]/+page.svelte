@@ -16,7 +16,7 @@
 	} from '@facile/muse';
 	import AppLogo from '$lib/components/AppLogo.svelte';
 	import { admin, errorMessage, formatDate, type AppAccess, type UserDetail } from '$lib/admin';
-	import { appLogo, displayName, relativeTime, toggleRole } from '$lib/access';
+	import { appIcon, appLogo, displayName, relativeTime, toggleRole } from '$lib/access';
 
 	let detail = $state<UserDetail | null>(null);
 	let error = $state('');
@@ -113,7 +113,7 @@
 			{#each detail.apps as app (app.client_id)}
 				<Card class="flex flex-col gap-3 p-4 {app.disabled ? 'opacity-55' : ''}">
 					<div class="flex items-center gap-3">
-						<AppLogo app={{ logo: appLogo(app.name), icon: icons.widget }} />
+						<AppLogo app={{ icon: appIcon(app.name) ?? icons.widget, logo: appLogo(app.name) }} />
 						<a href="/admin/apps/{encodeURIComponent(app.client_id)}" class="flex min-w-0 flex-1 flex-col">
 							<span class="truncate font-medium text-fc-fg">{app.name}</span>
 							<span class="text-fc-xs text-fc-fg-muted">

@@ -88,8 +88,45 @@ const LOGOS = new Set([
 	'mycelium', 'nuage', 'opus', 'perception', 'plume', 'sablier', 'scribe', 'sonde', 'vision'
 ]);
 
-/** appLogo is the brand glyph of a registered app, found by its name. */
+const APP_ICONS: Record<string, string> = {
+	agenda: 'solar:calendar-add-bold-duotone',
+	antenne: 'solar:station-bold-duotone',
+	ardoise: 'solar:bill-list-bold-duotone',
+	boite: 'solar:box-minimalistic-bold-duotone',
+	'boîte': 'solar:box-minimalistic-bold-duotone',
+	bulle: 'solar:smile-circle-bold-duotone',
+	capsule: 'solar:pill-bold-duotone',
+	casier: 'solar:key-minimalistic-square-bold-duotone',
+	courrier: 'solar:letter-opened-bold-duotone',
+	docs: 'solar:documents-bold-duotone',
+	echo: 'solar:videocamera-record-bold-duotone',
+	feuilles: 'solar:table-minimalistic-bold-duotone',
+	fusible: 'solar:cpu-bolt-bold-duotone',
+	glouton: 'solar:magnet-wave-bold-duotone',
+	journal: 'solar:notebook-bold-duotone',
+	mycelium: 'solar:structure-bold-duotone',
+	nuage: 'solar:cloud-bold-duotone',
+	opus: 'solar:slider-vertical-minimalistic-bold-duotone',
+	pastille: 'solar:circle-dot-bold-duotone',
+	perception: 'solar:eye-scan-bold-duotone',
+	place: 'solar:cup-hot-bold-duotone',
+	plume: 'solar:pen-new-square-bold-duotone',
+	prisme: 'solar:chat-round-bold-duotone',
+	registre: 'solar:key-square-bold-duotone',
+	sablier: 'solar:hourglass-bold-duotone',
+	scribe: 'solar:microphone-2-bold-duotone',
+	sonar: 'brand:sonar',
+	sonde: 'solar:radar-bold-duotone',
+	toile: 'solar:tablet-bold-duotone',
+	vision: 'solar:panorama-bold-duotone'
+};
+
 export function appLogo(name: string): string | undefined {
 	const slug = name.trim().toLowerCase();
 	return LOGOS.has(slug) ? `/logos/${slug}.svg` : undefined;
+}
+
+export function appIcon(name: string): string | undefined {
+	const slug = name.trim().toLowerCase();
+	return APP_ICONS[slug];
 }

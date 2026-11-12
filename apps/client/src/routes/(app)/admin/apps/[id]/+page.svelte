@@ -24,7 +24,7 @@
 		type GrantView,
 		type UserView
 	} from '$lib/admin';
-	import { appLogo, displayName, relativeTime, toggleRole } from '$lib/access';
+	import { appIcon, appLogo, displayName, relativeTime, toggleRole } from '$lib/access';
 
 	let client = $state<ClientView | null>(null);
 	let access = $state<ClientAccess | null>(null);
@@ -110,7 +110,7 @@
 		<Skeleton class="h-64 w-full" />
 	{:else}
 		<Card class="flex items-center gap-4 p-5">
-			<AppLogo app={{ logo: appLogo(client.name), icon: icons.widget }} />
+			<AppLogo app={{ icon: appIcon(client.name) ?? icons.widget, logo: appLogo(client.name) }} />
 			<div class="flex min-w-0 flex-1 flex-col">
 				<h1 class="truncate text-fc-xl font-semibold text-fc-fg">{client.name}</h1>
 				<p class="truncate font-fc-mono text-fc-xs text-fc-fg-muted">{client.client_id}</p>
