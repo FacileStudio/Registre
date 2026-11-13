@@ -257,6 +257,14 @@ applications:
       - audience: bulle
         scopes: [bulle.read, bulle.write]
 
+  # Opus, the suite's project manager at opus.facile.studio.
+  #
+  # The connections scope carries the linked GitHub id: Opus reads
+  # connections.github to check that a user can write to a GitHub repo before
+  # linking it to a project and showing its issues. login_providers: [github]
+  # is what makes Registre emit that claim to this client, and it also puts
+  # "Continue with GitHub" on the login Opus sends people to.
+  #
   # Opus answered POST /api/auth/backchannel-logout with a JSON 400 (missing
   # logout_token) on 2026-11-13, so the route exists. Perception (503, no
   # backend), Coffre (no DNS) and Glouton (HTML 404) stay unset until they
@@ -272,7 +280,8 @@ applications:
       - https://opus.facile.studio/api/auth/oauth2/callback/custom
       - https://opus.facile.studio/api/auth/callback/custom
       - https://opus.facile.studio/auth/oidc/callback
-    scopes: [openid, profile, email, offline_access]
+    scopes: [openid, profile, email, offline_access, connections]
+    login_providers: [github]
     mcp:
       resource: https://opus.facile.studio/mcp
       scopes: [opus.read, opus.write]
@@ -334,13 +343,20 @@ applications:
   # degrades in silence. roles and visible_roles are left out: Sonde reads no
   # roles and sets no OIDC_CLAIMS_SCOPE, so granting the scope would carry a
   # claim nobody looks at.
+  #
+  # The connections scope carries the linked GitHub id: Sonde reads
+  # connections.github to check that a user can read a GitHub repo before
+  # linking a monitor to its project. login_providers: [github] is what makes
+  # Registre emit that claim to this client, and it also puts "Continue with
+  # GitHub" on the login Sonde sends people to.
   - client_id: sonde
     name: Sonde
     backchannel_logout_uri: https://sonde.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_SONDE_SECRET
     redirect_uris:
       - https://sonde.facile.studio/api/auth/oidc/callback
-    scopes: [openid, profile, email, offline_access]
+    scopes: [openid, profile, email, offline_access, connections]
+    login_providers: [github]
 
   # Prisme, the suite's team chat at prisme.facile.studio: Slack-shaped, on a
   # Matrix homeserver the app runs beside itself. A fresh registration, so the
@@ -408,7 +424,8 @@ applications:
   #
   # The connections scope carries the linked Discord id, so Place can attach
   # Discord messages to the account. login_providers is what puts "Continue
-  # with Discord" on the login Place sends people to; no other client has it.
+  # with Discord" on the login Place sends people to; no other client offers
+  # Discord.
   - client_id: place
     name: Place
     backchannel_logout_uri: https://place.facile.studio/api/auth/backchannel-logout
