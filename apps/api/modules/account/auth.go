@@ -57,11 +57,12 @@ func (s *Service) me(w http.ResponseWriter, r *http.Request) {
 	}, http.StatusOK)
 }
 
-// logout ends the session and clears the cookie, whatever state the cookie was
-// in. It answers 200 for a cookie that names nothing live, because the human
-// who most needs to log out is the one whose session has already gone wrong.
+// logout ends the session, tells every app it reached, and clears the cookie,
+// whatever state the cookie was in. It answers 200 for a cookie that names
+// nothing live, because the human who most needs to log out is the one whose
+// session has already gone wrong.
 func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
-	if err := s.sessions.End(r.Context(), s.cookies.Read(r)); err != nil {
+	if err := s.sessions.SignOut(r.Context(), s.cookies.Read(r)); err != nil {
 		slog.Warn("registre: ending the account session failed", slog.Any("error", err))
 	}
 	s.cookies.Clear(w)

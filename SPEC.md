@@ -192,6 +192,24 @@ need a session of their own. It is a random bearer stored as a digest, hung off 
 that closes everything else. A second session table would have been a second thing to remember to
 revoke.
 
+**Logging out of registre logs the person out of every app.** `/logout`, `/api/logout` and
+`/api/account/logout` end the session the cookie names, revoke the person's live refresh grants to
+the apps that session reached, and send back-channel logout to those apps on a background context,
+as `end_session` does. A dead or missing cookie still answers 200 and tells nobody. Signing in as
+someone else on a browser that still holds a live account cookie does the same to the previous
+person's session first, on every path that sets the cookie (password, second factor, passkey,
+social, sign-up), so a reload of any app shows the new person. Signing in again as the same person
+ends nothing.
+
+A refresh grant records the user and the app, not the session, so the grants revoked are every live
+one the person holds with the apps the session reached. That is the reach of the logout token
+itself, which names only `sub`, so each app already ends every session that person holds there.
+Apps the session never reached keep their grants: a CLI signed in by device flow survives a browser
+logout. Back-Channel Logout 1.0 §2.7 lets a provider keep `offline_access` grants alive, but every
+grant in the suite carries that scope because porte always asks for it, so honouring the exemption
+would revoke nothing. A session records each app it signs in to, silent sign-in included, in one
+atomic append, so two apps signing in at once cannot drop each other from the list.
+
 **Subcommands live flat in `apps/api/`, not under `cmd/`.** `user-create`, `user-disable` and
 `break-glass` are files beside `main.go` dispatched on `os.Args[1]`, which is the shape phase 1
 already set. `cmd/import-authentik/` above is therefore aspirational rather than descriptive; when

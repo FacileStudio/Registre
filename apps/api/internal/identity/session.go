@@ -8,6 +8,8 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/access"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
+
+	"gorm.io/gorm"
 )
 
 func (s *Service) PurgeAuthRequests(ctx context.Context, cutoff time.Time) error {
@@ -77,21 +79,19 @@ func (s *Service) StartSession(ctx context.Context, userID, clientID string, at 
 	return sessionID, nil
 }
 
+// TouchSession records that a live session reached clientID, so ending the
+// session tells that app. The append is one statement: a read, an append in
+// Go and a write back lost an app whenever two of them signed in by the same
+// session at once, two tabs reloading for instance, and back-channel logout
+// then skipped the app the race dropped.
 func (s *Service) TouchSession(ctx context.Context, sessionID, clientID string) error {
 	if clientID == "" {
 		return nil
 	}
-	var session schemas.Session
-	if err := s.db.WithContext(ctx).Where("id = ? AND ended_at IS NULL", sessionID).Take(&session).Error; err != nil {
-		return fmt.Errorf("identity: read the session: %w", err)
-	}
-	if session.ClientIDs.Contains(clientID) {
-		return nil
-	}
-	session.ClientIDs = append(session.ClientIDs, clientID)
-	if err := s.db.WithContext(ctx).Model(&schemas.Session{}).
-		Where("id = ?", sessionID).
-		Update("client_ids", session.ClientIDs).Error; err != nil {
+	err := s.db.WithContext(ctx).Model(&schemas.Session{}).
+		Where("id = ? AND ended_at IS NULL AND NOT client_ids @> jsonb_build_array(?::text)", sessionID, clientID).
+		Update("client_ids", gorm.Expr("client_ids || jsonb_build_array(?::text)", clientID)).Error
+	if err != nil {
 		return fmt.Errorf("identity: attach client to session: %w", err)
 	}
 	return nil

@@ -62,6 +62,9 @@ func (s *Service) signIn(r *http.Request, w http.ResponseWriter, created flow.Cr
 	if err != nil {
 		return "", err
 	}
+	if err := s.Sessions.Replace(ctx, s.Cookies.Read(r), created.User.ID); err != nil {
+		return "", err
+	}
 	token, err := s.Sessions.Issue(ctx, sessionID)
 	if err != nil {
 		return "", err

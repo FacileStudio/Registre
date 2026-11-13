@@ -106,9 +106,10 @@ func assemble(
 	teams := spacesdir.New(db, pictures.URL, spacesdir.NewNudger(register.List, svc.log), svc.log).
 		WithInvitations(self.invitationsFor(cfg))
 
+	backchannel := logout.New(keyring, register, cfg.Issuer, svc.log)
 	storage := oidc.NewStorage(db, oidc.Services{
 		Keys: keyring, Register: register, Users: users,
-		Logout:  logout.New(keyring, register, cfg.Issuer, svc.log),
+		Logout:  backchannel,
 		Devices: deviceFlows, Avatars: pictures, Connections: connections,
 		Documents: documentFetcher(), Grants: grants.New(db),
 	}, oidc.Config{
@@ -141,7 +142,8 @@ func assemble(
 	router.Use(oidc.CORS(oidc.PublicPaths(provider), guardedCORS(cfg.CORSAllowedOrigins)))
 	health.Mount(router, health.DB(sqlDB))
 	mountVersion(router)
-	sessions, cookies := accounts.New(db), accounts.NewCookies(!cfg.InsecureIssuer())
+	sessions := accounts.New(db).WithNotifier(backchannel, svc.log)
+	cookies := accounts.NewCookies(!cfg.InsecureIssuer())
 	mountLogout(router, sessions, cookies)
 	oidc.MountWithLimits(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies},
 		oidc.Limits{
@@ -257,11 +259,14 @@ const openerPolicy = "unsafe-none"
 // over, and the table would otherwise grow with every second-factor login.
 const challengeRetention = time.Hour
 
-// mountLogout answers /logout and /api/logout: GET ends the account session
-// and goes home, POST ends it and answers JSON.
+// mountLogout answers /logout and /api/logout: GET signs the account session
+// out and goes home, POST signs it out and answers JSON. Signing out tells
+// every app the session reached, so these log the person out of the suite.
 func mountLogout(router chi.Router, sessions *accounts.Service, cookies accounts.Cookies) {
 	logout := func(w http.ResponseWriter, r *http.Request) {
-		_ = sessions.End(r.Context(), cookies.Read(r))
+		if err := sessions.SignOut(r.Context(), cookies.Read(r)); err != nil {
+			slog.Warn("registre: ending the account session failed", slog.Any("error", err))
+		}
 		cookies.Clear(w)
 		if r.Method == http.MethodGet {
 			http.Redirect(w, r, "/", http.StatusFound)

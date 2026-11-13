@@ -587,7 +587,7 @@ func Reference() apiref.Config {
 						{
 							Method:       "POST",
 							Path:         "/api/account/logout",
-							Summary:      "Logout account session",
+							Summary:      "End the account session and sign out of every app it reached",
 							Auth:         "cookie",
 							ResponseBody: map[string]any{"logged_out": true},
 						},

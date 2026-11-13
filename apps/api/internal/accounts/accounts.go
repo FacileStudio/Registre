@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
@@ -57,15 +58,33 @@ const CSRFHeader = "X-Facile-CSRF"
 // session should not still be able to do that a week later.
 const Lifetime = 12 * time.Hour
 
+// Notifier tells the apps a session reached that it has ended.
+// logout.Service is the production one.
+type Notifier interface {
+	Fire(ctx context.Context, userID string, clientIDs []string) error
+}
+
 // Service mints and resolves account sessions.
 type Service struct {
-	db  *gorm.DB
-	now func() time.Time
+	db       *gorm.DB
+	now      func() time.Time
+	notifier Notifier
+	logger   *slog.Logger
 }
 
 // New builds the service over db.
 func New(db *gorm.DB) *Service {
-	return &Service{db: db, now: func() time.Time { return time.Now().UTC() }}
+	return &Service{db: db, now: func() time.Time { return time.Now().UTC() }, logger: slog.Default()}
+}
+
+// WithNotifier makes SignOut and Replace tell the apps a session reached.
+// Without one they end the session and tell nobody.
+func (s *Service) WithNotifier(notifier Notifier, logger *slog.Logger) *Service {
+	s.notifier = notifier
+	if logger != nil {
+		s.logger = logger
+	}
+	return s
 }
 
 // Issue attaches a fresh cookie value to an existing provider session and
@@ -120,23 +139,6 @@ func (s *Service) Resolve(ctx context.Context, token string) (schemas.User, sche
 		return schemas.User{}, schemas.Session{}, ErrNoSession
 	}
 	return user, session, nil
-}
-
-// End terminates the session behind a cookie value. It is idempotent: a
-// cookie that names nothing live is already in the state the caller wanted,
-// and answering an unknown cookie with an error is how logging out fails for
-// exactly the person whose session has gone wrong.
-func (s *Service) End(ctx context.Context, token string) error {
-	if token == "" {
-		return nil
-	}
-	err := s.db.WithContext(ctx).Model(&schemas.Session{}).
-		Where("token_hash = ? AND ended_at IS NULL", hash(token)).
-		Update("ended_at", s.now()).Error
-	if err != nil {
-		return fmt.Errorf("accounts: end the session: %w", err)
-	}
-	return nil
 }
 
 // hash digests a session token for storage and lookup.
