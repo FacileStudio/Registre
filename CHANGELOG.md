@@ -6,6 +6,13 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.5] - 2026-11-13
+
+### Added
+
+- Troc is a seed application at `troc.facile.studio`.
+- Bulle may exchange a user's token for Docs (`docs.read`, `docs.write`) and Feuilles (`feuilles.read`, `feuilles.write`), so it can call their MCP servers. Docs may exchange one for Bulle (`bulle.read`, `bulle.write`) for its Bulle sidebar.
+
 ## [0.13.4] - 2026-11-13
 
 ### Added

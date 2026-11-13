@@ -253,6 +253,9 @@ applications:
     mcp:
       resource: https://docs.facile.studio/mcp
       scopes: [docs.read, docs.write]
+    token_exchange:
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   - client_id: aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D
     name: Opus
@@ -552,3 +555,7 @@ applications:
         scopes: [echo.read, echo.write]
       - audience: T4hFpaWirBnY4mjxFF7XRk8dR8vY8QWJbV0p5XYs
         scopes: [toile.read, toile.write]
+      - audience: QiMfQwgz9P1hz3MQZz7hkVSWoQwfk1tAPxeUzl03
+        scopes: [docs.read, docs.write]
+      - audience: Gb2SWxwPQQ6bFjsqu24RnvR9PciQjLzb9SQNWRrs
+        scopes: [feuilles.read, feuilles.write]
