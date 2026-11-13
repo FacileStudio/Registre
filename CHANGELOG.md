@@ -6,6 +6,14 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Client: `@facile/muse` moves from v0.16.1 to v0.21.0. The space member remove button shows its label in a muse tooltip.
+
+### Fixed
+
+- Admin: the "Open app" globe link has an accessible name, a 44px target, a focus ring and a muse tooltip. The app redirect URIs, the user creation date and the activity timestamps move from the native `title` to a muse tooltip.
+
 ## [0.13.6] - 2026-11-13
 
 ### Changed
