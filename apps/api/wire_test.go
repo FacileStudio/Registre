@@ -55,14 +55,17 @@ var wireScrubs = []struct {
 	{regexp.MustCompile(`Expires=[^;]+`), "Expires={time}"},
 }
 
+// init pins time.Local to UTC, the zone of the distroless production image:
+// timestamps read back from Postgres carry the process zone, and a golden
+// recorded on a +01:00 laptop failed in CI and pinned an offset production
+// never sends. It runs before any test so no background goroutine a test
+// leaves behind can read the zone while a later test rewrites it.
+func init() { time.Local = time.UTC }
+
 // newWire boots registre on a fresh schema with the budgets opened wide, so
-// a golden run never meets a rate limit. It pins time.Local to UTC, the zone
-// of the distroless production image: timestamps read back from Postgres
-// carry the process zone, and a golden recorded on a +01:00 laptop failed in
-// CI and pinned an offset production never sends.
+// a golden run never meets a rate limit.
 func newWire(t *testing.T) *wire {
 	t.Helper()
-	time.Local = time.UTC
 	db := wireDB(t)
 	slog.SetDefault(slog.New(slog.DiscardHandler))
 	server := httptest.NewUnstartedServer(nil)
