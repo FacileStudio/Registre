@@ -224,7 +224,7 @@ func (f *fixture) jwks() jose.JSONWebKeySet {
 // make true, so it goes through the same JWKS a relying party would fetch.
 func (f *fixture) verify(token string) (map[string]any, error) {
 	f.t.Helper()
-	signature, err := jose.ParseSigned(token, []jose.SignatureAlgorithm{jose.RS256})
+	signature, err := jose.ParseSignedCompact(token, []jose.SignatureAlgorithm{jose.RS256})
 	if err != nil {
 		return nil, err
 	}
