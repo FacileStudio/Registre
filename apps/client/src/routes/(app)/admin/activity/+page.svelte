@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Alert, Avatar, Button, EmptyState, Section, Skeleton, icons } from '@facile/muse';
+	import { Alert, Avatar, Button, EmptyState, Section, Skeleton, icons, Tooltip } from '@facile/muse';
 	import { admin, errorMessage, type AdminEvent } from '$lib/admin';
 	import { describeAction, displayName, relativeTime } from '$lib/access';
 
@@ -58,9 +58,11 @@
 						{describeAction(event)}
 						<span class="font-fc-mono text-fc-xs">{target(event)}</span>
 					</p>
-					<time class="whitespace-nowrap text-fc-xs text-fc-fg-muted" datetime={event.at} title={event.at}>
-						{relativeTime(event.at)}
-					</time>
+					<Tooltip text={event.at} class="contents">
+						<time class="whitespace-nowrap text-fc-xs text-fc-fg-muted" datetime={event.at}>
+							{relativeTime(event.at)}
+						</time>
+					</Tooltip>
 				</li>
 			{/each}
 		</ol>

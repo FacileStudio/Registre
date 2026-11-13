@@ -12,7 +12,8 @@
 		Table,
 		Tabs,
 		icons,
-		toast
+		toast,
+		Tooltip
 	} from '@facile/muse';
 	import { displayName, matchesUser, relativeTime, type UserFilter } from '$lib/access';
 	import { MIN_PASSWORD } from '$lib/policy';
@@ -299,8 +300,10 @@
 									{#if user.totp}<Badge tone="info">2FA</Badge>{/if}
 								</div>
 							</td>
-							<td class="whitespace-nowrap text-fc-fg-muted" title={formatDate(user.created_at)}>
-								{relativeTime(user.last_sign_in_at)}
+							<td class="whitespace-nowrap text-fc-fg-muted">
+								<Tooltip text={formatDate(user.created_at)}>
+									<span>{relativeTime(user.last_sign_in_at)}</span>
+								</Tooltip>
 							</td>
 							<td class="text-right">
 								<div class="flex items-center justify-end gap-1">

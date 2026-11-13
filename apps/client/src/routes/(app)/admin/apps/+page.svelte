@@ -9,7 +9,8 @@
 		Skeleton,
 		Table,
 		icons,
-		toast
+		toast,
+		Tooltip
 	} from '@facile/muse';
 	import ClientCreateDrawer from '$lib/components/ClientCreateDrawer.svelte';
 	import ClientEditDrawer from '$lib/components/ClientEditDrawer.svelte';
@@ -274,23 +275,27 @@
 									<AppLogo app={{ icon: appIcon(app.name) ?? icons.widget, logo: appLogo(app.name) }} />
 									<a href="/admin/apps/{encodeURIComponent(app.client_id)}" class="flex min-w-0 flex-col">
 										<span class="font-medium text-fc-fg hover:underline">{app.name}</span>
-										<span class="truncate font-fc-mono text-fc-xs text-fc-fg-muted" title={(app.redirect_uris || []).join(', ')}>
-											{app.client_id}
-										</span>
+										<Tooltip text={(app.redirect_uris || []).join(', ')} disabled={!app.redirect_uris?.length} class="contents">
+											<span class="truncate font-fc-mono text-fc-xs text-fc-fg-muted">
+												{app.client_id}
+											</span>
+										</Tooltip>
 									</a>
 									{#if app.managed}
 										<Badge tone="neutral">managed</Badge>
 									{/if}
 									{#if origin}
-										<a
-											href={origin}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-fc-fg-muted transition-colors hover:text-fc-fg"
-											title="Open app"
-										>
-											<Icon icon={icons.globe} size={14} />
-										</a>
+										<Tooltip text="Open app" describe={false} class="contents">
+											<a
+												href={origin}
+												target="_blank"
+												rel="noopener noreferrer"
+												aria-label="Open app"
+												class="inline-flex size-11 shrink-0 items-center justify-center rounded-fc-pill text-fc-fg-muted transition-colors hover:bg-fc-surface hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+											>
+												<Icon icon={icons.globe} size={14} />
+											</a>
+										</Tooltip>
 									{/if}
 								</div>
 							</td>
