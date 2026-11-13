@@ -257,10 +257,15 @@ applications:
       - audience: bulle
         scopes: [bulle.read, bulle.write]
 
+  # Opus answered POST /api/auth/backchannel-logout with a JSON 400 (missing
+  # logout_token) on 2026-11-13, so the route exists. Perception (503, no
+  # backend), Coffre (no DNS) and Glouton (HTML 404) stay unset until they
+  # serve it; Mycelium's reason is above its own entry.
   - client_id: aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D
     name: Opus
     directory_sync_uri: https://opus.facile.studio/api/registre/sync
     deletion_uri: https://opus.facile.studio/api/registre/deletions
+    backchannel_logout_uri: https://opus.facile.studio/api/auth/backchannel-logout
     secret_env: REGISTRE_SEED_OPUS_SECRET
     redirect_uris:
       - https://opus.facile.studio/api/auth/oidc/callback
