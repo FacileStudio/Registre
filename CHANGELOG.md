@@ -6,6 +6,14 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Echo may exchange a signed-in user's token for a Bulle token (`token_exchange` to audience `bulle`, scopes `bulle.read` and `bulle.write`), so Echo's call summaries go through Bulle.
+
+### Security
+
+- Bump porte to v0.19.0, porte/directory to v0.5.0, tronc to v0.22.2 and tronc/migrate to v0.1.1. The build now selects go-chi/chi v5.5.0 and go-jose v4.1.9, which fix the chi and go-jose CVEs that v5.3.1 and v4.1.6 carried.
+
 ## [0.15.0] - 2026-11-14
 
 ### Security
