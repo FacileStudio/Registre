@@ -54,7 +54,8 @@ func buildSelf(db *gorm.DB, root []byte, cfg env.Config, svc services) (*selfSer
 		return nil, err
 	}
 	out := &selfServices{passkeys: keys, consents: consent.New(db, root), audit: audit.New(db)}
-	out.mailer, _ = outboundMail(mailer.FromEnv(os.Getenv), svc.log)
+	smtp := mailer.FromEnv(os.Getenv)
+	out.mailer, _ = outboundMail(smtp, svc.log)
 	if settings.BreachCheck {
 		out.pwned = pwned.New(svc.log)
 	}
@@ -62,7 +63,7 @@ func buildSelf(db *gorm.DB, root []byte, cfg env.Config, svc services) (*selfSer
 		return out, nil
 	}
 	out.flow = signup.New(signup.Deps{
-		DB: db, Verifier: svc.verifier, Consents: out.consents, Passkeys: keys, Pwned: out.pwned, Mailer: out.mailer,
+		DB: db, Verifier: svc.verifier, Consents: out.consents, Passkeys: keys, Pwned: out.pwned, Mailer: directMail(smtp),
 	}, settings.AltchaKey, cfg.Issuer)
 	return out, nil
 }

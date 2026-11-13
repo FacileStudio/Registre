@@ -59,6 +59,11 @@ func TestTheKillSwitchHidesEveryRoute(t *testing.T) {
 // open builds the routes over a real flow and the given budgets.
 func open(t *testing.T, budget Limits) http.Handler {
 	t.Helper()
+	return openWith(t, budget, recovery.MailerFunc(func(context.Context, string, string, string) error { return nil }))
+}
+
+func openWith(t *testing.T, budget Limits, mailer recovery.Mailer) http.Handler {
+	t.Helper()
 	url, ok := testdb.URL()
 	if !ok {
 		testdb.Announce()
@@ -74,7 +79,6 @@ func open(t *testing.T, budget Limits) http.Handler {
 	db.Create(&schemas.User{ID: "known", Email: "known@example.com"})
 	keys, _ := passkeys.New(db, passkeys.Config{RPID: "localhost", Origins: []string{"http://localhost"}}, quiet())
 	verifier := credentials.New(2)
-	mailer := recovery.MailerFunc(func(context.Context, string, string, string) error { return nil })
 	steps := flow.New(flow.Deps{
 		DB: db, Verifier: verifier, Consents: consent.New(db, []byte("k")), Passkeys: keys, Mailer: mailer,
 	}, "an-altcha-hmac-key-of-at-least-32-bytes", "https://sso.example.com")
@@ -144,9 +148,9 @@ func TestStartIsLimitedPerEmailAfterTheProof(t *testing.T) {
 			t.Fatalf("start %d = %d, want 202", i+1, status)
 		}
 	}
-	status, _ := call(t, router, http.MethodPost, "/api/signup/start", `{"email":"A@example.com","altcha":"`+proof(t, router)+`"}`)
-	if status != http.StatusTooManyRequests {
-		t.Fatalf("one link too many = %d, want 429", status)
+	status, body := call(t, router, http.MethodPost, "/api/signup/start", `{"email":"A@example.com","altcha":"`+proof(t, router)+`"}`)
+	if status != http.StatusTooManyRequests || !strings.Contains(body, `"retry_after":`) {
+		t.Fatalf("one link too many = %d %s, want 429 with retry_after", status, body)
 	}
 }
 

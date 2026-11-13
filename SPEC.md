@@ -338,9 +338,16 @@ account.
 solution with the official `altcha-lib-go` in constant time, insists on a signed expiry no further
 than ten minutes out, and records the challenge in `altcha_spent` so a solution is spent once. It
 then answers `202 {"status":"sent"}` whether or not the address has an account, writing one
-`signup_challenges` row either way (born spent for a known address) and handing one mail to the
-asynchronous sender: "you already have an account, sign in instead" for a known address, a link
-for an unknown one. The link's token is random, stored as SHA-256, good once for thirty minutes.
+`signup_challenges` row either way (born spent for a known address) and sending one mail before it
+answers: "you already have an account, sign in instead" for a known address, a link for an unknown
+one. Both branches pay the same SMTP round trip, so waiting for it is no timing oracle, and a mail
+the server refuses or cannot reach within ten seconds answers `503 {"error":"mail_failed"}` for
+either branch, withdraws the row so the retry is not throttled, and is logged at ERROR with every
+address redacted. A person is never told a mail is on its way when none is. The per-email limit
+answers `429` with `retry_after` seconds and `Retry-After`. The page then says where the mail went,
+who sends it, to look in spam, and that a known address gets sign-in instructions instead, and
+offers a resend behind a sixty-second cooldown. An expired or spent link offers a new one in place.
+The link's token is random, stored as SHA-256, good once for thirty minutes.
 `/signup/finish` takes a name, a language and the acceptance of the current CGU and privacy
 policy, then a passkey (registered before the account row exists, bound to the subject the
 account is created with) or a password. The account, its consent rows, its passkey and the spent

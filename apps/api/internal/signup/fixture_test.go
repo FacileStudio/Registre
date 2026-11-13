@@ -29,13 +29,23 @@ type mail struct{ to, subject, html string }
 type inbox struct {
 	mu   sync.Mutex
 	sent []mail
+	fail error
 }
 
 func (i *inbox) Send(_ context.Context, to, subject, html string) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+	if i.fail != nil {
+		return i.fail
+	}
 	i.sent = append(i.sent, mail{to, subject, html})
 	return nil
+}
+
+func (i *inbox) failWith(err error) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	i.fail = err
 }
 
 func (i *inbox) last(t *testing.T) mail {

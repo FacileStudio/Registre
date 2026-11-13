@@ -159,3 +159,49 @@ func TestTheSignupLinkCarriesOnlyAnInvitationID(t *testing.T) {
 		t.Fatalf("the known address's link does not lead to the invitation: %s", html)
 	}
 }
+
+// TestAMailThatCannotBeSentIsReported: the person hears that nothing was
+// sent, the reason carries no address, and the failed try does not count
+// against the address's hourly budget.
+func TestAMailThatCannotBeSentIsReported(t *testing.T) {
+	w := newWorld(t, map[string]bool{})
+	ctx := context.Background()
+	w.inbox.failWith(errors.New("550 5.1.1 <lost@example.com>: Recipient address rejected"))
+	for i := 0; i < MaxLinksPerHour+1; i++ {
+		err := w.svc.Start(ctx, Request{Email: "lost@example.com", Proof: solve(t, w.svc), Locale: "en"})
+		if !errors.Is(err, ErrMail) {
+			t.Fatalf("Start with a refusing server = %v, want ErrMail", err)
+		}
+		if strings.Contains(err.Error(), "lost@example.com") {
+			t.Fatalf("the error repeats the address: %v", err)
+		}
+	}
+	var rows int64
+	w.db.Model(&schemas.SignupChallenge{}).Count(&rows)
+	if rows != 0 {
+		t.Fatalf("%d link rows survive failed mails, want 0", rows)
+	}
+	w.inbox.failWith(nil)
+	if err := w.svc.Start(ctx, Request{Email: "lost@example.com", Proof: solve(t, w.svc), Locale: "en"}); err != nil {
+		t.Fatalf("Start once the server is back = %v, want nil", err)
+	}
+}
+
+// TestAThrottledAddressLearnsHowLongToWait.
+func TestAThrottledAddressLearnsHowLongToWait(t *testing.T) {
+	w := newWorld(t, map[string]bool{})
+	ctx := context.Background()
+	for i := 0; i < MaxLinksPerHour; i++ {
+		if err := w.svc.Start(ctx, Request{Email: "busy@example.com", Proof: solve(t, w.svc), Locale: "en"}); err != nil {
+			t.Fatalf("start %d = %v", i+1, err)
+		}
+	}
+	err := w.svc.Start(ctx, Request{Email: "busy@example.com", Proof: solve(t, w.svc), Locale: "en"})
+	var throttled *Throttled
+	if !errors.As(err, &throttled) || !errors.Is(err, ErrThrottled) {
+		t.Fatalf("one start too many = %v, want Throttled", err)
+	}
+	if throttled.Wait <= 50*time.Minute || throttled.Wait > time.Hour {
+		t.Fatalf("wait = %s, want just under an hour", throttled.Wait)
+	}
+}

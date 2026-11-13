@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
-	"github.com/FacileStudio/Registre/apps/api/internal/i18n"
 	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	flow "github.com/FacileStudio/Registre/apps/api/internal/signup"
 )
@@ -38,46 +37,6 @@ func (s *Service) challenge(w http.ResponseWriter, _ *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	encode(w, challenge, http.StatusOK)
-}
-
-// start answers 202 "sent" for every address once the proof of work holds,
-// whether or not the address has an account, including when something
-// failed after the proof: an error a caller can see would be the oracle the
-// identical answer exists to remove.
-func (s *Service) start(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Email       string `json:"email"`
-		Altcha      string `json:"altcha"`
-		Locale      string `json:"locale"`
-		AuthRequest string `json:"auth_request"`
-		Invitation  string `json:"invitation"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		encode(w, map[string]string{"error": "invalid"}, http.StatusBadRequest)
-		return
-	}
-	locale := body.Locale
-	if !i18n.Supported(locale) {
-		locale = i18n.FromAcceptLanguage(r.Header.Get("Accept-Language"))
-	}
-	err := s.Flow.Start(r.Context(), flow.Request{
-		Email: body.Email, Proof: body.Altcha, Locale: locale, AuthRequest: s.bound(r, body.AuthRequest),
-		Invitation: body.Invitation,
-	})
-	switch {
-	case errors.Is(err, flow.ErrProof):
-		encode(w, map[string]string{"error": "proof"}, http.StatusBadRequest)
-		return
-	case errors.Is(err, flow.ErrEmail):
-		encode(w, map[string]string{"error": "email"}, http.StatusBadRequest)
-		return
-	case errors.Is(err, flow.ErrThrottled):
-		encode(w, map[string]string{"error": "rate_limited"}, http.StatusTooManyRequests)
-		return
-	case err != nil:
-		s.logger.Error("registre: sign-up start failed", slog.Any("error", err))
-	}
-	encode(w, map[string]string{"status": "sent"}, http.StatusAccepted)
 }
 
 // verify answers what a live link is for, without spending it.
