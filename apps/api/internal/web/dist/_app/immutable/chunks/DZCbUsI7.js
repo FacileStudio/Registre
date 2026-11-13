@@ -1,0 +1,1 @@
+import{m as s,q as t,v as i}from"./CtJIIS-p.js";import{B as m}from"./BExKGq-3.js";const c=Symbol("NaN");function h(r,e,n){t&&i();var o=new m(r);s(()=>{var a=e();a!==a&&(a=c),o.ensure(a,n)})}export{h as k};
