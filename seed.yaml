@@ -411,6 +411,22 @@ applications:
     visible_roles: [admin]
     login_providers: [discord, github]
 
+  # troc, the admin-only dashboard of the troc trading bot at troc.facile.studio.
+  #
+  # Fresh registration, so the id is its own name. porte-rs mounts under /api,
+  # so the redirect keeps the /api prefix. troc reads one role, admin, and lets
+  # nobody in without it (plus its own TROC_ADMINS allow-list). Set the client
+  # to access policy "assigned" in the dashboard and grant admin per person:
+  # the seed never writes access_policy.
+  - client_id: troc
+    name: troc
+    backchannel_logout_uri: https://troc.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_TROC_SECRET
+    redirect_uris:
+      - https://troc.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access, roles]
+    visible_roles: [admin]
+
   # Sonar, the suite's private web search at sonar.facile.studio. A fresh
   # registration, so the id is its own name. porte is mounted under /api, so
   # the redirect keeps the prefix. The directory nudge carries the
