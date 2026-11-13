@@ -26,13 +26,23 @@
 		<meta name="twitter:image" content="https://sso.facile.studio/og-image.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="color-scheme" content="light dark" />
-		<link href="/_app/immutable/entry/start.DOAka91U.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/BWygK3BT.js" rel="modulepreload">
+		<script>
+			(function () {
+				if (location.hostname !== 'sso.facile.studio') return;
+				var s = document.createElement('script');
+				s.async = true;
+				s.src = 'https://vision.facile.studio/s.js';
+				s.setAttribute('data-mask', '');
+				document.head.appendChild(s);
+			})();
+		</script>
+		<link href="/_app/immutable/entry/start.0ksvPV4z.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/FvBAn-5u.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/DsID0cPc.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/BkEX05Wv.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/C_alHpr-.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/B4Tp4UqK.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/X4EqdqYs.js" rel="modulepreload">
-		<link href="/_app/immutable/entry/app.D7sw5Sdw.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BmZSqbGR.js" rel="modulepreload">
+		<link href="/_app/immutable/entry/app.CAuujdt2.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/QCs1CaIX.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/Dh2wQ0Qq.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/0NI1QvN5.js" rel="modulepreload">
@@ -56,15 +66,15 @@
 		<div style="display: contents">
 			<script>
 				{
-					__sveltekit_76yfej = {
+					__sveltekit_1a1eptm = {
 						base: ""
 					};
 
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("/_app/immutable/entry/start.DOAka91U.js"),
-						import("/_app/immutable/entry/app.D7sw5Sdw.js")
+						import("/_app/immutable/entry/start.0ksvPV4z.js"),
+						import("/_app/immutable/entry/app.CAuujdt2.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element);
 					});

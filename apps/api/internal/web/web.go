@@ -1,7 +1,9 @@
 package web
 
 import (
+	"crypto/sha256"
 	"embed"
+	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -124,4 +126,39 @@ func missingAPI(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNotFound)
 	_, _ = w.Write([]byte(`{"error":"not_found"}` + "\n"))
+}
+
+// InlineScriptHashes returns a CSP source, 'sha256-...', for every inline
+// script in the embedded index document: the bootstrap adapter-static writes
+// and the scripts app.html carries. The index is the only document this
+// package serves, so these are all the inline scripts a page here runs, and
+// script-src can allow them without 'unsafe-inline'.
+func InlineScriptHashes() ([]string, error) {
+	index, err := fs.ReadFile(dist, "dist/"+indexPath)
+	if err != nil {
+		return nil, fmt.Errorf("web: the embedded client build has no %s: %w", indexPath, err)
+	}
+	return hashInlineScripts(string(index)), nil
+}
+
+// hashInlineScripts hashes the body of every attribute-less script element,
+// the only inline form adapter-static and app.html write. A script with a src
+// attribute is skipped: script-src allows it by origin, not by hash.
+func hashInlineScripts(page string) []string {
+	const open, closing = "<script>", "</script>"
+	var hashes []string
+	for {
+		start := strings.Index(page, open)
+		if start < 0 {
+			return hashes
+		}
+		page = page[start+len(open):]
+		end := strings.Index(page, closing)
+		if end < 0 {
+			return hashes
+		}
+		sum := sha256.Sum256([]byte(page[:end]))
+		hashes = append(hashes, "'sha256-"+base64.StdEncoding.EncodeToString(sum[:])+"'")
+		page = page[end+len(closing):]
+	}
 }

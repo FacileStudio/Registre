@@ -132,12 +132,16 @@ func assemble(
 	if err != nil {
 		return nil, err
 	}
+	security, err := securityConfig()
+	if err != nil {
+		return nil, err
+	}
 	router := httpx.NewRouter(httpx.Config{
 		TrustedProxies: cfg.TrustedProxies,
 		CDNProxies:     cfg.CDNProxies,
 		CDNHeader:      cfg.CDNHeader,
 		Logger:         svc.log,
-		Security:       troncmiddleware.SecurityConfig{CrossOriginOpenerPolicy: openerPolicy},
+		Security:       security,
 	})
 	router.Use(oidc.CORS(oidc.PublicPaths(provider), guardedCORS(cfg.CORSAllowedOrigins)))
 	health.Mount(router, health.DB(sqlDB))
@@ -252,6 +256,24 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 // An identity provider is that popup, so it opts out, as it did before tronc
 // sent the header.
 const openerPolicy = "unsafe-none"
+
+// visionScript is the origin of Vision's tracker, which app.html loads on the
+// production host.
+const visionScript = "https://vision.facile.studio"
+
+// securityConfig is tronc's default security headers with the opener policy
+// above, and a script-src that allows Vision's tracker and, by hash, the
+// inline scripts of the embedded client.
+func securityConfig() (troncmiddleware.SecurityConfig, error) {
+	hashes, err := web.InlineScriptHashes()
+	if err != nil {
+		return troncmiddleware.SecurityConfig{}, err
+	}
+	return troncmiddleware.SecurityConfig{
+		CrossOriginOpenerPolicy: openerPolicy,
+		CSPSources:              map[string][]string{"script-src": append([]string{visionScript}, hashes...)},
+	}, nil
+}
 
 // challengeRetention is how long a spent or expired login challenge row
 // outlives the challenge itself. Short: the row records that a password was

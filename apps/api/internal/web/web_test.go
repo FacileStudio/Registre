@@ -149,3 +149,29 @@ func anyImmutableAsset(t *testing.T) (string, bool) {
 	}
 	return "", false
 }
+
+// TestInlineScriptsAreHashedOneByOne pins the hashes against values computed
+// independently, so a script the scanner merges, splits or misses fails here.
+func TestInlineScriptsAreHashedOneByOne(t *testing.T) {
+	page := "<head><script>a</script><script src=\"/x.js\"></script>\n<script>b</script></head>"
+	got := hashInlineScripts(page)
+	want := []string{
+		"'sha256-ypeBEsobvcr6wjGzmiPcTaeG7/gUfE5yuYB3ha/uSLs='",
+		"'sha256-PiPoFgA5WUoziU9lZOGxNIu9egCI1CxKy3PurtWcAJ0='",
+	}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("hashInlineScripts = %v, want %v", got, want)
+	}
+}
+
+// TestTheEmbeddedIndexHasInlineScripts guards the boot path: an index whose
+// inline scripts went unhashed would leave script-src blocking the bootstrap.
+func TestTheEmbeddedIndexHasInlineScripts(t *testing.T) {
+	hashes, err := InlineScriptHashes()
+	if err != nil {
+		t.Fatalf("InlineScriptHashes: %v", err)
+	}
+	if len(hashes) == 0 {
+		t.Fatal("the embedded index has no inline script, so the bootstrap went unhashed")
+	}
+}

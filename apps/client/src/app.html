@@ -26,6 +26,16 @@
 		<meta name="twitter:image" content="https://sso.facile.studio/og-image.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="color-scheme" content="light dark" />
+		<script>
+			(function () {
+				if (location.hostname !== 'sso.facile.studio') return;
+				var s = document.createElement('script');
+				s.async = true;
+				s.src = 'https://vision.facile.studio/s.js';
+				s.setAttribute('data-mask', '');
+				document.head.appendChild(s);
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
