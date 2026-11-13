@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-13
+
 ### Changed
 
 - Sign-up creates every account with a password. The "Create with a passkey" option is gone from `/signup/finish`; a person adds a passkey later from the account page. Passkey sign-in on the login page is unchanged.
@@ -25,6 +27,9 @@ All notable changes to Registre are recorded here. The format follows
 ### Added
 
 - seed: Opus declares its back-channel logout URI.
+- seed: Sonde and Opus get the `connections` scope and `login_providers: [github]`, so Registre emits `connections.github` to them; they use it to check a person's GitHub access before linking a repository. Their login pages offer "Continue with GitHub".
+- The client loads Vision's tracker (`https://vision.facile.studio/s.js`, with `data-mask`) on `sso.facile.studio` only. Tokens of the reset, invite and sign-up links travel in the query string, which the tracker never sends.
+- `script-src` allows the Vision origin and, by sha256 hash, the inline scripts of the embedded client, computed at boot from `internal/web/dist/index.html`. The policy stays report-only.
 
 ## [0.13.7] - 2026-11-13
 
