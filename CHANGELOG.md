@@ -6,6 +6,19 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.3] - 2026-11-13
+
+### Fixed
+
+- Sign-up no longer says "check your inbox" when no mail left. `POST /api/signup/start` now waits for the SMTP server (at most 10 s) and answers `503 mail_failed` when the mail was refused or unreachable, for a known and an unknown address alike. The failed link is withdrawn so the retry is not throttled, and the failure is logged at ERROR with every address redacted.
+- Mails now arrive from "Facile <contact@facile.studio>" instead of a bare address: facteur v0.2.2 applies `SMTP_FROM_NAME`, and its errors no longer repeat the recipient.
+
+### Changed
+
+- After asking for a link, the page names the address, the sender, says to look in spam or promotions and that an address that already has an account gets sign-in instructions instead. It offers "Send the link again" behind a visible 60-second countdown and a way to change the address.
+- The per-email limit (3 links an hour) answers `429` with `retry_after` and `Retry-After`; the page says in how many minutes another link can be sent.
+- An expired or already-used link page offers sign-in and a new link in place, instead of "start again". A link that could not be checked (network or server error) says so rather than calling the link expired.
+
 ## [0.13.2] - 2026-11-12
 
 ### Fixed
