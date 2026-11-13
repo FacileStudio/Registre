@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.4] - 2026-11-13
+
+### Added
+
+- Gare, the suite's deployment daemon, is a seed application at `garev2.facile.studio` with its redirect, back-channel logout and deletion notices. `docker-compose.yml` forwards `REGISTRE_SEED_GARE_SECRET`, which is already set in the Dokploy env.
+
 ## [0.13.3] - 2026-11-13
 
 ### Fixed
