@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.6] - 2026-11-13
+
+### Changed
+
+- chore(deploy): healthchecks run every 30 s with a 1 s start interval, so a deploy cutover stays short while steady `docker exec` load drops.
+
 ## [0.13.5] - 2026-11-13
 
 ### Added
