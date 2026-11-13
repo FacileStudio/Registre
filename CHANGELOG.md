@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.7] - 2026-11-13
+
 ### Changed
 
 - Client: `@facile/muse` moves from v0.16.1 to v0.21.0. The space member remove button shows its label in a muse tooltip.
