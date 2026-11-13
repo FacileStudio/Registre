@@ -7,13 +7,12 @@ import (
 	"net/http"
 
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
-	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	flow "github.com/FacileStudio/Registre/apps/api/internal/signup"
 )
 
-// maxBody caps every sign-up body. A passkey attestation is the largest, at
-// a few kilobytes.
-const maxBody = 64 << 10
+// maxBody caps every sign-up body. The largest is an ALTCHA solution or a
+// 128-character password, well under a kilobyte.
+const maxBody = 16 << 10
 
 // open answers 404 for every route while sign-up is off, so a closed
 // instance looks like one that never had the feature.
@@ -56,23 +55,6 @@ func (s *Service) verify(w http.ResponseWriter, r *http.Request) {
 	encode(w, pending, http.StatusOK)
 }
 
-// passkey begins registering the passkey the account will be created with.
-func (s *Service) passkey(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Token string `json:"token"`
-	}
-	if json.NewDecoder(r.Body).Decode(&body) != nil {
-		encode(w, map[string]string{"error": "invalid"}, http.StatusBadRequest)
-		return
-	}
-	options, err := s.Flow.BeginPasskey(r.Context(), body.Token)
-	if err != nil {
-		s.refuse(w, err)
-		return
-	}
-	encode(w, options, http.StatusOK)
-}
-
 // refuse maps the flow's errors to one answer each.
 func (s *Service) refuse(w http.ResponseWriter, err error) {
 	switch {
@@ -86,8 +68,6 @@ func (s *Service) refuse(w http.ResponseWriter, err error) {
 		encode(w, map[string]any{"error": "password_too_short", "minimum": credentials.MinPasswordLength}, http.StatusBadRequest)
 	case errors.Is(err, credentials.ErrPasswordTooLong):
 		encode(w, map[string]any{"error": "password_too_long", "maximum": credentials.MaxPasswordLength}, http.StatusBadRequest)
-	case errors.Is(err, passkeys.ErrInvalid):
-		encode(w, map[string]string{"error": "passkey"}, http.StatusBadRequest)
 	default:
 		s.serverError(w, err)
 	}

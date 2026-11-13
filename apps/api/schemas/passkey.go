@@ -34,15 +34,11 @@ func (Passkey) TableName() string { return "webauthn_credentials" }
 // a bearer whose SHA-256 is TokenHash; the challenge itself never leaves this
 // row except inside the options.
 type Ceremony struct {
-	ID        string `gorm:"primaryKey"`
-	TokenHash string
-	Purpose   string
-	UserID    *string
-	Session   JSONMap `gorm:"type:jsonb"`
-
-	// BoundTo is what else the ceremony belongs to, such as the sign-up
-	// link it was begun for. Finishing it for anything else is refused.
-	BoundTo    string
+	ID         string `gorm:"primaryKey"`
+	TokenHash  string
+	Purpose    string
+	UserID     *string
+	Session    JSONMap `gorm:"type:jsonb"`
 	ExpiresAt  time.Time
 	ConsumedAt *time.Time
 	CreatedAt  time.Time

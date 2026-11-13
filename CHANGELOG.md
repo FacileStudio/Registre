@@ -6,6 +6,16 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Sign-up creates every account with a password. The "Create with a passkey" option is gone from `/signup/finish`; a person adds a passkey later from the account page. Passkey sign-in on the login page is unchanged.
+- The minimum password length is 8 characters (was 15) on every path that sets one: sign-up, account page, reset, invitation and the dashboard. The 128-character maximum and the breached-password check are unchanged. The CGU draft says so in all four languages, and its version is now 2026-11-13.
+- The "check your inbox" message after asking for a sign-up link is one sentence: where the link went and to look in spam. It reads the same whether or not the address has an account.
+
+### Removed
+
+- `POST /api/signup/passkey`, and the `ceremony` and `credential` fields of `POST /api/signup/finish`. A finish without a password answers `400 {"error":"incomplete"}`.
+
 ## [0.13.7] - 2026-11-13
 
 ### Changed

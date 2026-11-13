@@ -9,7 +9,7 @@ Les présentes conditions régissent l'utilisation d'un compte Facile et des app
 
 ## 2. Votre compte Facile
 
-Un compte Facile vous permet de vous connecter à toutes les applications Facile avec une seule identité (« Se connecter avec Facile »). Pour le créer, vous confirmez une adresse e-mail que vous contrôlez, choisissez votre mode de connexion (une clé d'accès, ou un mot de passe d'au moins 15 caractères) et acceptez les présentes conditions ainsi que la [politique de confidentialité](/legal/privacy).
+Un compte Facile vous permet de vous connecter à toutes les applications Facile avec une seule identité (« Se connecter avec Facile »). Pour le créer, vous confirmez une adresse e-mail que vous contrôlez, choisissez un mot de passe d'au moins 8 caractères (vous pourrez ajouter une clé d'accès ensuite) et acceptez les présentes conditions ainsi que la [politique de confidentialité](/legal/privacy).
 
 - Vous devez avoir au moins [ÂGE MINIMUM, proposé : 15] ans, ou disposer de l'accord d'un parent ou tuteur.
 - Les informations fournies doivent être exactes ; vous les tenez à jour depuis la page de votre compte.

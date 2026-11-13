@@ -54,7 +54,7 @@ func user(t *testing.T, db *gorm.DB, id, hash string) {
 func register(t *testing.T, svc *passkeys.Service, device *passkeytest.Authenticator, userID string) schemas.Passkey {
 	t.Helper()
 	ctx := context.Background()
-	options, err := svc.BeginRegistration(ctx, passkeys.PurposeRegister, userID, userID+"@example.com", "")
+	options, err := svc.BeginRegistration(ctx, passkeys.PurposeRegister, userID, userID+"@example.com")
 	if err != nil {
 		t.Fatalf("BeginRegistration: %v", err)
 	}
@@ -62,11 +62,11 @@ func register(t *testing.T, svc *passkeys.Service, device *passkeytest.Authentic
 	if err != nil {
 		t.Fatalf("authenticator create: %v", err)
 	}
-	registered, err := svc.FinishRegistration(ctx, options.Ceremony, passkeys.PurposeRegister, "", answer)
+	registered, err := svc.FinishRegistration(ctx, options.Ceremony, passkeys.PurposeRegister, answer)
 	if err != nil {
 		t.Fatalf("FinishRegistration: %v", err)
 	}
-	row, err := svc.Store(ctx, nil, registered, "Laptop")
+	row, err := svc.Store(ctx, registered, "Laptop")
 	if err != nil {
 		t.Fatalf("Store: %v", err)
 	}
@@ -104,12 +104,12 @@ func TestAWrongOriginIsRefused(t *testing.T) {
 	svc, db := open(t)
 	user(t, db, "alice", "")
 	ctx := context.Background()
-	options, err := svc.BeginRegistration(ctx, passkeys.PurposeRegister, "alice", "alice@example.com", "")
+	options, err := svc.BeginRegistration(ctx, passkeys.PurposeRegister, "alice", "alice@example.com")
 	if err != nil {
 		t.Fatalf("BeginRegistration: %v", err)
 	}
 	answer, _ := passkeytest.New(rpID, "http://evil.localhost:8080").Create(options.PublicKey)
-	if _, err := svc.FinishRegistration(ctx, options.Ceremony, passkeys.PurposeRegister, "", answer); !errors.Is(err, passkeys.ErrInvalid) {
+	if _, err := svc.FinishRegistration(ctx, options.Ceremony, passkeys.PurposeRegister, answer); !errors.Is(err, passkeys.ErrInvalid) {
 		t.Fatalf("FinishRegistration from another origin = %v, want ErrInvalid", err)
 	}
 }
@@ -120,9 +120,9 @@ func TestACeremonyIsBoundToItsPurpose(t *testing.T) {
 	svc, db := open(t)
 	user(t, db, "alice", "")
 	ctx := context.Background()
-	options, _ := svc.BeginRegistration(ctx, passkeys.PurposeRegister, "alice", "alice@example.com", "")
+	options, _ := svc.BeginRegistration(ctx, passkeys.PurposeRegister, "alice", "alice@example.com")
 	answer, _ := passkeytest.New(rpID, origin).Create(options.PublicKey)
-	if _, err := svc.FinishRegistration(ctx, options.Ceremony, passkeys.PurposeSignup, "", answer); !errors.Is(err, passkeys.ErrInvalid) {
+	if _, err := svc.FinishRegistration(ctx, options.Ceremony, passkeys.PurposeReauth, answer); !errors.Is(err, passkeys.ErrInvalid) {
 		t.Fatalf("cross-purpose finish = %v, want ErrInvalid", err)
 	}
 }
@@ -203,12 +203,12 @@ func TestRegistrationRequiresUserVerification(t *testing.T) {
 	device := passkeytest.New(rpID, origin)
 	device.SkipVerification = true
 	ctx := context.Background()
-	options, err := svc.BeginRegistration(ctx, passkeys.PurposeRegister, "alice", "alice@example.com", "")
+	options, err := svc.BeginRegistration(ctx, passkeys.PurposeRegister, "alice", "alice@example.com")
 	if err != nil {
 		t.Fatalf("BeginRegistration: %v", err)
 	}
 	answer, _ := device.Create(options.PublicKey)
-	if _, err := svc.FinishRegistration(ctx, options.Ceremony, passkeys.PurposeRegister, "", answer); !errors.Is(err, passkeys.ErrInvalid) {
+	if _, err := svc.FinishRegistration(ctx, options.Ceremony, passkeys.PurposeRegister, answer); !errors.Is(err, passkeys.ErrInvalid) {
 		t.Fatalf("an unverified registration = %v, want ErrInvalid", err)
 	}
 }

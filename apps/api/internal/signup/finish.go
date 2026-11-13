@@ -2,7 +2,6 @@ package signup
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/i18n"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
-	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 
 	"gorm.io/gorm"
@@ -21,7 +19,7 @@ import (
 const maxNameLength = 100
 
 // ErrForm is a finish request missing a name, a supported locale, the
-// acceptance, or exactly one way to sign in.
+// acceptance or a password.
 var ErrForm = errors.New("signup: incomplete form")
 
 // ErrBreached is a password found in a known breach.
@@ -34,11 +32,7 @@ type Account struct {
 	Locale   string
 	Accepted bool
 	IP       string
-
-	// Password, or Ceremony and Credential for a passkey: exactly one.
-	Password   string
-	Ceremony   string
-	Credential json.RawMessage
+	Password string
 }
 
 // Created is the new account and the app login it may finish, which the
@@ -48,32 +42,17 @@ type Created struct {
 	AuthRequest string
 }
 
-// BeginPasskey starts registering the passkey the account will be created
-// with. The subject is minted now and travels inside the ceremony, so the
-// account Finish creates is the one the passkey was bound to.
-func (s *Service) BeginPasskey(ctx context.Context, token string) (passkeys.Options, error) {
-	row, err := s.live(ctx, s.DB, token)
-	if err != nil {
-		return passkeys.Options{}, err
-	}
-	subject, err := ids.New()
-	if err != nil {
-		return passkeys.Options{}, fmt.Errorf("signup: mint a subject: %w", err)
-	}
-	return s.Passkeys.BeginRegistration(ctx, passkeys.PurposeSignup, subject, row.Email, row.ID)
-}
-
-// Finish validates the form, proves the chosen factor and creates the
-// account, spending the link in the same transaction.
+// Finish validates the form, screens and hashes the password and creates
+// the account, spending the link in the same transaction. A passkey is added
+// later from the account page, never here.
 func (s *Service) Finish(ctx context.Context, in Account) (Created, error) {
 	if err := validate(in); err != nil {
 		return Created{}, err
 	}
-	link, err := s.live(ctx, s.DB, in.Token)
-	if err != nil {
+	if _, err := s.live(ctx, s.DB, in.Token); err != nil {
 		return Created{}, err
 	}
-	user, registered, err := s.factor(ctx, in, link.ID)
+	user, err := s.account(ctx, in)
 	if err != nil {
 		return Created{}, err
 	}
@@ -85,7 +64,7 @@ func (s *Service) Finish(ctx context.Context, in Account) (Created, error) {
 		}
 		user.Email = row.Email
 		created = Created{User: user, AuthRequest: row.AuthRequestID}
-		return s.create(ctx, tx, &created.User, registered, in)
+		return s.create(ctx, tx, &created.User, in)
 	})
 	if err != nil {
 		return Created{}, err
@@ -93,38 +72,26 @@ func (s *Service) Finish(ctx context.Context, in Account) (Created, error) {
 	return created, nil
 }
 
-// factor proves the passkey or screens and hashes the password, and answers
-// the account row to create with its subject and credential set.
-//
-// A passkey must come from a ceremony begun for this very link: a ceremony
-// begun on another link is refused, so one person's link cannot carry a
-// passkey registered under someone else's address.
-func (s *Service) factor(ctx context.Context, in Account, linkID string) (schemas.User, *passkeys.Registered, error) {
+// account screens and hashes the password and answers the account row to
+// create, with a fresh subject.
+func (s *Service) account(ctx context.Context, in Account) (schemas.User, error) {
 	now := s.now()
 	user := schemas.User{
 		Name: strings.TrimSpace(in.Name), Locale: in.Locale,
 		EmailVerified: true, EmailVerifiedAt: &now, CreatedAt: now, UpdatedAt: now,
 	}
-	if in.Ceremony != "" {
-		registered, err := s.Passkeys.FinishRegistration(ctx, in.Ceremony, passkeys.PurposeSignup, linkID, in.Credential)
-		if err != nil {
-			return user, nil, err
-		}
-		user.ID = registered.UserID
-		return user, &registered, nil
-	}
 	if s.Pwned.Breached(ctx, in.Password) {
-		return user, nil, ErrBreached
+		return user, ErrBreached
 	}
 	hash, err := s.Verifier.Hash(ctx, in.Password)
 	if err != nil {
-		return user, nil, fmt.Errorf("signup: hash the password: %w", err)
+		return user, fmt.Errorf("signup: hash the password: %w", err)
 	}
 	user.PasswordHash = hash
 	if user.ID, err = ids.New(); err != nil {
-		return user, nil, fmt.Errorf("signup: mint a subject: %w", err)
+		return user, fmt.Errorf("signup: mint a subject: %w", err)
 	}
-	return user, nil, nil
+	return user, nil
 }
 
 // redeem spends a live link inside tx. The conditional UPDATE is the
@@ -147,22 +114,15 @@ func (s *Service) redeem(ctx context.Context, tx *gorm.DB, token string) (schema
 	return row, nil
 }
 
-// create writes the account, its consents and its passkey.
-func (s *Service) create(ctx context.Context, tx *gorm.DB, user *schemas.User, reg *passkeys.Registered, in Account) error {
+// create writes the account and its consents.
+func (s *Service) create(ctx context.Context, tx *gorm.DB, user *schemas.User, in Account) error {
 	if err := tx.WithContext(ctx).Create(user).Error; err != nil {
 		if strings.Contains(err.Error(), "users_one_email") {
 			return ErrInvalid
 		}
 		return fmt.Errorf("signup: create the account: %w", err)
 	}
-	if err := s.Consents.Record(ctx, tx, user.ID, in.Locale, in.IP); err != nil {
-		return err
-	}
-	if reg == nil {
-		return nil
-	}
-	_, err := s.Passkeys.Store(ctx, tx, *reg, "")
-	return err
+	return s.Consents.Record(ctx, tx, user.ID, in.Locale, in.IP)
 }
 
 // validate checks the form before any factor work happens.
@@ -171,12 +131,8 @@ func validate(in Account) error {
 	if name == "" || utf8.RuneCountInString(name) > maxNameLength || !in.Accepted || !i18n.Supported(in.Locale) {
 		return ErrForm
 	}
-	hasPasskey := in.Ceremony != "" && len(in.Credential) > 0
-	if hasPasskey == (in.Password != "") {
+	if in.Password == "" {
 		return ErrForm
-	}
-	if hasPasskey {
-		return nil
 	}
 	return credentials.CheckLength(in.Password)
 }

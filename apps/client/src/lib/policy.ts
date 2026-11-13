@@ -16,7 +16,7 @@
  * can disagree tomorrow. The reset path was the one that had drifted low on
  * the server, which made the emailed link the way around the stricter form.
  */
-export const MIN_PASSWORD = 15;
+export const MIN_PASSWORD = 8;
 
 /** MAX_PASSWORD mirrors credentials.MaxPasswordLength in the API. */
 export const MAX_PASSWORD = 128;

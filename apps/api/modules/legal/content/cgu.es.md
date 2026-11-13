@@ -9,7 +9,7 @@ Estas condiciones regulan el uso de una cuenta Facile y de las aplicaciones Faci
 
 ## 2. Tu cuenta Facile
 
-Una cuenta Facile te permite iniciar sesión en todas las aplicaciones Facile con una sola identidad («Iniciar sesión con Facile»). Para crearla confirmas una dirección de correo que controlas, eliges cómo inicias sesión (una llave de acceso o una contraseña de al menos 15 caracteres) y aceptas estas condiciones y la [política de privacidad](/legal/privacy).
+Una cuenta Facile te permite iniciar sesión en todas las aplicaciones Facile con una sola identidad («Iniciar sesión con Facile»). Para crearla confirmas una dirección de correo que controlas, eliges una contraseña de al menos 8 caracteres (puedes añadir una llave de acceso después) y aceptas estas condiciones y la [política de privacidad](/legal/privacy).
 
 - Debes tener al menos [EDAD MÍNIMA, propuesta: 15] años, o contar con el consentimiento de tu madre, padre o tutor.
 - La información que facilitas debe ser exacta y la mantienes al día desde la página de tu cuenta.

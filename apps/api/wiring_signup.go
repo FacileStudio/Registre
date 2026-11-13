@@ -63,7 +63,7 @@ func buildSelf(db *gorm.DB, root []byte, cfg env.Config, svc services) (*selfSer
 		return out, nil
 	}
 	out.flow = signup.New(signup.Deps{
-		DB: db, Verifier: svc.verifier, Consents: out.consents, Passkeys: keys, Pwned: out.pwned, Mailer: directMail(smtp),
+		DB: db, Verifier: svc.verifier, Consents: out.consents, Pwned: out.pwned, Mailer: directMail(smtp),
 	}, settings.AltchaKey, cfg.Issuer)
 	return out, nil
 }

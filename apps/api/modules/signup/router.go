@@ -76,7 +76,6 @@ func MountWithLimits(router chi.Router, service *Service, budget Limits) {
 		routes.With(steps).Get("/challenge", service.challenge)
 		routes.With(limits.PerAddress(budget.StartLimit, budget.StartBurst)).Post("/start", service.start)
 		routes.With(steps).Post("/verify", service.verify)
-		routes.With(steps).Post("/passkey", service.passkey)
 		routes.With(steps, accounts.NewGuard(nil, accounts.Cookies{}).CSRF).Post("/finish", service.finish)
 	})
 }

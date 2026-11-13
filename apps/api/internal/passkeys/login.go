@@ -24,7 +24,7 @@ func (s *Service) BeginLogin(ctx context.Context) (Options, error) {
 	if err != nil {
 		return Options{}, fmt.Errorf("passkeys: begin login: %w", err)
 	}
-	token, err := s.open(ctx, PurposeLogin, "", "", session)
+	token, err := s.open(ctx, PurposeLogin, "", session)
 	if err != nil {
 		return Options{}, err
 	}
@@ -34,7 +34,7 @@ func (s *Service) BeginLogin(ctx context.Context) (Options, error) {
 // FinishLogin verifies a discoverable sign-in and answers the account it
 // opens. A disabled account answers ErrInvalid like a bad signature.
 func (s *Service) FinishLogin(ctx context.Context, token string, response []byte) (string, error) {
-	_, session, err := s.claim(ctx, token, PurposeLogin, "")
+	_, session, err := s.claim(ctx, token, PurposeLogin)
 	if err != nil {
 		return "", err
 	}
@@ -69,7 +69,7 @@ func (s *Service) BeginReauth(ctx context.Context, userID, email string) (Option
 	if err != nil {
 		return Options{}, fmt.Errorf("passkeys: begin reauthentication: %w", err)
 	}
-	token, err := s.open(ctx, PurposeReauth, userID, "", session)
+	token, err := s.open(ctx, PurposeReauth, userID, session)
 	if err != nil {
 		return Options{}, err
 	}
@@ -79,7 +79,7 @@ func (s *Service) BeginReauth(ctx context.Context, userID, email string) (Option
 // FinishReauth verifies that userID, and nobody else, answered a ceremony
 // begun for them.
 func (s *Service) FinishReauth(ctx context.Context, token, userID string, response []byte) error {
-	row, session, err := s.claim(ctx, token, PurposeReauth, "")
+	row, session, err := s.claim(ctx, token, PurposeReauth)
 	if err != nil {
 		return err
 	}

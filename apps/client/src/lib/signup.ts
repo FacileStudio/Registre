@@ -57,21 +57,13 @@ export interface Pending {
 	locale: string;
 }
 
-/** Options are passkey ceremony options plus their bearer. */
-export interface Options {
-	ceremony: string;
-	publicKey: Record<string, unknown>;
-}
-
-/** FinishForm is the last step: profile, consent and one way to sign in. */
+/** FinishForm is the last step: profile, consent and the password. */
 export interface FinishForm {
 	token: string;
 	name: string;
 	locale: string;
 	accept_terms: boolean;
-	password?: string;
-	ceremony?: string;
-	credential?: Record<string, unknown>;
+	password: string;
 }
 
 export const signup = {
@@ -84,7 +76,6 @@ export const signup = {
 			invitation
 		}),
 	verify: (token: string) => post<Pending>('/api/signup/verify', { token }),
-	passkey: (token: string) => post<Options>('/api/signup/passkey', { token }),
 	finish: (form: FinishForm) => post<{ redirect: string }>('/api/signup/finish', form)
 };
 

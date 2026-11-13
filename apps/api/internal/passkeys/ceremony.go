@@ -18,7 +18,7 @@ import (
 
 // open stores a ceremony's session data and answers the bearer the browser
 // sends back with its answer.
-func (s *Service) open(ctx context.Context, purpose, userID, boundTo string, session *webauthn.SessionData) (string, error) {
+func (s *Service) open(ctx context.Context, purpose, userID string, session *webauthn.SessionData) (string, error) {
 	token, err := ids.Secret()
 	if err != nil {
 		return "", fmt.Errorf("passkeys: mint the ceremony token: %w", err)
@@ -36,7 +36,7 @@ func (s *Service) open(ctx context.Context, purpose, userID, boundTo string, ses
 		return "", fmt.Errorf("passkeys: encode the session: %w", err)
 	}
 	row := schemas.Ceremony{
-		ID: id, TokenHash: digest(token), Purpose: purpose, Session: data, BoundTo: boundTo,
+		ID: id, TokenHash: digest(token), Purpose: purpose, Session: data,
 		ExpiresAt: s.now().Add(CeremonyTTL), CreatedAt: s.now(),
 	}
 	if userID != "" {
@@ -48,10 +48,10 @@ func (s *Service) open(ctx context.Context, purpose, userID, boundTo string, ses
 	return token, nil
 }
 
-// claim spends a live ceremony of the given purpose, bound to boundTo,
-// exactly once and answers its session data. The conditional UPDATE is the replay guard: two answers
+// claim spends a live ceremony of the given purpose exactly once and answers
+// its session data. The conditional UPDATE is the replay guard: two answers
 // racing the same ceremony see one row between them.
-func (s *Service) claim(ctx context.Context, token, purpose, boundTo string) (schemas.Ceremony, webauthn.SessionData, error) {
+func (s *Service) claim(ctx context.Context, token, purpose string) (schemas.Ceremony, webauthn.SessionData, error) {
 	var row schemas.Ceremony
 	err := s.db.WithContext(ctx).Where("token_hash = ?", digest(token)).Take(&row).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) || token == "" {
@@ -62,7 +62,7 @@ func (s *Service) claim(ctx context.Context, token, purpose, boundTo string) (sc
 	}
 	now := s.now()
 	spent := s.db.WithContext(ctx).Model(&schemas.Ceremony{}).
-		Where("id = ? AND purpose = ? AND bound_to = ? AND consumed_at IS NULL AND expires_at > ?", row.ID, purpose, boundTo, now).
+		Where("id = ? AND purpose = ? AND consumed_at IS NULL AND expires_at > ?", row.ID, purpose, now).
 		Update("consumed_at", now)
 	if spent.Error != nil {
 		return row, webauthn.SessionData{}, fmt.Errorf("passkeys: spend the ceremony: %w", spent.Error)

@@ -9,8 +9,6 @@ import (
 
 	"github.com/FacileStudio/Registre/apps/api/internal/consent"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
-	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
-	"github.com/FacileStudio/Registre/apps/api/internal/passkeys/passkeytest"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
 )
 
@@ -80,13 +78,13 @@ func TestAnExpiredLinkIsRefused(t *testing.T) {
 	}
 }
 
-// TestPasswordRulesFollowNIST: fifteen characters, no composition rules,
-// breached passwords refused, an HIBP outage skipped.
+// TestPasswordRulesFollowNIST: eight characters, no composition rules,
+// breached passwords refused.
 func TestPasswordRulesFollowNIST(t *testing.T) {
 	w := newWorld(t, map[string]bool{"passwordpassword": true})
 	ctx := context.Background()
 	cases := map[string]error{
-		"fourteen chars":          credentials.ErrPasswordTooShort,
+		"seven c":                 credentials.ErrPasswordTooShort,
 		"passwordpassword":        ErrBreached,
 		string(make([]rune, 129)): credentials.ErrPasswordTooLong,
 	}
@@ -98,9 +96,9 @@ func TestPasswordRulesFollowNIST(t *testing.T) {
 		}
 	}
 	in := form(linkFor(t, w, "nist@example.com"))
-	in.Password = "alllowercaseletters"
+	in.Password = "eightchr"
 	if _, err := w.svc.Finish(ctx, in); err != nil {
-		t.Fatalf("a long lowercase password = %v, want accepted", err)
+		t.Fatalf("an eight-character password = %v, want accepted", err)
 	}
 }
 
@@ -112,8 +110,9 @@ func TestAnHIBPOutageNeverBlocksSignup(t *testing.T) {
 	}
 }
 
-// TestTheFormIsChecked refuses a missing acceptance, an unknown locale and
-// both or neither factor.
+// TestTheFormIsChecked refuses a missing acceptance, an unknown locale, a
+// missing name and a missing password: sign-up never creates an account
+// without one.
 func TestTheFormIsChecked(t *testing.T) {
 	w := newWorld(t, map[string]bool{})
 	token := linkFor(t, w, "form@example.com")
@@ -121,50 +120,13 @@ func TestTheFormIsChecked(t *testing.T) {
 		"no consent":     func(a *Account) { a.Accepted = false },
 		"unknown locale": func(a *Account) { a.Locale = "it" },
 		"no name":        func(a *Account) { a.Name = " " },
-		"no factor":      func(a *Account) { a.Password = "" },
-		"both factors":   func(a *Account) { a.Ceremony, a.Credential = "x", []byte(`{}`) },
+		"no password":    func(a *Account) { a.Password = "" },
 	} {
 		in := form(token)
 		edit(&in)
 		if _, err := w.svc.Finish(context.Background(), in); !errors.Is(err, ErrForm) {
 			t.Errorf("%s = %v, want ErrForm", name, err)
 		}
-	}
-}
-
-// TestAPasskeySignupCreatesAPasskeyOnlyAccount registers through the
-// virtual authenticator.
-func TestAPasskeySignupCreatesAPasskeyOnlyAccount(t *testing.T) {
-	w := newWorld(t, map[string]bool{})
-	ctx := context.Background()
-	token := linkFor(t, w, "keys@example.com")
-	options, err := w.svc.BeginPasskey(ctx, token)
-	if err != nil {
-		t.Fatalf("BeginPasskey: %v", err)
-	}
-	device := passkeytest.New("localhost", "http://localhost:8080")
-	answer, err := device.Create(options.PublicKey)
-	if err != nil {
-		t.Fatalf("authenticator: %v", err)
-	}
-	in := form(token)
-	in.Password, in.Ceremony, in.Credential = "", options.Ceremony, answer
-	created, err := w.svc.Finish(ctx, in)
-	if err != nil {
-		t.Fatalf("Finish: %v", err)
-	}
-	if created.User.PasswordHash != "" {
-		t.Fatal("a passkey account got a password")
-	}
-	var keys int64
-	w.db.Model(&schemas.Passkey{}).Where("user_id = ?", created.User.ID).Count(&keys)
-	if keys != 1 {
-		t.Fatalf("%d passkeys stored, want 1", keys)
-	}
-	login, _ := w.svc.Passkeys.BeginLogin(ctx)
-	assertion, _ := device.Get(login.PublicKey)
-	if id, err := w.svc.Passkeys.FinishLogin(ctx, login.Ceremony, assertion); err != nil || id != created.User.ID {
-		t.Fatalf("signing in with the new passkey = %q, %v", id, err)
 	}
 }
 
@@ -177,25 +139,5 @@ func TestALinkBudgetIsPerAddress(t *testing.T) {
 	err := w.svc.Start(context.Background(), Request{Email: "busy@example.com", Proof: solve(t, w.svc)})
 	if !errors.Is(err, ErrThrottled) {
 		t.Fatalf("a fourth link = %v, want ErrThrottled", err)
-	}
-}
-
-// TestAPasskeyCeremonyBelongsToItsLink refuses a ceremony begun on one link
-// and finished with another, so one person's link cannot carry a passkey
-// registered under someone else's address.
-func TestAPasskeyCeremonyBelongsToItsLink(t *testing.T) {
-	w := newWorld(t, map[string]bool{})
-	ctx := context.Background()
-	mine := linkFor(t, w, "mine@example.com")
-	theirs := linkFor(t, w, "theirs@example.com")
-	options, err := w.svc.BeginPasskey(ctx, mine)
-	if err != nil {
-		t.Fatalf("BeginPasskey: %v", err)
-	}
-	answer, _ := passkeytest.New("localhost", "http://localhost:8080").Create(options.PublicKey)
-	in := form(theirs)
-	in.Password, in.Ceremony, in.Credential = "", options.Ceremony, answer
-	if _, err := w.svc.Finish(ctx, in); !errors.Is(err, passkeys.ErrInvalid) {
-		t.Fatalf("finishing another link's ceremony = %v, want passkeys.ErrInvalid", err)
 	}
 }

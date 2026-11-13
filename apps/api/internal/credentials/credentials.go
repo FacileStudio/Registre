@@ -41,13 +41,16 @@ import (
 // account page demanded twelve, which made the emailed link the way around
 // the stricter form. A floor that one path undercuts is the floor.
 //
-// It is fifteen because NIST SP 800-63B-4 §3.1.1.2 asks for fifteen when the
-// password is the only factor, and one floor for every account is simpler
-// than one that moves when a second factor is enrolled or removed.
+// It is eight, the owner's decision of 2026-11-13. NIST SP 800-63B-4
+// §3.1.1.2 asks for eight when the password is one factor of several and
+// fifteen when it is the only one; Registre applies the lower floor to every
+// account and leans on the breached-password screen and the per-account
+// login throttle for the rest. One floor for every account is simpler than
+// one that moves when a second factor is enrolled or removed.
 //
 // Break-glass keeps a higher one of its own, for a reason that does not
 // generalise: that password is chosen under pressure and opens every app.
-const MinPasswordLength = 15
+const MinPasswordLength = 8
 
 // DefaultConcurrency is how many verifications run at once when the
 // configuration says nothing: two per core.

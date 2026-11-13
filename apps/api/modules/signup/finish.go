@@ -18,13 +18,11 @@ import (
 // when this browser is bound to it, else Registre's home.
 func (s *Service) finish(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Token      string          `json:"token"`
-		Name       string          `json:"name"`
-		Locale     string          `json:"locale"`
-		Accept     bool            `json:"accept_terms"`
-		Password   string          `json:"password"`
-		Ceremony   string          `json:"ceremony"`
-		Credential json.RawMessage `json:"credential"`
+		Token    string `json:"token"`
+		Name     string `json:"name"`
+		Locale   string `json:"locale"`
+		Accept   bool   `json:"accept_terms"`
+		Password string `json:"password"`
 	}
 	if json.NewDecoder(r.Body).Decode(&body) != nil {
 		encode(w, map[string]string{"error": "invalid"}, http.StatusBadRequest)
@@ -32,13 +30,13 @@ func (s *Service) finish(w http.ResponseWriter, r *http.Request) {
 	}
 	created, err := s.Flow.Finish(r.Context(), flow.Account{
 		Token: body.Token, Name: body.Name, Locale: body.Locale, Accepted: body.Accept, IP: clientIP(r),
-		Password: body.Password, Ceremony: body.Ceremony, Credential: body.Credential,
+		Password: body.Password,
 	})
 	if err != nil {
 		s.refuse(w, err)
 		return
 	}
-	s.record(r.Context(), created.User, body.Ceremony != "")
+	s.record(r.Context(), created.User)
 	redirect, err := s.signIn(r, w, created)
 	if err != nil {
 		s.logger.Warn("registre: a new account could not be signed in", slog.Any("error", err))
@@ -83,19 +81,17 @@ func (s *Service) signIn(r *http.Request, w http.ResponseWriter, created flow.Cr
 
 // record writes the account.email_verified and account.signup audit rows:
 // the link proved the address, then the account was created behind it.
-func (s *Service) record(ctx context.Context, user schemas.User, passkey bool) {
+// Every account sign-up creates has a password, so the method is always
+// "password"; the field stays because the audit trail already carries it.
+func (s *Service) record(ctx context.Context, user schemas.User) {
 	if s.Audit == nil {
 		return
-	}
-	method := "password"
-	if passkey {
-		method = "passkey"
 	}
 	target := audit.Target{Type: "user", ID: user.ID}
 	err := s.Audit.Record(ctx, user.ID, "account.email_verified", target, nil)
 	if err == nil {
 		err = s.Audit.Record(ctx, user.ID, "account.signup", target,
-			map[string]any{"method": method, "locale": user.Locale})
+			map[string]any{"method": "password", "locale": user.Locale})
 	}
 	if err != nil {
 		s.logger.Warn("registre: audit write failed", slog.Any("error", err))
