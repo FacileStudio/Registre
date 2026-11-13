@@ -7,10 +7,10 @@
 
 	/**
 	 * SignupRequest asks for a sign-up link and then stays on the "check your
-	 * inbox" state: where the mail went, who it comes from, where else to look,
-	 * a resend button behind a visible cooldown, and a way to change the
-	 * address. The answer is the same whether or not the address already has
-	 * an account, so the sent state says what happens in either case.
+	 * inbox" state: where the mail went and to look in spam, a resend button
+	 * behind a visible cooldown, and a way to change the address. The answer
+	 * is the same whether or not the address already has an account, so the
+	 * sent state says nothing about which one it was.
 	 */
 	interface Props {
 		authRequest?: string;
@@ -112,11 +112,7 @@
 </div>
 
 {#if status === 'sent'}
-	<Alert tone="success" title={t('signup.sentTitle')}>
-		<p>{t('signup.sentBody', { email: email.trim() })}</p>
-		<p class="mt-2">{t('signup.sentFrom')}</p>
-		<p class="mt-2">{t('signup.sentExisting')}</p>
-	</Alert>
+	<Alert tone="success" title={t('signup.sentTitle')}>{t('signup.sentBody', { email: email.trim() })}</Alert>
 	<Button variant="secondary" onclick={resend} disabled={resending || cooldown > 0}>
 		{resending ? t('common.sending') : cooldown > 0 ? t('signup.resendIn', { wait: waitLabel(cooldown) }) : t('signup.resend')}
 	</Button>

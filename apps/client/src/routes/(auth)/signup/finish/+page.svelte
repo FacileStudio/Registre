@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { invitationPath, landing, rememberNext } from '$lib/next';
 	import { onMount } from 'svelte';
-	import { Alert, Button, Field, Input, Select, Stack, icons } from '@facile/muse';
+	import { Alert, Button, Field, Input, Select, Stack } from '@facile/muse';
 	import SignupRequest from '$lib/components/SignupRequest.svelte';
 	import TermsCheckbox from '$lib/components/TermsCheckbox.svelte';
 	import { LOCALES, LOCALE_NAMES, isLocale, locale, setLocale, t, type Locale } from '$lib/i18n/i18n.svelte';
 	import { MAX_PASSWORD, MIN_PASSWORD } from '$lib/policy';
 	import { signup, SignupError } from '$lib/signup';
-	import { createPasskey, passkeysSupported } from '$lib/webauthn';
 
 	type Status = 'checking' | 'invalid' | 'unchecked' | 'ready' | 'busy' | 'done';
 
@@ -16,11 +15,9 @@
 	let name = $state('');
 	let language = $state<string>(locale());
 	let accepted = $state(false);
-	let usePassword = $state(false);
 	let password = $state('');
 	let status = $state<Status>('checking');
 	let error = $state('');
-	let canPasskey = $state(false);
 	let invitation = $state('');
 
 	const passwordLength = $derived([...password].length);
@@ -35,8 +32,6 @@
 	 * not told to start over.
 	 */
 	onMount(async () => {
-		canPasskey = passkeysSupported();
-		usePassword = !canPasskey;
 		token = new URLSearchParams(window.location.search).get('token') ?? '';
 		const invited = new URLSearchParams(window.location.search).get('invitation');
 		invitation = invitationPath(invited) ? (invited ?? '') : '';
@@ -60,49 +55,32 @@
 		setLocale(next);
 	}
 
-	/** withPasskey registers a passkey, then creates the account with it. */
-	async function withPasskey() {
-		if (!ready) return;
-		status = 'busy';
-		error = '';
-		try {
-			const options = await signup.passkey(token);
-			const credential = await createPasskey(options.publicKey);
-			await finish({ ceremony: options.ceremony, credential });
-		} catch (cause) {
-			fail(cause, 'passkey');
-		}
-	}
-
-	/** withPassword creates the account with a password. */
-	async function withPassword(event: SubmitEvent) {
+	/**
+	 * create makes the account with a password, then follows the answer. A
+	 * passkey is added later from the account page.
+	 */
+	async function create(event: SubmitEvent) {
 		event.preventDefault();
 		if (!ready || tooShort) return;
 		status = 'busy';
 		error = '';
 		try {
-			await finish({ password });
+			const answer = await signup.finish({ token, name: name.trim(), locale: language, accept_terms: accepted, password });
+			status = 'done';
+			window.location.assign(landing(answer.redirect || '/'));
 		} catch (cause) {
-			fail(cause, 'failed');
+			fail(cause);
 		}
 	}
 
-	/** finish sends the form and follows the answer. */
-	async function finish(factor: { password?: string; ceremony?: string; credential?: Record<string, unknown> }) {
-		const answer = await signup.finish({ token, name: name.trim(), locale: language, accept_terms: accepted, ...factor });
-		status = 'done';
-		window.location.assign(landing(answer.redirect || '/'));
-	}
-
 	/** fail explains a refusal. */
-	function fail(cause: unknown, fallback: string) {
-		const code = cause instanceof SignupError ? cause.code : fallback;
+	function fail(cause: unknown) {
+		const code = cause instanceof SignupError ? cause.code : 'failed';
 		const messages: Record<string, string> = {
 			invalid_link: t('signup.linkGone'),
 			password_breached: t('password.breached'),
 			password_too_short: t('password.tooShort', { min: MIN_PASSWORD }),
 			password_too_long: t('password.tooLong', { max: MAX_PASSWORD }),
-			passkey: t('signup.passkeyFailed'),
 			rate_limited: t('common.rateLimited')
 		};
 		error = messages[code] ?? t('common.failed');
@@ -148,28 +126,19 @@
 			</Field>
 			<TermsCheckbox bind:checked={accepted} disabled={status !== 'ready'} />
 
-			{#if !usePassword}
-				<Button icon={icons.key} onclick={withPasskey} disabled={!ready}>{t('signup.withPasskey')}</Button>
-				<p class="text-fc-xs text-fc-fg-muted">{t('signup.passkeyNote')}</p>
-				<Button variant="ghost" onclick={() => (usePassword = true)}>{t('signup.usePassword')}</Button>
-			{:else}
-				<form onsubmit={withPassword} class="flex flex-col gap-4">
-					<Field label={t('common.password')} helper={t('password.rule', { min: MIN_PASSWORD })} error={tooShort ? t('password.tooShort', { min: MIN_PASSWORD }) : undefined}>
-						<Input
-							type="password"
-							autocomplete="new-password"
-							required
-							minlength={MIN_PASSWORD}
-							maxlength={MAX_PASSWORD}
-							bind:value={password}
-							disabled={status !== 'ready'}
-						/>
-					</Field>
-					<Button type="submit" disabled={!ready || tooShort || passwordLength === 0}>{t('signup.create')}</Button>
-				</form>
-				{#if canPasskey}
-					<Button variant="ghost" onclick={() => (usePassword = false)}>{t('signup.usePasskey')}</Button>
-				{/if}
-			{/if}
+			<form onsubmit={create} class="flex flex-col gap-4">
+				<Field label={t('common.password')} helper={t('password.rule', { min: MIN_PASSWORD })} error={tooShort ? t('password.tooShort', { min: MIN_PASSWORD }) : undefined}>
+					<Input
+						type="password"
+						autocomplete="new-password"
+						required
+						minlength={MIN_PASSWORD}
+						maxlength={MAX_PASSWORD}
+						bind:value={password}
+						disabled={status !== 'ready'}
+					/>
+				</Field>
+				<Button type="submit" disabled={!ready || tooShort || passwordLength === 0}>{t('signup.create')}</Button>
+			</form>
 		{/if}
 	</Stack>

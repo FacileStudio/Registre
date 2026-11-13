@@ -22,7 +22,7 @@ type Options struct {
 }
 
 // Registered is a credential whose attestation verified and which is not
-// stored yet. Sign-up stores it in the same transaction as the account.
+// stored yet.
 type Registered struct {
 	UserID     string
 	credential *webauthn.Credential
@@ -30,12 +30,8 @@ type Registered struct {
 
 // BeginRegistration starts adding a passkey for userID, labelled email on
 // the authenticator. The account's existing passkeys are excluded so the same
-// authenticator is not registered twice. For sign-up, userID is the subject
-// the account will be created with.
-//
-// boundTo is what else the ceremony belongs to, such as the sign-up link it
-// is begun for; FinishRegistration must name the same one.
-func (s *Service) BeginRegistration(ctx context.Context, purpose, userID, email, boundTo string) (Options, error) {
+// authenticator is not registered twice.
+func (s *Service) BeginRegistration(ctx context.Context, purpose, userID, email string) (Options, error) {
 	holder, err := s.personFor(ctx, userID, email)
 	if err != nil {
 		return Options{}, err
@@ -48,7 +44,7 @@ func (s *Service) BeginRegistration(ctx context.Context, purpose, userID, email,
 	if err != nil {
 		return Options{}, fmt.Errorf("passkeys: begin registration: %w", err)
 	}
-	token, err := s.open(ctx, purpose, userID, boundTo, session)
+	token, err := s.open(ctx, purpose, userID, session)
 	if err != nil {
 		return Options{}, err
 	}
@@ -57,8 +53,8 @@ func (s *Service) BeginRegistration(ctx context.Context, purpose, userID, email,
 
 // FinishRegistration verifies the browser's answer to a registration begun
 // for purpose and answers the credential, unstored.
-func (s *Service) FinishRegistration(ctx context.Context, token, purpose, boundTo string, response []byte) (Registered, error) {
-	row, session, err := s.claim(ctx, token, purpose, boundTo)
+func (s *Service) FinishRegistration(ctx context.Context, token, purpose string, response []byte) (Registered, error) {
+	row, session, err := s.claim(ctx, token, purpose)
 	if err != nil {
 		return Registered{}, err
 	}
@@ -78,14 +74,11 @@ func (s *Service) FinishRegistration(ctx context.Context, token, purpose, boundT
 	return Registered{UserID: userID, credential: credential}, nil
 }
 
-// Store writes a verified credential for its account, inside tx when one is
-// given. A credential id already registered anywhere is refused.
-func (s *Service) Store(ctx context.Context, tx *gorm.DB, reg Registered, name string) (schemas.Passkey, error) {
+// Store writes a verified credential for its account. A credential id
+// already registered anywhere is refused.
+func (s *Service) Store(ctx context.Context, reg Registered, name string) (schemas.Passkey, error) {
 	if reg.credential == nil {
 		return schemas.Passkey{}, ErrInvalid
-	}
-	if tx == nil {
-		tx = s.db
 	}
 	id, err := ids.New()
 	if err != nil {
@@ -101,7 +94,7 @@ func (s *Service) Store(ctx context.Context, tx *gorm.DB, reg Registered, name s
 		AAGUID: reg.credential.Authenticator.AAGUID, SignCount: int64(reg.credential.Authenticator.SignCount),
 		Flags: int16(reg.credential.Flags.ProtocolValue()), Name: CleanName(name), CreatedAt: s.now(),
 	}
-	if err := tx.WithContext(ctx).Create(&row).Error; err != nil {
+	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) || strings.Contains(err.Error(), "webauthn_credentials_one_id") {
 			return schemas.Passkey{}, ErrInvalid
 		}
@@ -123,8 +116,7 @@ func CleanName(name string) string {
 	return string(runes)
 }
 
-// personFor loads userID's passkeys into a go-webauthn user named email. An
-// unknown userID, such as a sign-up's future subject, has none.
+// personFor loads userID's passkeys into a go-webauthn user named email.
 func (s *Service) personFor(ctx context.Context, userID, email string) (person, error) {
 	var rows []schemas.Passkey
 	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&rows).Error; err != nil {

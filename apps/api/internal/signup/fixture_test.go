@@ -14,7 +14,6 @@ import (
 
 	"github.com/FacileStudio/Registre/apps/api/internal/consent"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
-	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	"github.com/FacileStudio/Registre/apps/api/internal/pwned"
 	"github.com/FacileStudio/Registre/apps/api/internal/testdb"
 
@@ -81,14 +80,10 @@ func newWorld(t *testing.T, breached map[string]bool) world {
 		t.Fatalf("truncate: %v", err)
 	}
 	logs := slog.New(slog.NewTextHandler(io.Discard, nil))
-	keys, err := passkeys.New(db, passkeys.Config{RPID: "localhost", Origins: []string{"http://localhost:8080"}}, logs)
-	if err != nil {
-		t.Fatalf("passkeys: %v", err)
-	}
 	mails := &inbox{}
 	svc := New(Deps{
 		DB: db, Verifier: credentials.New(2), Consents: consent.New(db, []byte("consent-key")),
-		Passkeys: keys, Pwned: pwned.NewAt(hibp(t, breached), logs), Mailer: mails,
+		Pwned: pwned.NewAt(hibp(t, breached), logs), Mailer: mails,
 	}, testKey, "https://sso.example.com")
 	return world{svc: svc, db: db, inbox: mails}
 }

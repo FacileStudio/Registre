@@ -35,7 +35,7 @@ const (
 // date the text took effect; change it in the same commit as the text.
 func Versions() map[string]string {
 	return map[string]string{
-		CGU:         "2026-11-04",
+		CGU:         "2026-11-13",
 		CGV:         "2026-11-04",
 		Privacy:     "2026-11-04",
 		LegalNotice: "2026-11-04",

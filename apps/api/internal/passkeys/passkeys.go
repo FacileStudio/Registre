@@ -12,8 +12,7 @@
 // user handle is the person's subject, which is random and carries no
 // personal data.
 //
-// It owns no routes. modules/login, modules/account and modules/signup own
-// the HTTP.
+// It owns no routes. modules/login and modules/account own the HTTP.
 package passkeys
 
 import (
@@ -37,7 +36,6 @@ var ErrInvalid = errors.New("passkeys: invalid passkey response")
 // Ceremony purposes, as stored in webauthn_ceremonies.purpose.
 const (
 	PurposeRegister = "register"
-	PurposeSignup   = "signup"
 	PurposeLogin    = "login"
 	PurposeReauth   = "reauth"
 )

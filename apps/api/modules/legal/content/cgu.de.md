@@ -9,7 +9,7 @@ Diese Bedingungen regeln die Nutzung eines Facile-Kontos und der Facile-Apps, di
 
 ## 2. Dein Facile-Konto
 
-Mit einem Facile-Konto meldest du dich mit einer einzigen Identität bei allen Facile-Apps an („Mit Facile anmelden“). Zum Erstellen bestätigst du eine E-Mail-Adresse, die dir gehört, wählst deine Anmeldeart (einen Passkey oder ein Passwort mit mindestens 15 Zeichen) und akzeptierst diese Bedingungen und die [Datenschutzerklärung](/legal/privacy).
+Mit einem Facile-Konto meldest du dich mit einer einzigen Identität bei allen Facile-Apps an („Mit Facile anmelden“). Zum Erstellen bestätigst du eine E-Mail-Adresse, die dir gehört, wählst ein Passwort mit mindestens 8 Zeichen (einen Passkey kannst du später hinzufügen) und akzeptierst diese Bedingungen und die [Datenschutzerklärung](/legal/privacy).
 
 - Du musst mindestens [MINDESTALTER, Vorschlag: 15] Jahre alt sein oder die Zustimmung eines Elternteils oder Vormunds haben.
 - Deine Angaben müssen zutreffen; du hältst sie auf deiner Kontoseite aktuell.

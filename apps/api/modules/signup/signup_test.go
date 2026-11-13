@@ -19,7 +19,6 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/flows"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
-	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	"github.com/FacileStudio/Registre/apps/api/internal/recovery"
 	flow "github.com/FacileStudio/Registre/apps/api/internal/signup"
 	"github.com/FacileStudio/Registre/apps/api/internal/testdb"
@@ -47,8 +46,7 @@ func TestTheKillSwitchHidesEveryRoute(t *testing.T) {
 	Mount(router, New(Deps{}, quiet()))
 	for _, route := range [][2]string{
 		{http.MethodGet, "/api/signup/challenge"}, {http.MethodPost, "/api/signup/start"},
-		{http.MethodPost, "/api/signup/verify"}, {http.MethodPost, "/api/signup/passkey"},
-		{http.MethodPost, "/api/signup/finish"},
+		{http.MethodPost, "/api/signup/verify"}, {http.MethodPost, "/api/signup/finish"},
 	} {
 		if status, _ := call(t, router, route[0], route[1], `{}`); status != http.StatusNotFound {
 			t.Errorf("%s %s with sign-up off = %d, want 404", route[0], route[1], status)
@@ -77,10 +75,9 @@ func openWith(t *testing.T, budget Limits, mailer recovery.Mailer) http.Handler 
 		t.Fatalf("truncate: %v", err)
 	}
 	db.Create(&schemas.User{ID: "known", Email: "known@example.com"})
-	keys, _ := passkeys.New(db, passkeys.Config{RPID: "localhost", Origins: []string{"http://localhost"}}, quiet())
 	verifier := credentials.New(2)
 	steps := flow.New(flow.Deps{
-		DB: db, Verifier: verifier, Consents: consent.New(db, []byte("k")), Passkeys: keys, Mailer: mailer,
+		DB: db, Verifier: verifier, Consents: consent.New(db, []byte("k")), Mailer: mailer,
 	}, "an-altcha-hmac-key-of-at-least-32-bytes", "https://sso.example.com")
 	router := chi.NewRouter()
 	MountWithLimits(router, New(Deps{
@@ -249,5 +246,38 @@ func TestFinishWantsTheCSRFHeader(t *testing.T) {
 	router.ServeHTTP(rec, request)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("finish without the header = %d, want 403", rec.Code)
+	}
+}
+
+// TestSignupIsPasswordOnly: the passkey ceremony route is gone, a finish
+// carrying a passkey answer and no password is refused, seven characters
+// are refused with the minimum named, and eight are accepted.
+func TestSignupIsPasswordOnly(t *testing.T) {
+	router := open(t, DefaultLimits())
+	if status, _ := callWithFlow(t, router, "/api/signup/passkey", `{"token":"t"}`, ""); status != http.StatusNotFound {
+		t.Fatalf("POST /api/signup/passkey = %d, want 404", status)
+	}
+	url, _ := testdb.URL()
+	db, _ := testdb.Open(url)
+	start := `{"email":"short@example.com","altcha":"` + proof(t, router) + `"}`
+	if status, _ := callWithFlow(t, router, "/api/signup/start", start, ""); status != http.StatusAccepted {
+		t.Fatalf("start = %d", status)
+	}
+	sum := sha256.Sum256([]byte("short-token"))
+	db.Model(&schemas.SignupChallenge{}).Where("email = ?", "short@example.com").Update("token_hash", hex.EncodeToString(sum[:]))
+	form := `{"token":"short-token","name":"Short","locale":"en","accept_terms":true`
+	cases := []struct {
+		extra, want string
+		status      int
+	}{
+		{`,"ceremony":"c","credential":{}}`, `"incomplete"`, http.StatusBadRequest},
+		{`,"password":"seven c"}`, `"minimum":8`, http.StatusBadRequest},
+		{`,"password":"eightchr"}`, `"redirect"`, http.StatusCreated},
+	}
+	for _, c := range cases {
+		status, body := callWithFlow(t, router, "/api/signup/finish", form+c.extra, "")
+		if status != c.status || !strings.Contains(body, c.want) {
+			t.Fatalf("finish with %s = %d %s, want %d with %s", c.extra, status, body, c.status, c.want)
+		}
 	}
 }

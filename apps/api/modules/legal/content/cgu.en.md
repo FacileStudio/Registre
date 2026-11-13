@@ -9,7 +9,7 @@ These terms govern your use of a Facile account and of the Facile apps you reach
 
 ## 2. Your Facile account
 
-A Facile account lets you sign in to every Facile app with one identity ("Sign in with Facile"). To create one you confirm an email address you control, choose how you sign in (a passkey, or a password of at least 15 characters) and accept these terms and the [privacy policy](/legal/privacy).
+A Facile account lets you sign in to every Facile app with one identity ("Sign in with Facile"). To create one you confirm an email address you control, choose a password of at least 8 characters (you can add a passkey later) and accept these terms and the [privacy policy](/legal/privacy).
 
 - You must be at least [MINIMUM AGE, proposed 15] years old, or have the consent of a parent or guardian.
 - The information you give must be accurate, and you keep it up to date from your account page.

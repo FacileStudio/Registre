@@ -76,7 +76,7 @@ starts with the half that does not touch human authentication.
 | **Fresh identities, not seeded from Authentik UUIDs** | The alternative preserves `sub` and makes cutover a Traefik change, fully reversible. Rejected deliberately: carrying Authentik's UUIDs forever carries its legacy in the data. At this scale — three humans plus service accounts, every database under our control — the remap is a handful of statements. The price is that cutover is **not reversible**, which is why §9 is mostly verification |
 | **Authentik stays up until phase 4 completes** | Both issuers can run at once. There is no moment where the suite has only an unproven IdP |
 | **Phases in §5 are ordered by attack surface, not by value** | `client_credentials` has no interactive flow: no redirect_uri validation, no state/nonce, no session fixation, no CSRF, no recovery. It ships first because it is the half that cannot be got subtly wrong, and it happens to be the half that unblocks agent identities |
-| **Public self-service sign-up, off until the owner opens it** | Decided 2026-11-04 for the public launch. `SIGNUP_ENABLED` defaults to false so a deploy never opens it. Email verification is required, passkeys are offered first, the password fallback follows NIST SP 800-63B-4 (15 to 128 characters, no composition rules, breached-password screening), and bots pay a self-hosted ALTCHA proof of work: no Google or Cloudflare service is involved |
+| **Public self-service sign-up, off until the owner opens it** | Decided 2026-11-04 for the public launch. `SIGNUP_ENABLED` defaults to false so a deploy never opens it. Email verification is required, the account is created with a password (8 to 128 characters, no composition rules, breached-password screening; 8 since 2026-11-13, owner decision), a passkey is added afterwards from the account page, and bots pay a self-hosted ALTCHA proof of work: no Google or Cloudflare service is involved |
 | **Languages: fr, en, es, de** | The person's locale lives on their row and reaches apps as the standard OIDC `locale` claim. Every page a person meets (sign-in, sign-up, consent, legal, account, spaces, device approval) and every mail exists in all four; `?lang=xx` picks one. The operator dashboard and the plan section stay English for now |
 | **Joining a space needs the person's consent** | Decided 2026-11-04. With public sign-up, "type an address, the account is in your space" became a way to push strangers into spaces. An owner or admin now sends an invitation; membership exists only after the person accepts |
 
@@ -344,14 +344,14 @@ one. Both branches pay the same SMTP round trip, so waiting for it is no timing 
 the server refuses or cannot reach within ten seconds answers `503 {"error":"mail_failed"}` for
 either branch, withdraws the row so the retry is not throttled, and is logged at ERROR with every
 address redacted. A person is never told a mail is on its way when none is. The per-email limit
-answers `429` with `retry_after` seconds and `Retry-After`. The page then says where the mail went,
-who sends it, to look in spam, and that a known address gets sign-in instructions instead, and
+answers `429` with `retry_after` seconds and `Retry-After`. The page then says, in one sentence, where
+the link went and to look in spam after two minutes (the same words for a known address), and
 offers a resend behind a sixty-second cooldown. An expired or spent link offers a new one in place.
 The link's token is random, stored as SHA-256, good once for thirty minutes.
 `/signup/finish` takes a name, a language and the acceptance of the current CGU and privacy
-policy, then a passkey (registered before the account row exists, bound to the subject the
-account is created with) or a password. The account, its consent rows, its passkey and the spent
-link are one transaction, and the account is born verified (`email_verified_at`). Every route is
+policy, then a password; a finish without one is refused. Sign-up never registers a passkey: the
+person adds one later from `/account` (decided 2026-11-13; `POST /api/signup/passkey` is gone).
+The account, its consent rows and the spent link are one transaction, and the account is born verified (`email_verified_at`). Every route is
 limited per address (an IPv6 address counted per /64); start is also limited to three links per
 address per hour, counted from `signup_challenges` after a valid proof of work, so garbage
 requests cannot spend a stranger's budget. Sign-up started from an app carries that app's login through only for the
@@ -362,8 +362,11 @@ callback then hands the code to that browser alone. A link opened in another bro
 naming an auth request this browser did not open, lands on Registre's home with nothing
 completed.
 
-**Passwords follow NIST SP 800-63B-4.** Every path that sets one (sign-up, account page, reset,
-invitation) requires 15 to 128 characters, counted as characters, with no composition rule.
+**Passwords follow NIST SP 800-63B-4, except the floor.** Every path that sets one (sign-up,
+account page, reset, invitation) requires 8 to 128 characters, counted as characters, with no
+composition rule. NIST asks for 15 when the password is the only factor and 8 when it is one of
+several; the owner chose 8 for every account on 2026-11-13, and the breach screen below and the
+per-account login throttle carry the rest. Break-glass keeps its own 16.
 Every new password on those paths is screened against Have I Been Pwned's range API (`HIBP_ENABLED`,
 on by default): only five hex characters of
 its SHA-1 leave the process, with `Add-Padding`, a 3 s timeout and a 1 MiB cap, and an outage
@@ -381,8 +384,9 @@ removing one needs a factor proven within ten minutes, either at sign-in or thro
 owes was proven (a sign-in or a reauthentication), never derived from when the session row was
 created: the session a password change reissues is new but proves nothing. A password change
 itself wants the current password and, when two-step sign-in is on, a live or recovery code. Each
-ceremony is a `webauthn_ceremonies` row claimed once, bound to its purpose, its account where it
-has one, and for sign-up the very link it was begun for. TOTP stays as it was.
+ceremony is a `webauthn_ceremonies` row claimed once, bound to its purpose and its account where it
+has one (the `bound_to` column migration 00017 added is no longer written and stays `''`). TOTP
+stays as it was.
 
 **Every route that finishes a sign-in wants `X-Facile-CSRF`.** `POST /api/login`,
 `/api/login/totp`, `/api/login/passkey/finish`, `/api/login/session` and `/api/signup/finish`

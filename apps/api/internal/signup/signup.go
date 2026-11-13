@@ -10,7 +10,7 @@
 // them apart, and a mail that could not be sent is reported rather than
 // passed off as sent. The link carries a random token stored as SHA-256,
 // good once, for thirty minutes. Finish creates the account behind a live
-// token, with a passkey or a password, the person's name and language and
+// token, with a password, the person's name and language and
 // their acceptance of the current CGU and privacy policy, in one
 // transaction that also spends the token.
 //
@@ -31,7 +31,6 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
 	"github.com/FacileStudio/Registre/apps/api/internal/i18n"
 	"github.com/FacileStudio/Registre/apps/api/internal/ids"
-	"github.com/FacileStudio/Registre/apps/api/internal/passkeys"
 	"github.com/FacileStudio/Registre/apps/api/internal/pwned"
 	"github.com/FacileStudio/Registre/apps/api/internal/recovery"
 	"github.com/FacileStudio/Registre/apps/api/schemas"
@@ -64,7 +63,6 @@ type Deps struct {
 	DB       *gorm.DB
 	Verifier *credentials.Verifier
 	Consents *consent.Service
-	Passkeys *passkeys.Service
 	Pwned    *pwned.Checker
 	Mailer   recovery.Mailer
 }

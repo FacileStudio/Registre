@@ -26,13 +26,11 @@ type SignupStart struct {
 
 // SignupFinish creates the account behind a live link.
 type SignupFinish struct {
-	Token      string         `json:"token" validate:"required"`
-	Name       string         `json:"name" validate:"required"`
-	Locale     string         `json:"locale" validate:"required"`
-	Accept     bool           `json:"accept_terms" validate:"required"`
-	Password   string         `json:"password,omitempty"`
-	Ceremony   string         `json:"ceremony,omitempty"`
-	Credential map[string]any `json:"credential,omitempty"`
+	Token    string `json:"token" validate:"required"`
+	Name     string `json:"name" validate:"required"`
+	Locale   string `json:"locale" validate:"required"`
+	Accept   bool   `json:"accept_terms" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 // LegalDocument is one legal text.
@@ -64,8 +62,7 @@ func signupModule() Module {
 		{Method: "GET", Path: "/api/signup/challenge", Summary: "A fresh ALTCHA proof-of-work challenge", ResponseBody: map[string]any{"algorithm": "SHA-256", "challenge": "", "maxNumber": 100000, "salt": "", "signature": ""}},
 		{Method: "POST", Path: "/api/signup/start", Summary: "Mail a sign-up link; 202 once sent whether or not the address has an account, 429 with retry_after, 503 mail_failed when the mail could not be sent", RequestBody: SignupStart{}, ResponseBody: map[string]string{"status": "sent"}, Status: http.StatusAccepted},
 		{Method: "POST", Path: "/api/signup/verify", Summary: "What a live link is for, without spending it; 410 when gone", RequestBody: tokenBody{}, ResponseBody: map[string]string{"email": "", "locale": "en"}},
-		{Method: "POST", Path: "/api/signup/passkey", Summary: "Begin registering the new account's passkey", RequestBody: tokenBody{}, ResponseBody: PasskeyOptions{}},
-		{Method: "POST", Path: "/api/signup/finish", Summary: "Create the account (passkey or NIST password), record consent, sign in", RequestBody: SignupFinish{}, ResponseBody: map[string]string{"redirect": "/"}, Status: http.StatusCreated},
+		{Method: "POST", Path: "/api/signup/finish", Summary: "Create the account with a password (8 to 128 characters, breach-screened), record consent, sign in; passkeys are added later from the account page", RequestBody: SignupFinish{}, ResponseBody: map[string]string{"redirect": "/"}, Status: http.StatusCreated},
 	}}
 }
 
