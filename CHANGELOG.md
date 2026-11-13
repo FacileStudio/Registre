@@ -6,6 +6,16 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- fix(account): logging out of registre (`/logout`, `/api/logout`, `/api/account/logout`) now sends back-channel logout to every app the session reached and revokes the person's refresh grants to those apps. It used to end only registre's own session, so every app stayed signed in.
+- fix(login): signing in as another person on a browser that still holds a live account session signs the previous person out of their apps first, on every sign-in path. Reloading an app now shows the new person instead of the old one. Signing in again as the same person changes nothing.
+- fix(identity): a session records each app it signs in to with one atomic append. Two apps signing in at once could drop one of them, and back-channel logout then skipped it.
+
+### Added
+
+- seed: Opus declares its back-channel logout URI.
+
 ## [0.13.6] - 2026-11-13
 
 ### Changed

@@ -139,7 +139,7 @@ func (s *Service) finishSocialLogin(w http.ResponseWriter, r *http.Request, row 
 		s.socialChallenge(w, r, user.ID, row.AuthRequestID)
 		return
 	}
-	answer, err := s.finish(ctx, w, user.ID, authReq)
+	answer, err := s.finish(r, w, user.ID, authReq)
 	if errors.Is(err, access.ErrNoAccess) {
 		s.socialFailure(w, r, row.AuthRequestID, reasonNoAccess)
 		return

@@ -52,16 +52,16 @@ func (s *Service) pendingRequest(ctx context.Context, id string) (*schemas.AuthR
 // finish opens the session for a person whose every factor is proven and
 // answers where the browser goes next.
 func (s *Service) finish(
-	ctx context.Context, w http.ResponseWriter, userID string, authReq *schemas.AuthRequest,
+	r *http.Request, w http.ResponseWriter, userID string, authReq *schemas.AuthRequest,
 ) (decision, error) {
 	if authReq != nil {
-		redirect, err := s.complete(ctx, w, userID, *authReq)
+		redirect, err := s.complete(r, w, userID, *authReq)
 		if err != nil {
 			return decision{}, err
 		}
 		return decision{Redirect: redirect}, nil
 	}
-	redirect, err := s.completeDirect(ctx, w, userID)
+	redirect, err := s.completeDirect(r, w, userID)
 	if err != nil {
 		return decision{}, err
 	}

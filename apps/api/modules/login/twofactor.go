@@ -50,7 +50,7 @@ func (s *Service) jsonSecondFactor(w http.ResponseWriter, r *http.Request) {
 	if token == "" && s.social != nil {
 		token, held = s.social.Handoff(r), true
 	}
-	answer, err := s.answer(r.Context(), w, token, body.Code)
+	answer, err := s.answer(r, w, token, body.Code)
 	if err != nil {
 		s.refuse(w, err)
 		return
@@ -69,8 +69,9 @@ func (s *Service) jsonSecondFactor(w http.ResponseWriter, r *http.Request) {
 // consumed before the session opens, so two tabs racing the same good code
 // cannot both complete it.
 func (s *Service) answer(
-	ctx context.Context, w http.ResponseWriter, token, code string,
+	r *http.Request, w http.ResponseWriter, token, code string,
 ) (decision, error) {
+	ctx := r.Context()
 	if s.factor.Challenges == nil || s.factor.Codes == nil {
 		return decision{}, challenges.ErrInvalid
 	}
@@ -92,7 +93,7 @@ func (s *Service) answer(
 		return decision{}, err
 	}
 	if row.AuthRequestID == "" {
-		redirect, err := s.completeDirect(ctx, w, user.ID)
+		redirect, err := s.completeDirect(r, w, user.ID)
 		if err != nil {
 			return decision{}, err
 		}
@@ -102,7 +103,7 @@ func (s *Service) answer(
 	if err != nil || !authReq.ExpiresAt.After(s.now()) || authReq.Done() {
 		return decision{}, errAuthRequestGone
 	}
-	redirect, err := s.complete(ctx, w, user.ID, authReq)
+	redirect, err := s.complete(r, w, user.ID, authReq)
 	if err != nil {
 		return decision{}, err
 	}

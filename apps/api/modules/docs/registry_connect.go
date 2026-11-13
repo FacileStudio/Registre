@@ -15,15 +15,16 @@ func connectModule() Module {
 }
 
 // logoutModule documents the logout shortcuts: GET redirects to /, POST
-// answers JSON. Both end the account session the cookie names.
+// answers JSON. Both end the account session the cookie names and send
+// back-channel logout to every app that session reached.
 func logoutModule() Module {
 	routes := []Route{}
 	for _, path := range []string{"/logout", "/api/logout", "/api/account/logout"} {
 		routes = append(routes,
-			Route{Method: "GET", Path: path, Summary: "End the account session and go to /", Auth: "cookie", Status: 302, ResponseBody: "Found"})
+			Route{Method: "GET", Path: path, Summary: "End the account session, sign out of its apps and go to /", Auth: "cookie", Status: 302, ResponseBody: "Found"})
 		if path != "/api/account/logout" {
 			routes = append(routes,
-				Route{Method: "POST", Path: path, Summary: "End the account session", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]string{"ok": "true"}})
+				Route{Method: "POST", Path: path, Summary: "End the account session and sign out of its apps", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]string{"ok": "true"}})
 		}
 	}
 	return Module{Name: "logout", Description: "Logout shortcuts", Routes: routes}

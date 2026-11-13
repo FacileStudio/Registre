@@ -41,6 +41,7 @@ type fixture struct {
 	user    string
 	token   string
 	db      *gorm.DB
+	fired   chan []string
 }
 
 func newFixture(t *testing.T) fixture {
@@ -60,7 +61,8 @@ func newFixture(t *testing.T) fixture {
 	verifier := credentials.New(2)
 	users := identity.New(db, verifier)
 	factors := totp.New(db, root)
-	sessions := accounts.New(db)
+	fired := make(logouts, 8)
+	sessions := accounts.New(db).WithNotifier(fired, nil)
 	cookies := accounts.NewCookies(false)
 	router := chi.NewRouter()
 	Mount(router, New(Services{
@@ -85,7 +87,7 @@ func newFixture(t *testing.T) fixture {
 	if err != nil {
 		t.Fatalf("issuing the cookie: %v", err)
 	}
-	return fixture{router, users, factors, cookies, user.ID, token, db}
+	return fixture{router, users, factors, cookies, user.ID, token, db, fired}
 }
 
 // request builds a JSON request for path, carrying no credentials.

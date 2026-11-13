@@ -58,7 +58,7 @@ func (s *Service) finishPasskey(w http.ResponseWriter, r *http.Request) {
 		s.refuse(w, err)
 		return
 	}
-	answer, err := s.finish(r.Context(), w, userID, authReq)
+	answer, err := s.finish(r, w, userID, authReq)
 	if err != nil {
 		s.refuse(w, err)
 		return

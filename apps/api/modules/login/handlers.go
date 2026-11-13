@@ -1,7 +1,6 @@
 package login
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -136,7 +135,7 @@ func (s *Service) jsonSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad body", http.StatusBadRequest)
 		return
 	}
-	answer, err := s.authenticate(r.Context(), w, body.AuthRequest, body.Email, body.Password)
+	answer, err := s.authenticate(r, w, body.AuthRequest, body.Email, body.Password)
 	if err != nil {
 		s.refuse(w, err)
 		return
@@ -185,8 +184,9 @@ func encode(w http.ResponseWriter, body any, status int) {
 // has a factor gets a challenge and nothing else, because a session opened
 // now is a session the password alone opened.
 func (s *Service) authenticate(
-	ctx context.Context, w http.ResponseWriter, id, email, password string,
+	r *http.Request, w http.ResponseWriter, id, email, password string,
 ) (decision, error) {
+	ctx := r.Context()
 	authReq, err := s.pendingRequest(ctx, id)
 	if err != nil {
 		return decision{}, err
@@ -205,17 +205,18 @@ func (s *Service) authenticate(
 		}
 		return decision{Challenge: token}, nil
 	}
-	return s.finish(ctx, w, user.ID, authReq)
+	return s.finish(r, w, user.ID, authReq)
 }
 
 func (s *Service) completeDirect(
-	ctx context.Context, w http.ResponseWriter, userID string,
+	r *http.Request, w http.ResponseWriter, userID string,
 ) (string, error) {
+	ctx := r.Context()
 	sessionID, err := s.identity.StartSession(ctx, userID, "", s.now())
 	if err != nil {
 		return "", fmt.Errorf("identity: start the session: %w", err)
 	}
-	if err := s.writeAccountCookie(ctx, w, sessionID); err != nil {
+	if err := s.writeAccountCookie(r, w, userID, sessionID); err != nil {
 		return "", err
 	}
 	if errors.Is(s.identity.ConsentOwed(ctx, userID), identity.ErrConsentRequired) {
@@ -225,8 +226,9 @@ func (s *Service) completeDirect(
 }
 
 func (s *Service) complete(
-	ctx context.Context, w http.ResponseWriter, userID string, authReq schemas.AuthRequest,
+	r *http.Request, w http.ResponseWriter, userID string, authReq schemas.AuthRequest,
 ) (string, error) {
+	ctx := r.Context()
 	sessionID, err := s.identity.StartSession(ctx, userID, authReq.ClientID, s.now())
 	if err != nil {
 		return "", fmt.Errorf("identity: start the session: %w", err)
@@ -237,7 +239,7 @@ func (s *Service) complete(
 		s.identity.DropSession(ctx, sessionID)
 		return "", fmt.Errorf("identity: complete the login: %w", completed)
 	}
-	if err := s.writeAccountCookie(ctx, w, sessionID); err != nil {
+	if err := s.writeAccountCookie(r, w, userID, sessionID); err != nil {
 		return "", err
 	}
 	if owesConsent {
@@ -249,9 +251,18 @@ func (s *Service) complete(
 // writeAccountCookie hands the human the session registre's own account pages
 // read. A deployment wired without the account service logs in exactly as it
 // did before, so an absent service is a no-op here and not a nil dereference.
-func (s *Service) writeAccountCookie(ctx context.Context, w http.ResponseWriter, sessionID string) error {
+//
+// It first signs out the session the browser's cookie still names when that
+// session is someone else's, so switching account on registre also switches
+// it in every app. Every sign-in path, password, second factor, passkey and
+// social, reaches the cookie through here.
+func (s *Service) writeAccountCookie(r *http.Request, w http.ResponseWriter, userID, sessionID string) error {
 	if s.factor.Accounts == nil {
 		return nil
+	}
+	ctx := r.Context()
+	if err := s.factor.Accounts.Replace(ctx, s.factor.Cookies.Read(r), userID); err != nil {
+		return fmt.Errorf("accounts: sign out the previous account: %w", err)
 	}
 	token, err := s.factor.Accounts.Issue(ctx, sessionID)
 	if err != nil {
