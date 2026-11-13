@@ -6,8 +6,9 @@
 // whether or not the address has an account: a known address is mailed "you
 // already have an account, sign in instead", an unknown one a link. Both
 // branches write one signup_challenges row (the known one born spent) and
-// hand the mail to an asynchronous sender, so neither the database nor SMTP
-// can tell them apart. The link carries a random token stored as SHA-256,
+// send one mail before answering, so neither the database nor SMTP can tell
+// them apart, and a mail that could not be sent is reported rather than
+// passed off as sent. The link carries a random token stored as SHA-256,
 // good once, for thirty minutes. Finish creates the account behind a live
 // token, with a passkey or a password, the person's name and language and
 // their acceptance of the current CGU and privacy policy, in one
@@ -103,9 +104,9 @@ type Request struct {
 	Invitation  string
 }
 
-// Start spends the proof of work, then writes one row and hands one mail to
-// the sender whatever the address. Only ErrProof and ErrEmail are told to
-// the caller, and neither depends on the address having an account.
+// Start spends the proof of work, then writes one row and sends one mail
+// whatever the address. ErrProof, ErrEmail, ErrThrottled and ErrMail are
+// told to the caller, and none depends on the address having an account.
 func (s *Service) Start(ctx context.Context, in Request) error {
 	if err := s.spend(ctx, in.Proof); err != nil {
 		return err
@@ -123,28 +124,30 @@ func (s *Service) Start(ctx context.Context, in Request) error {
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("signup: read the account: %w", err)
 	}
-	token, err := s.record(ctx, email, i18n.Normalize(in.Locale), in.AuthRequest, known)
+	token, id, err := s.record(ctx, email, i18n.Normalize(in.Locale), in.AuthRequest, known)
 	if err != nil {
 		return err
 	}
+	to, subject, body := email, "", ""
 	if known {
-		subject, body := i18n.Mail(i18n.MailSignupExisting, existing.Locale, s.loginLink(in.Invitation), nil)
-		return s.Mailer.Send(ctx, existing.Email, subject, body)
+		to = existing.Email
+		subject, body = i18n.Mail(i18n.MailSignupExisting, existing.Locale, s.loginLink(in.Invitation), nil)
+	} else {
+		subject, body = i18n.Mail(i18n.MailSignupVerify, in.Locale, s.finishLink(token, in.Invitation), nil)
 	}
-	subject, body := i18n.Mail(i18n.MailSignupVerify, in.Locale, s.finishLink(token, in.Invitation), nil)
-	return s.Mailer.Send(ctx, email, subject, body)
+	return s.send(ctx, id, to, subject, body)
 }
 
 // record writes the link row. A row for a known address is spent at birth,
 // so the insert both branches pay is the same insert.
-func (s *Service) record(ctx context.Context, email, locale, authRequest string, spent bool) (string, error) {
+func (s *Service) record(ctx context.Context, email, locale, authRequest string, spent bool) (string, string, error) {
 	token, err := ids.Secret()
 	if err != nil {
-		return "", fmt.Errorf("signup: mint the token: %w", err)
+		return "", "", fmt.Errorf("signup: mint the token: %w", err)
 	}
 	id, err := ids.New()
 	if err != nil {
-		return "", fmt.Errorf("signup: mint the id: %w", err)
+		return "", "", fmt.Errorf("signup: mint the id: %w", err)
 	}
 	now := s.now()
 	row := schemas.SignupChallenge{
@@ -155,24 +158,26 @@ func (s *Service) record(ctx context.Context, email, locale, authRequest string,
 		row.UsedAt = &now
 	}
 	if err := s.DB.WithContext(ctx).Create(&row).Error; err != nil {
-		return "", fmt.Errorf("signup: record the link: %w", err)
+		return "", "", fmt.Errorf("signup: record the link: %w", err)
 	}
-	return token, nil
+	return token, id, nil
 }
 
 // underBudget refuses an address that received MaxLinksPerHour links in the
-// last hour.
+// last hour, with the wait until the oldest of them stops counting.
 func (s *Service) underBudget(ctx context.Context, email string) error {
-	var recent int64
+	var recent []time.Time
 	err := s.DB.WithContext(ctx).Model(&schemas.SignupChallenge{}).
-		Where("lower(email) = ? AND created_at > ?", email, s.now().Add(-time.Hour)).Count(&recent).Error
+		Where("lower(email) = ? AND created_at > ?", email, s.now().Add(-time.Hour)).
+		Order("created_at DESC").Limit(MaxLinksPerHour).Pluck("created_at", &recent).Error
 	if err != nil {
 		return fmt.Errorf("signup: count recent links: %w", err)
 	}
-	if recent >= MaxLinksPerHour {
-		return ErrThrottled
+	if len(recent) < MaxLinksPerHour {
+		return nil
 	}
-	return nil
+	wait := recent[len(recent)-1].Add(time.Hour).Sub(s.now())
+	return &Throttled{Wait: max(wait, time.Second)}
 }
 
 // Pending is what a live link says about the account it will create.

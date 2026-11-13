@@ -9,6 +9,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/env"
 	"github.com/FacileStudio/Registre/apps/api/internal/i18n"
 	"github.com/FacileStudio/Registre/apps/api/internal/recovery"
+	"github.com/FacileStudio/Registre/apps/api/internal/signup"
 
 	mailer "github.com/FacileStudio/facteur"
 )
@@ -44,6 +45,27 @@ func outboundMail(cfg mailer.Config, log *slog.Logger) (recovery.Mailer, bool) {
 	}), true
 }
 
+// directMail is the mailer sign-up sends through: it waits for the SMTP
+// server's answer, so a refused or unreachable mail reaches the person as an
+// error instead of a "check your inbox" that will never come true. Sign-up
+// may wait because both of its branches send a mail, so the round trip is
+// paid whether or not the address has an account. nil when SMTP is not
+// configured.
+func directMail(cfg mailer.Config) recovery.Mailer {
+	if cfg.Host == "" || cfg.FromEmail == "" {
+		return nil
+	}
+	sender := mailer.New(cfg)
+	return recovery.MailerFunc(func(ctx context.Context, to, subject, html string) error {
+		return sender.Send(ctx, message(to, subject, html))
+	})
+}
+
+// message is one outgoing mail with its readable text part.
+func message(to, subject, html string) mailer.Message {
+	return mailer.Message{To: []string{to}, Subject: subject, HTML: html, Text: i18n.PlainText(html)}
+}
+
 // deliver sends one message on its own goroutine, with a context of its own.
 //
 // The request's context is deliberately not carried in: it is cancelled the
@@ -52,9 +74,8 @@ func outboundMail(cfg mailer.Config, log *slog.Logger) (recovery.Mailer, bool) {
 func deliver(sender *mailer.Mailer, log *slog.Logger, to, subject, html string) {
 	ctx, cancel := context.WithTimeout(context.Background(), mailHandoff)
 	defer cancel()
-	err := sender.Send(ctx, mailer.Message{To: []string{to}, Subject: subject, HTML: html, Text: i18n.PlainText(html)})
-	if err != nil {
-		log.Error("registre: failed to deliver a recovery mail", slog.Any("error", err))
+	if err := sender.Send(ctx, message(to, subject, html)); err != nil {
+		log.Error("registre: failed to deliver a mail", slog.String("error", signup.Redact(err.Error())))
 	}
 }
 

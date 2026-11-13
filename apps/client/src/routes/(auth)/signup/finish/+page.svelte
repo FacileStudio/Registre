@@ -2,13 +2,14 @@
 	import { invitationPath, landing, rememberNext } from '$lib/next';
 	import { onMount } from 'svelte';
 	import { Alert, Button, Field, Input, Select, Stack, icons } from '@facile/muse';
+	import SignupRequest from '$lib/components/SignupRequest.svelte';
 	import TermsCheckbox from '$lib/components/TermsCheckbox.svelte';
 	import { LOCALES, LOCALE_NAMES, isLocale, locale, setLocale, t, type Locale } from '$lib/i18n/i18n.svelte';
 	import { MAX_PASSWORD, MIN_PASSWORD } from '$lib/policy';
 	import { signup, SignupError } from '$lib/signup';
 	import { createPasskey, passkeysSupported } from '$lib/webauthn';
 
-	type Status = 'checking' | 'invalid' | 'ready' | 'busy' | 'done';
+	type Status = 'checking' | 'invalid' | 'unchecked' | 'ready' | 'busy' | 'done';
 
 	let token = $state('');
 	let email = $state('');
@@ -20,6 +21,7 @@
 	let status = $state<Status>('checking');
 	let error = $state('');
 	let canPasskey = $state(false);
+	let invitation = $state('');
 
 	const passwordLength = $derived([...password].length);
 	const tooShort = $derived(passwordLength > 0 && passwordLength < MIN_PASSWORD);
@@ -27,13 +29,18 @@
 
 	/**
 	 * Read the token, then take it out of the address bar: it is a credential
-	 * for the next thirty minutes and should not sit in history.
+	 * for the next thirty minutes and should not sit in history. A link the
+	 * server calls gone (410) gets the page that asks for a new one; any other
+	 * failure says the check itself failed, so a person with a good link is
+	 * not told to start over.
 	 */
 	onMount(async () => {
 		canPasskey = passkeysSupported();
 		usePassword = !canPasskey;
 		token = new URLSearchParams(window.location.search).get('token') ?? '';
-		rememberNext(invitationPath(new URLSearchParams(window.location.search).get('invitation')));
+		const invited = new URLSearchParams(window.location.search).get('invitation');
+		invitation = invitationPath(invited) ? (invited ?? '') : '';
+		rememberNext(invitationPath(invited));
 		history.replaceState(history.state, '', window.location.pathname);
 		try {
 			const pending = await signup.verify(token);
@@ -42,8 +49,8 @@
 				pickLanguage(pending.locale);
 			}
 			status = 'ready';
-		} catch {
-			status = 'invalid';
+		} catch (cause) {
+			status = cause instanceof SignupError && cause.status === 410 ? 'invalid' : 'unchecked';
 		}
 	});
 
@@ -117,10 +124,12 @@
 
 		{#if status === 'checking'}
 			<p class="text-fc-sm text-fc-fg-muted">{t('common.loading')}</p>
+		{:else if status === 'unchecked'}
+			<Alert tone="danger" title={t('signup.checkFailed')} />
 		{:else if status === 'invalid'}
-			<Alert tone="danger" title={t('signup.linkGone')}>
-				<a href="/signup" class="underline underline-offset-2">{t('signup.again')}</a>
-			</Alert>
+			<Alert tone="warning" title={t('signup.linkGoneTitle')}>{t('signup.linkGone')}</Alert>
+			<Button variant="secondary" href="/login">{t('login.title')}</Button>
+			<SignupRequest {invitation} submitLabel={t('signup.resend')} />
 		{:else}
 			<div aria-live="polite">
 				{#if error}
