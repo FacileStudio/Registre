@@ -25,6 +25,6 @@
   },
   "dependencies": {
     "@facile/journal": "github:FacileStudio/Journal#ts",
-    "@facile/muse": "github:FacileStudio/muse#v0.16.1"
+    "@facile/muse": "github:FacileStudio/muse#v0.21.0"
   }
 }
