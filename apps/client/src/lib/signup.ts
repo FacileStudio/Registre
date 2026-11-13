@@ -5,17 +5,30 @@
  */
 import { locale } from '$lib/i18n/i18n.svelte';
 
-/** SignupError carries the server's error code so pages can explain it. */
+/**
+ * SignupError carries the server's error code so pages can explain it, and
+ * for a 429 the seconds to wait before asking again (0 when unknown).
+ */
 export class SignupError extends Error {
 	readonly status: number;
 	readonly code: string;
+	readonly retryAfter: number;
 
-	constructor(status: number, code: string) {
+	constructor(status: number, code: string, retryAfter = 0) {
 		super(code);
 		this.name = 'SignupError';
 		this.status = status;
 		this.code = code;
+		this.retryAfter = retryAfter;
 	}
+}
+
+/** waitOf reads how long a 429 asks to wait, from the body or Retry-After. */
+function waitOf(response: Response, parsed: { retry_after?: unknown } | null): number {
+	const fromBody = Number(parsed?.retry_after);
+	if (Number.isFinite(fromBody) && fromBody > 0) return Math.ceil(fromBody);
+	const fromHeader = Number(response.headers.get('Retry-After'));
+	return Number.isFinite(fromHeader) && fromHeader > 0 ? Math.ceil(fromHeader) : 0;
 }
 
 /** post sends one JSON body and answers the parsed reply or throws SignupError. */
@@ -33,7 +46,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 	const parsed = await response.json().catch(() => null);
 	if (!response.ok) {
 		const code = response.status === 429 ? 'rate_limited' : (parsed?.error ?? 'failed');
-		throw new SignupError(response.status, code);
+		throw new SignupError(response.status, code, response.status === 429 ? waitOf(response, parsed) : 0);
 	}
 	return parsed as T;
 }
