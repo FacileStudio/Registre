@@ -587,9 +587,10 @@ func Reference() apiref.Config {
 						{
 							Method:       "POST",
 							Path:         "/api/account/logout",
-							Summary:      "End the account session and sign out of every app it reached",
+							Summary:      "End the account session and sign out of every app it reached (needs X-Facile-CSRF)",
 							Auth:         "cookie",
-							ResponseBody: map[string]any{"logged_out": true},
+							ResponseBody: map[string]string{"ok": "true"},
+							Errors:       []Error{csrfRefused},
 						},
 					},
 				},

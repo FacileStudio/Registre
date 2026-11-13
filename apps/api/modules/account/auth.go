@@ -60,8 +60,13 @@ func (s *Service) me(w http.ResponseWriter, r *http.Request) {
 // logout ends the session, tells every app it reached, and clears the cookie,
 // whatever state the cookie was in. It answers 200 for a cookie that names
 // nothing live, because the human who most needs to log out is the one whose
-// session has already gone wrong.
+// session has already gone wrong. A GET that accounts.MayLogOut refuses, a
+// link from another site for instance, ends nothing and answers 405.
 func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
+	if !accounts.MayLogOut(r) {
+		accounts.RefuseLogout(w)
+		return
+	}
 	if err := s.sessions.SignOut(r.Context(), s.cookies.Read(r)); err != nil {
 		slog.Warn("registre: ending the account session failed", slog.Any("error", err))
 	}

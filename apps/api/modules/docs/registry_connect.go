@@ -14,18 +14,23 @@ func connectModule() Module {
 	}}
 }
 
-// logoutModule documents the logout shortcuts: GET redirects to /, POST
-// answers JSON. Both end the account session the cookie names and send
-// back-channel logout to every app that session reached.
+// csrfRefused is the answer to a logout POST without X-Facile-CSRF.
+var csrfRefused = Error{Status: 403, Code: "forbidden", Description: "No X-Facile-CSRF header"}
+
+// getRefused is the answer to an API logout GET that another site started.
+var getRefused = Error{Status: 405, Code: "method_not_allowed", Description: "Not a same-origin or same-site navigation; sign out with POST and X-Facile-CSRF"}
+
+// logoutModule documents the logout shortcuts. Each ends the account session
+// the cookie names and sends back-channel logout to every app it reached, but
+// a GET does so only for a same-origin or same-site navigation, so a
+// link on another website cannot sign anyone out.
 func logoutModule() Module {
-	routes := []Route{}
-	for _, path := range []string{"/logout", "/api/logout", "/api/account/logout"} {
-		routes = append(routes,
-			Route{Method: "GET", Path: path, Summary: "End the account session, sign out of its apps and go to /", Auth: "cookie", Status: 302, ResponseBody: "Found"})
-		if path != "/api/account/logout" {
-			routes = append(routes,
-				Route{Method: "POST", Path: path, Summary: "End the account session and sign out of its apps", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]string{"ok": "true"}})
-		}
-	}
-	return Module{Name: "logout", Description: "Logout shortcuts", Routes: routes}
+	const sibling = "End the account session and sign out of its apps for a navigation (Sec-Fetch-Mode navigate) whose Sec-Fetch-Site is same-origin or same-site"
+	return Module{Name: "logout", Description: "Logout shortcuts", Routes: []Route{
+		{Method: "GET", Path: "/logout", Summary: sibling + ", then go to /", Description: "Any other GET ends nothing and answers 200 with the \"Sign out of Facile?\" page, whose button POSTs with X-Facile-CSRF.", Auth: "cookie", Status: 302, ResponseBody: "Found"},
+		{Method: "POST", Path: "/logout", Summary: "End the account session and sign out of its apps (needs X-Facile-CSRF)", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]string{"ok": "true"}, Errors: []Error{csrfRefused}},
+		{Method: "GET", Path: "/api/logout", Summary: sibling + ", then go to /", Auth: "cookie", Status: 302, ResponseBody: "Found", Errors: []Error{getRefused}},
+		{Method: "POST", Path: "/api/logout", Summary: "End the account session and sign out of its apps (needs X-Facile-CSRF)", Auth: "cookie", RequestBody: map[string]any{}, ResponseBody: map[string]string{"ok": "true"}, Errors: []Error{csrfRefused}},
+		{Method: "GET", Path: "/api/account/logout", Summary: sibling, Auth: "cookie", ResponseBody: map[string]string{"ok": "true"}, Errors: []Error{getRefused}},
+	}}
 }
