@@ -461,6 +461,21 @@ applications:
       - audience: bulle
         scopes: [bulle.read, bulle.write]
 
+  # Gare, the suite's deployment daemon, at garev2.facile.studio while it runs
+  # beside Dokploy. porte mounts under /api, so the redirect keeps the prefix.
+  # Only operators listed in gare's own GARE_ADMIN_EMAILS get a session; the
+  # access policy stays at the default because gare enforces its allowlist
+  # itself. No directory sync: gare has no spaces. Deletion notices are
+  # honoured so an erased identity cannot sign in again.
+  - client_id: MQvS30hXE09nL4FtZlEAITXmlb2TGAmNdOhgLM4r
+    name: Gare
+    deletion_uri: https://garev2.facile.studio/api/registre/deletions
+    backchannel_logout_uri: https://garev2.facile.studio/api/auth/backchannel-logout
+    secret_env: REGISTRE_SEED_GARE_SECRET
+    redirect_uris:
+      - https://garev2.facile.studio/api/auth/oidc/callback
+    scopes: [openid, profile, email, offline_access]
+
   # Bulle, the suite's coding agent and harness at bulle.facile.studio.
   #
   # token_exchange (RFC 8693) is how Bulle reaches a signed-in user's own mail,

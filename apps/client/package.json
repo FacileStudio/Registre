@@ -2,7 +2,7 @@
   "name": "@facile/registre-client",
   "license": "AGPL-3.0-only",
   "private": true,
-  "version": "0.13.2",
+  "version": "0.13.4",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
