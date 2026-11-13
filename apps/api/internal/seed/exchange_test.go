@@ -240,6 +240,25 @@ func TestTheProductionSeedLetsCourrierReachBulle(t *testing.T) {
 	t.Fatal("no courrier client in the production seed")
 }
 
+// TestTheProductionSeedLetsEchoReachBulle pins Echo's grant: its call
+// summaries go through Bulle, and nothing broader than Courrier's grant.
+func TestTheProductionSeedLetsEchoReachBulle(t *testing.T) {
+	file := loadProductionSeed(t)
+	for _, app := range file.Applications {
+		if app.ClientID != "echo" {
+			continue
+		}
+		want := []ExchangeGrant{{Audience: "bulle", Scopes: []string{"bulle.read", "bulle.write"}}}
+		if !slices.EqualFunc(app.TokenExchange, want, func(a, b ExchangeGrant) bool {
+			return a.Audience == b.Audience && slices.Equal(a.Scopes, b.Scopes)
+		}) {
+			t.Errorf("echo exchanges %+v, want %+v", app.TokenExchange, want)
+		}
+		return
+	}
+	t.Fatal("no echo client in the production seed")
+}
+
 func TestTheProductionSeedLetsPlumeWriteToNuage(t *testing.T) {
 	file := loadProductionSeed(t)
 	var nuageID string
