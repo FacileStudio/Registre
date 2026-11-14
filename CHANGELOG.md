@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.19.2] - 2026-11-14
+
+### Changed
+
+- build(compose): `registre-api` no longer sets `container_name`, so Dokploy can roll it with the docker zdt plugin (zero-downtime deploys). Compose DNS still answers to the service name, and `docker compose exec registre-api` is unchanged. The service now carries the label `journal.app: registre-api`, so its Journal app name is unchanged.
+
 ## [0.19.1] - 2026-11-14
 
 ### Removed
