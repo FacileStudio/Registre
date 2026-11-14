@@ -85,7 +85,7 @@ function plural(amount: number, unit: string): string {
 
 const LOGOS = new Set([
 	'agenda', 'antenne', 'ardoise', 'bulle', 'capsule', 'casier', 'courrier', 'echo', 'journal',
-	'mycelium', 'nuage', 'opus', 'perception', 'plume', 'sablier', 'scribe', 'sonde', 'vision'
+	'mycelium', 'nuage', 'opus', 'plume', 'sablier', 'scribe', 'sonde', 'vision'
 ]);
 
 const APP_ICONS: Record<string, string> = {
@@ -108,7 +108,6 @@ const APP_ICONS: Record<string, string> = {
 	nuage: 'solar:cloud-bold-duotone',
 	opus: 'solar:slider-vertical-minimalistic-bold-duotone',
 	pastille: 'solar:circle-dot-bold-duotone',
-	perception: 'solar:eye-scan-bold-duotone',
 	place: 'solar:cup-hot-bold-duotone',
 	plume: 'solar:pen-new-square-bold-duotone',
 	prisme: 'solar:chat-round-bold-duotone',

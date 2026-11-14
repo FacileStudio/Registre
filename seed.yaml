@@ -268,8 +268,7 @@ applications:
   # "Continue with GitHub" on the login Opus sends people to.
   #
   # Opus answered POST /api/auth/backchannel-logout with a JSON 400 (missing
-  # logout_token) on 2026-11-13, so the route exists. Perception (503, no
-  # backend) and Coffre (no DNS) stay unset until they serve it.
+  # logout_token) on 2026-11-13, so the route exists.
   - client_id: aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D
     name: Opus
     directory_sync_uri: https://opus.facile.studio/api/registre/sync
@@ -289,22 +288,6 @@ applications:
     token_exchange:
       - audience: bulle
         scopes: [bulle.read, bulle.write]
-
-  - client_id: u2byAQpWBGWFMWJDpmgZSuakPwtsT4nhw41KhRgK
-    name: Perception
-    secret_env: REGISTRE_SEED_PERCEPTION_SECRET
-    redirect_uris:
-      - https://perception.facile.studio/api/auth/oidc/callback
-    scopes: [openid, profile, email, offline_access]
-
-  - client_id: OpvjVWFZZ32QOrC91ebmpF8I22sumOPEdzcYLh07
-    name: Coffre
-    secret_env: REGISTRE_SEED_COFFRE_SECRET
-    redirect_uris:
-      - https://coffre.facile.studio/identity/connect/oidc-callback
-      - https://coffre.facile.studio/auth/oidc/callback
-      - https://coffre.facile.studio/api/auth/oidc/callback
-    scopes: [openid, profile, email, offline_access]
 
   # Glouton v0.21.0 verifies back-channel logout tokens with jose and revokes
   # the person's sessions; POST /api/auth/backchannel-logout answered a JSON
