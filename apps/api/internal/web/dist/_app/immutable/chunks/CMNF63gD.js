@@ -1,0 +1,1 @@
+import{i as t,k as r}from"./DoK_mbFw.js";const d=Symbol.for("fc.field");function s(e){r(d,e)}function n(){return t(d)}function a(e,i){return{id:i.id??e?.id,describedBy:i.describedBy??e?.describedBy,invalid:i.invalid??(e?.invalid?"true":void 0),labelId:e?.labelId}}export{n as g,a as r,s};
