@@ -6,6 +6,14 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-14
+
+### Added
+
+- Product waitlists for the Scribe and Pastille landings: `GET /api/waitlist/challenge`, `POST /api/waitlist` (email, product, locale, consent version, ALTCHA proof) and `POST /api/waitlist/unsubscribe`. CORS is limited to `https://scribe.facile.studio` and `https://pastille.facile.studio` (override with `WAITLIST_ORIGINS`), without credentials; joining has the sign-up start budget per address. The routes answer 404 without a valid `ALTCHA_HMAC_KEY`. Table `waitlist_entries` (migration 00023) stores nothing else.
+- `registre waitlist-export [--product p]` prints a list as CSV with each entry's unsubscribe link; `registre waitlist-delete --email <address> [--product p]` deletes on request.
+- `/waitlist/unsubscribe?token=` page: one button deletes the entry, so a mail scanner opening the link deletes nothing.
+
 ## [0.18.2] - 2026-11-14
 
 ### Fixed
