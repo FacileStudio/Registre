@@ -3,7 +3,7 @@ GET /login
 200 OK
 Cache-Control: no-cache
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: text/html; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -49,49 +49,49 @@ X-Frame-Options: DENY
 				document.head.appendChild(s);
 			})();
 		</script>
-		<link href="/_app/immutable/entry/start.DOTpkmwQ.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/CI8l-1cY.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/CtJIIS-p.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/CMC8kV03.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/OeW6Tyyl.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/oDYcBGyO.js" rel="modulepreload">
-		<link href="/_app/immutable/entry/app.DKcX_NFy.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/MjflaRG0.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/BExKGq-3.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/DARUPI9a.js" rel="modulepreload">
-		<link href="/_app/immutable/nodes/0.3S7hbBp2.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/-GHSYqiI.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/mk20Hh_m.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/D80kzs4X.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/BuZztmhY.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/wOtmJ1Wb.js" rel="modulepreload">
+		<link href="/_app/immutable/entry/start.DvwHkUDo.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/D3mxmPQX.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/DoK_mbFw.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/B3YUY0un.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/DCeTzw08.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/B_NSlcX-.js" rel="modulepreload">
+		<link href="/_app/immutable/entry/app.CLJGsbiB.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/Bt16TUqb.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/Cg_8sqa-.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/D5jR2WWJ.js" rel="modulepreload">
+		<link href="/_app/immutable/nodes/0.DDN5Wuz3.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BFCq0o8O.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BVyq9mJc.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/DCx52T1E.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BGhuzskF.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/CVoZDtoP.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/2lV4Ecrc.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/Bre6SyTG.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/gIUw3V3v.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/CdVR5Byk.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/-byxbK8s.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/jOI8nkZc.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/Ci2424DA.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/BLaU_6JG.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BhuLFHFY.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BKjlK45D.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/mlptCadZ.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/C34qnHYB.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/ChzW_w44.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/I1jVCVBc.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/0NtcVK3q.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/zA8BvP4p.js" rel="modulepreload">
 		
-		<link href="/_app/immutable/assets/0.Cq-mCqou.css" rel="stylesheet">
+		<link href="/_app/immutable/assets/0.R2jw-zB0.css" rel="stylesheet">
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">
 			<script>
 				{
-					__sveltekit_gu9i7k = {
+					__sveltekit_1htqr0e = {
 						base: ""
 					};
 
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("/_app/immutable/entry/start.DOTpkmwQ.js"),
-						import("/_app/immutable/entry/app.DKcX_NFy.js")
+						import("/_app/immutable/entry/start.DvwHkUDo.js"),
+						import("/_app/immutable/entry/app.CLJGsbiB.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element);
 					});
@@ -106,7 +106,7 @@ X-Frame-Options: DENY
 GET /.well-known/openid-configuration
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -120,7 +120,7 @@ X-Frame-Options: DENY
 GET /.well-known/oauth-authorization-server
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -134,7 +134,7 @@ X-Frame-Options: DENY
 GET /keys
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -149,7 +149,7 @@ X-Frame-Options: DENY
 POST /oauth/token
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -164,7 +164,7 @@ X-Frame-Options: DENY
 POST /oauth/token
 401 Unauthorized
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -179,7 +179,7 @@ X-Frame-Options: DENY
 POST /oauth/token
 400 Bad Request
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -194,7 +194,7 @@ X-Frame-Options: DENY
 GET /authorize?client_id=golden-app&code_challenge=taakmHibHQFuJnBnpc6t832T9PQkRt80ju1v23Q-YPU&code_challenge_method=S256&nonce=n0nce&redirect_uri=http%3A%2F%2F127.0.0.1%3A9999%2Fcallback&response_type=code&scope=openid+profile+email+offline_access&state=st4te
 302 Found
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: text/html; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Location: /login?auth_request={random}
@@ -212,7 +212,7 @@ X-Frame-Options: DENY
 POST /api/login
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -228,7 +228,7 @@ X-Frame-Options: DENY
 GET /authorize/callback?id={random}
 302 Found
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: text/html; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Location: http://127.0.0.1:9999/callback?code={random}&iss={issuer}&state=st4te
@@ -246,7 +246,7 @@ X-Frame-Options: DENY
 POST /oauth/token
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -261,7 +261,7 @@ X-Frame-Options: DENY
 POST /oauth/token
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -276,7 +276,7 @@ X-Frame-Options: DENY
 GET /userinfo
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -291,7 +291,7 @@ X-Frame-Options: DENY
 GET /userinfo
 401 Unauthorized
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: text/plain; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -306,7 +306,7 @@ access token invalid
 GET /userinfo
 401 Unauthorized
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: text/plain; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -321,7 +321,7 @@ access token invalid
 POST /oauth/introspect
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -336,7 +336,7 @@ X-Frame-Options: DENY
 POST /oauth/introspect
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -351,7 +351,7 @@ X-Frame-Options: DENY
 POST /oauth/introspect
 401 Unauthorized
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-NlQAvsCv1W5VRK36vtjA7vu3+0jY65RJNO6rDtubEgQ='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' https://vision.facile.studio 'sha256-6sC/K+jbZZRIXXVhpUJvKHOQws9rMoSMoCScbcYxK7k=' 'sha256-E4ZYa5Du/ZE/qTaOjoAUbX1XFpfCX00b3BUsrcUQ18M='; style-src 'self' 'unsafe-inline'
 Content-Type: text/plain; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
