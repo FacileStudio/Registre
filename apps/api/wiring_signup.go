@@ -20,6 +20,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/modules/account"
 	"github.com/FacileStudio/Registre/apps/api/modules/legal"
 	signuproutes "github.com/FacileStudio/Registre/apps/api/modules/signup"
+	waitlistroutes "github.com/FacileStudio/Registre/apps/api/modules/waitlist"
 
 	mailer "github.com/FacileStudio/facteur"
 	"github.com/go-chi/chi/v5"
@@ -39,6 +40,7 @@ type selfServices struct {
 	audit    *audit.Service
 	mailer   recovery.Mailer
 	pwned    *pwned.Checker
+	waitlist *waitlistroutes.Service
 }
 
 // buildSelf builds the sign-up era's services. Sign-up stays closed unless
@@ -53,7 +55,10 @@ func buildSelf(db *gorm.DB, root []byte, cfg env.Config, svc services) (*selfSer
 	if err != nil {
 		return nil, err
 	}
-	out := &selfServices{passkeys: keys, consents: consent.New(db, root), audit: audit.New(db)}
+	out := &selfServices{
+		passkeys: keys, consents: consent.New(db, root), audit: audit.New(db),
+		waitlist: buildWaitlist(db, settings, cfg.Issuer, svc.log),
+	}
 	smtp := mailer.FromEnv(os.Getenv)
 	out.mailer, _ = outboundMail(smtp, svc.log)
 	if settings.BreachCheck {
@@ -124,10 +129,11 @@ func purge(ctx context.Context, log *slog.Logger, run func(context.Context, time
 	}
 }
 
-// mountSignup registers the sign-up and legal routes.
+// mountSignup registers the sign-up, waitlist and legal routes.
 func mountSignup(router chi.Router, p people, sessions *accounts.Service, cookies accounts.Cookies) {
 	signuproutes.Mount(router, signuproutes.New(signuproutes.Deps{
 		Flow: p.self.flow, Users: p.users, Sessions: sessions, Cookies: cookies, Audit: p.self.audit,
 	}, p.log))
+	waitlistroutes.Mount(router, p.self.waitlist)
 	legal.Mount(router)
 }

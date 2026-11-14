@@ -31,6 +31,7 @@ import (
 	"github.com/FacileStudio/tronc/logger"
 	"github.com/FacileStudio/tronc/migrate"
 	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 )
 
 // tokenRecordRetention is how long a token's row outlives the token itself.
@@ -54,7 +55,20 @@ func main() {
 // subcommands are the first arguments the binary answers. Anything else used to
 // fall through to a normal start: `/api help` inside the running container
 // re-ran the seed and fought the live process for :4000.
-var subcommands = []string{"user-create", "user-disable", "user-erase", "break-glass", "migrate", "healthcheck"}
+var subcommands = []string{
+	"user-create", "user-disable", "user-erase", "break-glass", "waitlist-export", "waitlist-delete", "migrate", "healthcheck",
+}
+
+// operatorCommands are the subcommands that run once against the migrated
+// database and exit instead of serving.
+var operatorCommands = map[string]func(context.Context, *gorm.DB, *credentials.Verifier, *slog.Logger) int{
+	"user-create":     runUserCreate,
+	"user-disable":    runUserDisable,
+	"user-erase":      runUserErase,
+	"break-glass":     runBreakGlass,
+	"waitlist-export": runWaitlistExport,
+	"waitlist-delete": runWaitlistDelete,
+}
 
 const usage = `usage: registre [subcommand]
 
@@ -64,6 +78,9 @@ With no subcommand, registre runs the migrations and serves.
   user-disable --email <address>   disable a user and end their sessions
   user-erase --email <address>     erase one account now
   break-glass --email <address>    restore an operator (REGISTRE_BREAK_GLASS_PASSWORD)
+  waitlist-export [--product <p>]  print a waitlist as CSV with unsubscribe links
+  waitlist-delete --email <address> [--product <p>]
+                                   delete an address from the waitlists
   migrate [up|status|version|baseline <n>]
   healthcheck                      probe /health on the local server
 `
@@ -147,17 +164,8 @@ func run() int {
 	}
 
 	verifier := credentials.New(cfg.VerifyConcurrency).WithQueueWait(cfg.VerifyWait)
-	if len(os.Args) > 1 && os.Args[1] == "user-create" {
-		return runUserCreate(context.Background(), db, verifier, log)
-	}
-	if len(os.Args) > 1 && os.Args[1] == "user-disable" {
-		return runUserDisable(context.Background(), db, verifier, log)
-	}
-	if len(os.Args) > 1 && os.Args[1] == "user-erase" {
-		return runUserErase(context.Background(), db, verifier, log)
-	}
-	if len(os.Args) > 1 && os.Args[1] == "break-glass" {
-		return runBreakGlass(context.Background(), db, verifier, log)
+	if len(os.Args) > 1 && operatorCommands[os.Args[1]] != nil {
+		return operatorCommands[os.Args[1]](context.Background(), db, verifier, log)
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

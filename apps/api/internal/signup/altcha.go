@@ -46,11 +46,11 @@ func (s *Service) Challenge() (altcha.Challenge, error) {
 	return challenge, nil
 }
 
-// spend verifies a solution with the official library, in constant time,
+// Spend verifies a solution with the official library, in constant time,
 // then records its challenge so the same solution can never be spent twice.
 // The insert is the replay guard: a second spend conflicts on the primary
 // key and affects nothing.
-func (s *Service) spend(ctx context.Context, proof string) error {
+func (s *Service) Spend(ctx context.Context, proof string) error {
 	payload, ok := decodeProof(proof)
 	if !ok {
 		return ErrProof

@@ -54,7 +54,7 @@ func okBody() map[string]string { return map[string]string{"ok": "true"} }
 
 // signupModules documents the routes public sign-up added.
 func signupModules() []Module {
-	return []Module{signupModule(), passkeyLoginModule(), accountSelfModule(), socialLoginModule(), legalModule(), invitationModule(), deletionsModule(), operatorModule(), connectModule(), logoutModule()}
+	return []Module{signupModule(), waitlistModule(), passkeyLoginModule(), accountSelfModule(), socialLoginModule(), legalModule(), invitationModule(), deletionsModule(), operatorModule(), connectModule(), logoutModule()}
 }
 
 func signupModule() Module {

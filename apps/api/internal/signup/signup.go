@@ -106,7 +106,7 @@ type Request struct {
 // whatever the address. ErrProof, ErrEmail, ErrThrottled and ErrMail are
 // told to the caller, and none depends on the address having an account.
 func (s *Service) Start(ctx context.Context, in Request) error {
-	if err := s.spend(ctx, in.Proof); err != nil {
+	if err := s.Spend(ctx, in.Proof); err != nil {
 		return err
 	}
 	email, ok := address.Clean(in.Email)

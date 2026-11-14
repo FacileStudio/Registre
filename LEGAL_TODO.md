@@ -23,6 +23,7 @@ and fill in every bracketed placeholder below. Then set `Draft = false` and bump
 | `[LIST TRANSFERS AND SAFEGUARDS]` | privacy | Transfers outside the EEA (Stripe, others) and their legal basis |
 | `[MINIMUM AGE]` | CGU | Minimum age; 15 is proposed (French digital majority for consent) |
 | `[CONSUMER MEDIATOR ...]` | CGV | The consumer mediator Facile Studio adheres to (mandatory in France) |
+| Waitlist processing | privacy | Name the Scribe and Pastille waitlists (`waitlist_entries`: email, product, locale, consent version, date; kept until release or unsubscribe). No consent version bump: the waitlist has its own consent line |
 | `[NUMBER]` | CGV | Days of failed payment before a space returns to the free plan |
 
 The translated files use the same placeholders in the target language (for example

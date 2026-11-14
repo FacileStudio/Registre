@@ -42,6 +42,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/modules/oidc"
 	"github.com/FacileStudio/Registre/apps/api/modules/reset"
 	"github.com/FacileStudio/Registre/apps/api/modules/spaces"
+	waitlistroutes "github.com/FacileStudio/Registre/apps/api/modules/waitlist"
 
 	"github.com/FacileStudio/tronc/health"
 	"github.com/FacileStudio/tronc/httpx"
@@ -143,7 +144,8 @@ func assemble(
 		Logger:         svc.log,
 		Security:       security,
 	})
-	router.Use(oidc.CORS(oidc.PublicPaths(provider), guardedCORS(cfg.CORSAllowedOrigins)))
+	router.Use(waitlistroutes.CORS(svc.self.waitlist.Origins,
+		oidc.CORS(oidc.PublicPaths(provider), guardedCORS(cfg.CORSAllowedOrigins))))
 	health.Mount(router, health.DB(sqlDB))
 	mountVersion(router)
 	sessions := accounts.New(db).WithNotifier(backchannel, svc.log)
