@@ -20,7 +20,6 @@ services:
       start_interval: 1s
 
   registre-api:
-    container_name: registre-api
     restart: unless-stopped
     build:
       context: .
@@ -31,6 +30,7 @@ services:
       - default
       - dokploy-network
     labels:
+      journal.app: registre-api
       traefik.enable: "true"
       traefik.docker.network: dokploy-network
       traefik.http.routers.registre-web.rule: "Host(`sso.facile.studio`)"
