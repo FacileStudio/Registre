@@ -6,6 +6,17 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-14
+
+### Added
+
+- The signed-out landing has an animated demo: a click on "Sign in with Facile" in Plume opens Nuage, Sablier, Courrier, Agenda and Opus with the same account. It is built with `@facile/mise-en-scene` v0.2.2 and has a compact layout for phones.
+
+### Changed
+
+- The landing is shorter: a hero, the demo, four features (one account, passkeys, terminal sign-in, your data) and a closing call to action. The hard-coded English protocol cards are gone, and every string comes from the fr, en, es and de catalogs. muse components on the landing follow the page's language.
+- muse v0.23.0: titles and body text use Magnetik.
+
 ## [0.16.0] - 2026-11-14
 
 ### Added
