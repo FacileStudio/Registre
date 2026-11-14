@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-14
+
 ### Added
 
 - Echo may exchange a signed-in user's token for a Bulle token (`token_exchange` to audience `bulle`, scopes `bulle.read` and `bulle.write`), so Echo's call summaries go through Bulle.
