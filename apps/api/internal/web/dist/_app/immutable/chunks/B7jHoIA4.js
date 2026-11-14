@@ -1,0 +1,1 @@
+import"./C8uzM4Hw.js";import{g as o,e as i}from"./DMGfjCKP.js";import{p as n,s as c,r as l}from"./CDxmbETd.js";import{S as p}from"./CArwbJeT.js";var d=new Set(["$$slots","$$events","$$legacy","bare","children"]);function u(r,e){let t=n(e,"bare",3,!1),s=l(e,d);{let a=i(()=>!t());p(r,c({get card(){return o(a)},get children(){return e.children}},()=>s))}}export{u as S};
