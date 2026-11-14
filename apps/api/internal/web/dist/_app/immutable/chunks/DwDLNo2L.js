@@ -1,1 +1,0 @@
-import{m as t,q as i,v as c,w as f}from"./DoK_mbFw.js";import{B as y}from"./Cg_8sqa-.js";const m=Symbol("NaN");function h(r,e,n){c&&f();var o=new y(r),s=!t();i(()=>{var a=e();a!==a&&(a=m),s&&a!==null&&typeof a=="object"&&(a={}),o.ensure(a,n)})}export{h as k};

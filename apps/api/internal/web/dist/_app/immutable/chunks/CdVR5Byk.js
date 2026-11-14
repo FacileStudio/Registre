@@ -1,1 +1,0 @@
-const r=()=>typeof window>"u"?!1:window.matchMedia("(prefers-reduced-motion: reduce)").matches;function o(t){if(typeof window>"u"||!t)return;let e=t.parentElement;for(;e&&e!==document.body&&e!==document.documentElement;){const{overflowY:n}=getComputedStyle(e);if(n==="auto"||n==="scroll")return e;e=e.parentElement}}export{r as p,o as s};

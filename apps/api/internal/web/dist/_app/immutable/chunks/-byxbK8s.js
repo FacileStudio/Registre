@@ -1,1 +1,0 @@
-function t(n){return n<.5?4*n*n*n:.5*Math.pow(2*n-2,3)+1}function a(n){const u=n-1;return u*u*u+1}function r(n){return n<.5?8*Math.pow(n,4):-8*Math.pow(n-1,4)+1}function o(n){return Math.pow(n,4)}function c(n){return Math.pow(n-1,3)*(1-n)+1}export{c as a,o as b,a as c,t as d,r as q};
