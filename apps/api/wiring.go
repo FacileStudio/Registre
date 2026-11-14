@@ -106,7 +106,7 @@ func assemble(
 	teams := spacesdir.New(db, pictures.URL, spacesdir.NewNudger(register.List, svc.log), svc.log).
 		WithInvitations(self.invitationsFor(cfg))
 
-	backchannel := logout.New(keyring, register, cfg.Issuer, svc.log)
+	backchannel := logout.New(keyring, register, cfg.Issuer, svc.log).WithLifetime(ctx)
 	storage := oidc.NewStorage(db, oidc.Services{
 		Keys: keyring, Register: register, Users: users,
 		Logout:  backchannel,
@@ -230,7 +230,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 	account.Mount(router, account.New(account.Services{
 		Sessions: p.sessions, TOTP: factors, Users: p.users, Passwords: p.verifier,
 		DB: p.db, Cookies: p.cookies, Issuer: cfg.Issuer,
-		Logout:  logout.New(p.keyring, p.register, cfg.Issuer, p.log),
+		Logout:  logout.New(p.keyring, p.register, cfg.Issuer, p.log).WithLifetime(p.ctx),
 		Avatars: p.pictures, Self: accountSelf(p, rights),
 	}, p.log))
 	mountSignup(router, p, p.sessions, p.cookies)
@@ -238,7 +238,7 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 	reset.Mount(router, reset.New(recoveryService(cfg, p), p.log))
 	admin.Mount(router, admin.New(admin.Services{
 		Register: p.register, Users: p.users, Keys: p.keyring, Invites: p.invites,
-		Logout:   logout.New(p.keyring, p.register, cfg.Issuer, p.log),
+		Logout:   logout.New(p.keyring, p.register, cfg.Issuer, p.log).WithLifetime(p.ctx),
 		Sessions: p.sessions, Cookies: p.cookies,
 		Access: access.New(p.db, clients.SelfClientID), Audit: audit.New(p.db),
 		Avatars: p.pictures, Directory: p.teams, Self: clients.SelfClientID, Eraser: rights,

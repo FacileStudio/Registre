@@ -109,7 +109,7 @@ func (w *wire) recordPush(request *http.Request, token string) {
 // verifies checks a token against the key set /keys serves.
 func (w *wire) verifies(token string) {
 	w.t.Helper()
-	signed, err := jose.ParseSigned(token, []jose.SignatureAlgorithm{jose.RS256})
+	signed, err := jose.ParseSignedCompact(token, []jose.SignatureAlgorithm{jose.RS256})
 	if err != nil {
 		w.t.Fatalf("parsing the push: %v", err)
 	}

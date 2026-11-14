@@ -159,7 +159,7 @@ func requestClientCredentials(t *testing.T, endpoint, clientID, clientSecret str
 // jwksURI and returns its claims.
 func verifyAgainstRemoteJWKS(t *testing.T, jwksURI, token string) map[string]any {
 	t.Helper()
-	signature, err := jose.ParseSigned(token, []jose.SignatureAlgorithm{jose.RS256})
+	signature, err := jose.ParseSignedCompact(token, []jose.SignatureAlgorithm{jose.RS256})
 	if err != nil {
 		t.Fatalf("the access token is not a signed RS256 JWT: %v", err)
 	}

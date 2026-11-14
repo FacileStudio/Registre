@@ -95,7 +95,7 @@ func (s *selfServices) invitationsFor(cfg env.Config) spacesdir.Invitations {
 func buildRights(cfg env.Config, p people) *gdpr.Service {
 	return gdpr.New(gdpr.Deps{
 		DB: p.db, Sessions: p.users, Audit: p.self.audit, Mailer: p.self.mailer,
-		Notifier: logout.New(p.keyring, p.register, cfg.Issuer, p.log), Directory: p.teams, Logger: p.log,
+		Notifier: logout.New(p.keyring, p.register, cfg.Issuer, p.log).WithLifetime(p.ctx), Directory: p.teams, Logger: p.log,
 	}, cfg.Issuer)
 }
 

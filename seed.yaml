@@ -418,6 +418,9 @@ applications:
     mcp:
       resource: https://echo.facile.studio/mcp
       scopes: [echo.read, echo.write]
+    token_exchange:
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   # Place, the suite's unified forum at place.facile.studio.
   #

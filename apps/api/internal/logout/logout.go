@@ -13,6 +13,7 @@ package logout
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -39,17 +40,21 @@ const tokenTTL = 2 * time.Minute
 
 // postTimeout bounds one delivery. A slow app must not hold up ending the
 // session that asked for the notification. The Service's shared http.Client
-// carries it, reusing connections across deliveries.
+// carries it, reusing connections across deliveries. The client follows no
+// redirect: a 307 or 308 would re-send the token to wherever it points, so a
+// 3xx is a final failure that names the misconfigured URI.
 const postTimeout = 5 * time.Second
 
 // Service mints and delivers logout tokens.
 type Service struct {
-	keys       *keys.Service
-	register   *clients.Service
-	issuer     string
-	logger     *slog.Logger
-	now        func() time.Time
-	deliveries *http.Client
+	keys        *keys.Service
+	register    *clients.Service
+	issuer      string
+	logger      *slog.Logger
+	now         func() time.Time
+	deliveries  *http.Client
+	retryDelays []time.Duration
+	lifetime    context.Context
 }
 
 // New builds the service over the keyring and the register.
@@ -57,37 +62,51 @@ func New(keyring *keys.Service, register *clients.Service, issuer string, logger
 	return &Service{
 		keys: keyring, register: register, issuer: issuer,
 		logger: logger, now: func() time.Time { return time.Now().UTC() },
-		deliveries: &http.Client{Timeout: postTimeout},
+		deliveries:  &http.Client{Timeout: postTimeout, CheckRedirect: refuseRedirect},
+		retryDelays: retryDelays, lifetime: context.Background(),
 	}
 }
 
 // Fire sends a back-channel logout token to each of clientIDs that registered
-// a logout URI. Delivery is best-effort by design: the session is already
-// ended before this runs, so a retry loop here could only notify an app about
-// something that already happened. A failed app keeps its own cookie until it
-// expires — that residual risk is what the short session lifetimes are for,
-// and the failure lands in Journal either way.
+// a logout URI. The first attempt runs inline, so the caller waits for one
+// delivery per app and no more. When it fails transiently (network error,
+// timeout, 5xx, 429), a background goroutine retries on retryDelays, bound to
+// the Service's lifetime rather than ctx, so a retry outlives the request that
+// triggered it and stops at shutdown with a Warn. A 3xx or 4xx is final. An
+// app that never answers keeps its own session until it expires; the give-up
+// lands in Journal at Error. A process that exits right after Fire, like the
+// user-disable command, drops its pending retries.
 func (s *Service) Fire(ctx context.Context, userID string, clientIDs []string) error {
 	if len(clientIDs) == 0 {
 		return nil
 	}
 	for _, clientID := range clientIDs {
-		row, err := s.register.ByClientID(ctx, clientID)
-		if err != nil {
-			s.logger.Warn("registre: back-channel logout skipped, unknown client",
-				slog.String("client_id", clientID), slog.Any("error", err))
-			continue
-		}
-		if row.BackchannelLogoutURI == "" {
-			continue
-		}
-		if err := s.deliver(ctx, userID, row.ClientID, row.BackchannelLogoutURI); err != nil {
-			s.logger.Warn("registre: back-channel logout failed",
-				slog.String("client_id", row.ClientID),
-				slog.String("uri", row.BackchannelLogoutURI), slog.Any("error", err))
-		}
+		s.fireOne(ctx, userID, clientID)
 	}
 	return nil
+}
+
+// fireOne makes the first delivery to one app and schedules its retries.
+func (s *Service) fireOne(ctx context.Context, userID, clientID string) {
+	row, err := s.register.ByClientID(ctx, clientID)
+	if err != nil {
+		s.logger.Warn("registre: back-channel logout skipped, unknown client",
+			slog.String("client_id", clientID), slog.Any("error", err))
+		return
+	}
+	if row.BackchannelLogoutURI == "" {
+		return
+	}
+	err = s.deliver(ctx, userID, row.ClientID, row.BackchannelLogoutURI)
+	if err == nil {
+		return
+	}
+	s.logger.Warn("registre: back-channel logout failed",
+		slog.String("client_id", row.ClientID),
+		slog.String("uri", row.BackchannelLogoutURI), slog.Any("error", err))
+	if errors.Is(err, errTransient) {
+		go s.retry(userID, row.ClientID, row.BackchannelLogoutURI)
+	}
 }
 
 // deliver mints one token and POSTs it as the specification's form parameter.
@@ -105,12 +124,15 @@ func (s *Service) deliver(ctx context.Context, userID, clientID, uri string) err
 	sent := time.Now()
 	response, err := s.deliveries.Do(post)
 	if err != nil {
-		return fmt.Errorf("logout: deliver: %w", err)
+		return fmt.Errorf("logout: deliver: %w: %w", errTransient, err)
 	}
 	defer func() {
 		_ = response.Body.Close()
 	}()
 	_, _ = io.Copy(io.Discard, response.Body)
+	if response.StatusCode >= 500 || response.StatusCode == http.StatusTooManyRequests {
+		return fmt.Errorf("logout: %w: %s answered %d", errTransient, uri, response.StatusCode)
+	}
 	if response.StatusCode >= 300 {
 		return fmt.Errorf("logout: %s answered %d", uri, response.StatusCode)
 	}

@@ -160,7 +160,7 @@ func run() int {
 		return runBreakGlass(context.Background(), db, verifier, log)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	router, err := assemble(ctx, db, root, cfg, services{verifier: verifier, log: log, billing: plans})
@@ -168,7 +168,7 @@ func run() int {
 		log.Error("registre: failed to start", slog.Any("error", err))
 		return 1
 	}
-	return serve(router, cfg, log)
+	return serve(ctx, router, cfg, log)
 }
 
 // migrateSchema runs the schema forward, or answers a migrate subcommand and
@@ -190,8 +190,9 @@ func migrateSchema(sqlDB *sql.DB, log *slog.Logger) (int, bool) {
 	return 0, false
 }
 
-// serve runs the HTTP server until it is signalled to stop.
-func serve(router chi.Router, cfg env.Config, log *slog.Logger) int {
+// serve runs the HTTP server until stopping ends, which the process's
+// SIGINT or SIGTERM does.
+func serve(stopping context.Context, router chi.Router, cfg env.Config, log *slog.Logger) int {
 	addr := ":" + strconv.Itoa(cfg.Port)
 	server := &http.Server{
 		Addr:              addr,
@@ -203,9 +204,6 @@ func serve(router chi.Router, cfg env.Config, log *slog.Logger) int {
 	}
 	failed := make(chan error, 1)
 	go func() { failed <- server.ListenAndServe() }()
-
-	stopping, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	log.Info("registre: listening", slog.String("addr", addr), slog.String("issuer", cfg.Issuer))
 	select {
