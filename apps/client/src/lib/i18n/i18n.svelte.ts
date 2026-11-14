@@ -57,6 +57,7 @@ function detect(): Locale {
 }
 
 let current = $state<Locale>(detect());
+if (typeof document !== 'undefined') document.documentElement.lang = current;
 
 /** locale answers the current locale, reactively. */
 export function locale(): Locale {

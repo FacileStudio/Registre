@@ -1,39 +1,73 @@
 <script lang="ts">
-	import { Button, Icon, LandingFooter, LandingHeader, TextElevate, icons, scopeLocale } from '@facile/muse';
+	import {
+		Button,
+		FeatureSplit,
+		ForDevelopers,
+		LANDING_HEADING,
+		LandingCta,
+		LandingFooter,
+		LandingHeader,
+		PricingPlans,
+		TextElevate,
+		WorksWith,
+		icons,
+		scopeLocale,
+		type DeveloperRow,
+		type FeatureItem
+	} from '@facile/muse';
 	import { locale, t } from '$lib/i18n/i18n.svelte';
 	import { REGISTRE_ICON } from '$lib/icons';
 	import SignInDemo from './SignInDemo.svelte';
+	import { openApps } from './apps';
+	import { PLANS } from './plans';
 
 	scopeLocale(locale);
 
+	const width = 'mx-auto w-full max-w-5xl px-4 sm:px-6';
+
 	const links = $derived([
 		{ href: '#features', label: t('landing.features') },
-		{ href: '/device', label: 'CLI' }
+		{ href: '#pricing', label: t('landing.plans') },
+		{ href: '#apps', label: t('landing.apps') }
 	]);
 
 	const columns = $derived([
 		{
 			title: 'Registre',
 			links: [
-				{ href: '/login', label: t('login.title') },
 				{ href: '/signup', label: t('signup.title') },
+				{ href: '/login', label: t('login.title') },
 				{ href: '/device', label: t('device.title') }
 			]
 		},
 		{
 			title: 'Suite',
 			links: [
-				{ href: 'https://facile.studio', label: 'Facile Studio', external: true },
+				{ href: 'https://suite.facile.studio', label: 'Facile', external: true },
+				{ href: 'https://suite.facile.studio/#tarifs', label: t('landing.plans'), external: true },
 				{ href: 'https://github.com/FacileStudio/Registre', label: 'GitHub', external: true }
 			]
 		}
 	]);
 
-	const features = $derived([
-		{ icon: icons.key, title: t('landing.f1'), body: t('landing.f1Body') },
-		{ icon: icons.shield, title: t('landing.f2'), body: t('landing.f2Body') },
-		{ icon: 'solar:code-square-bold-duotone', title: t('landing.f3'), body: t('landing.f3Body') },
-		{ icon: icons.usersGroup, title: t('landing.f4'), body: t('landing.f4Body') }
+	const features: FeatureItem[] = $derived([
+		{ icon: icons.usersGroup, title: t('landing.f1'), text: t('landing.f1Body') },
+		{ icon: icons.key, title: t('landing.f2'), text: t('landing.f2Body') },
+		{ icon: icons.card, title: t('landing.f3'), text: t('landing.f3Body') },
+		{ icon: icons.shield, title: t('landing.f4'), text: t('landing.f4Body') }
+	]);
+
+	const apps = $derived(openApps(locale()));
+
+	const notes = $derived({ solo: t('landing.planFree'), '*': t('landing.planPaid') });
+
+	$effect(() => {
+		document.querySelector('meta[name="description"]')?.setAttribute('content', t('landing.meta'));
+	});
+
+	const developers: DeveloperRow[] = $derived([
+		{ kind: 'cli', text: t('landing.devCli'), command: 'curl -fsSL https://get.facile.studio | sh', href: 'https://github.com/FacileStudio/facile' },
+		{ kind: 'source', text: t('landing.devSource'), href: 'https://github.com/FacileStudio/Registre' }
 	]);
 </script>
 
@@ -48,48 +82,58 @@
 	<LandingHeader appName="Registre" icon={REGISTRE_ICON} homeHref="/" {links} skipHref="#main" {brand}>
 		{#snippet actions()}
 			<Button variant="ghost" size="sm" href="/login">{t('login.title')}</Button>
-			<Button size="sm" href="/signup">{t('signup.title')}</Button>
 		{/snippet}
 	</LandingHeader>
 
-	<main id="main" class="flex-1">
-		<section class="mx-auto max-w-5xl px-4 pt-16 pb-10 text-center sm:px-6 sm:pt-24">
+	<main id="main" class="flex flex-1 flex-col gap-20 pb-20 sm:gap-28">
+		<section class="{width} pt-16 text-center sm:pt-24">
 			<h1 class="font-heading text-fc-3xl font-bold tracking-tight sm:text-5xl">
 				<span class="block"><TextElevate text={t('auth.tagline1')} delay={0.08} /></span>
 				<span class="block text-fc-fg-muted"><TextElevate text={t('auth.tagline2')} delay={0.2} /></span>
 			</h1>
 			<p class="mx-auto mt-6 max-w-xl text-fc-md text-fc-fg-muted">{t('landing.pitch')}</p>
-			<div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-				<Button size="lg" href="/signup" iconRight={icons.arrow}>{t('signup.title')}</Button>
-				<Button size="lg" variant="ghost" href="/login">{t('login.title')}</Button>
+			<LandingCta class="mt-8" align="center" signUpHref="/signup" signInHref="/login" />
+			<div class="mt-12 text-left">
+				<SignInDemo />
 			</div>
 		</section>
 
-		<section class="mx-auto max-w-5xl px-4 pb-8 sm:px-6">
-			<SignInDemo />
-		</section>
+		<FeatureSplit
+			id="features"
+			class="{width} scroll-mt-20"
+			title={t('landing.featuresTitle')}
+			description={t('landing.featuresLine')}
+			{features}
+		/>
 
-		<section id="features" class="mx-auto max-w-5xl scroll-mt-20 px-4 py-12 sm:px-6">
-			<ul class="grid gap-4 sm:grid-cols-2">
-				{#each features as feature (feature.title)}
-					<li class="rounded-fc-lg bg-fc-component p-6">
-						<div class="mb-4 flex size-10 items-center justify-center rounded-fc-md bg-fc-surface text-fc-fg">
-							<Icon icon={feature.icon} size={20} />
-						</div>
-						<h2 class="text-fc-lg font-bold">{feature.title}</h2>
-						<p class="mt-1.5 text-fc-sm text-fc-fg-muted">{feature.body}</p>
-					</li>
-				{/each}
-			</ul>
-		</section>
+		<PricingPlans
+			id="pricing"
+			class="{width} scroll-mt-20"
+			title={t('landing.plansTitle')}
+			headingClass={LANDING_HEADING}
+			catalog={PLANS}
+			{notes}
+			recommended="pro"
+			ctaHref="/signup"
+			suiteHref="https://suite.facile.studio/#tarifs"
+		/>
 
-		<section class="mx-auto max-w-5xl px-4 py-20 text-center sm:px-6">
-			<h2 class="font-heading text-fc-2xl font-bold tracking-tight">{t('landing.ready')}</h2>
+		<WorksWith
+			id="apps"
+			class="{width} scroll-mt-20"
+			title={t('landing.appsTitle')}
+			description={t('landing.appsLine')}
+			{apps}
+		/>
+
+		<div class={width}>
+			<ForDevelopers rows={developers} description={t('landing.devLine')} selfHostHref="https://suite.facile.studio/auto-hebergement" />
+		</div>
+
+		<section class="{width} text-center">
+			<h2 class={LANDING_HEADING}>{t('landing.ready')}</h2>
 			<p class="mt-4 text-fc-sm text-fc-fg-muted">{t('landing.readyBody')}</p>
-			<div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-				<Button size="lg" href="/signup" iconRight={icons.arrow}>{t('signup.title')}</Button>
-				<Button size="lg" variant="ghost" href="/login">{t('login.title')}</Button>
-			</div>
+			<LandingCta class="mt-8" align="center" signUpHref="/signup" signInHref="/login" />
 		</section>
 	</main>
 
@@ -97,7 +141,7 @@
 		appName="Registre"
 		icon={REGISTRE_ICON}
 		homeHref="/"
-		tagline={t('landing.pitch')}
+		tagline={t('landing.footer')}
 		{columns}
 		legal={{ base: '/legal' }}
 		{brand}
