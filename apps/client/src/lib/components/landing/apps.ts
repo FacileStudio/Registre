@@ -142,10 +142,10 @@ const OPEN_APPS: readonly OpenApp[] = [
 		icon: "solar:panorama-bold-duotone",
 		href: "https://vision.facile.studio",
 		line: {
-			fr: "Les visites de votre site, sans bandeau cookies.",
-			en: "Your site's visitors, with no cookie banner.",
-			es: "Las visitas de tu web, sin banner de cookies.",
-			de: "Die Besucher Ihrer Website, ohne Cookie-Banner."
+			fr: "Les visites de votre site, sans cookies.",
+			en: "Your site's visitors, without cookies.",
+			es: "Las visitas de tu sitio, sin cookies.",
+			de: "Die Besuche Ihrer Website, ohne Cookies."
 		}
 	},
 	{

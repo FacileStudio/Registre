@@ -52,7 +52,7 @@ export const suite: SuiteGroup[] = [
 		apps: [
 			{ name: 'Sonde', url: 'https://sonde.facile.studio', description: "Monitoring d'uptime et pages de statut.", icon: 'solar:radar-bold-duotone', logo: logo('sonde') },
 			{ name: 'Antenne', url: 'https://antenne.facile.studio', description: "Bus d'alertes et de notifications.", icon: 'solar:station-bold-duotone', logo: logo('antenne') },
-			{ name: 'Boîte', url: 'https://boite.facile.studio', description: 'Paquets, images Docker et artéfacts privés.', icon: 'solar:box-minimalistic-bold-duotone' }
+			{ name: 'Boîte', url: 'https://boite.facile.studio', description: 'Des machines jetables pour votre code et vos agents IA.', icon: 'solar:box-minimalistic-bold-duotone' }
 		]
 	}
 ];
