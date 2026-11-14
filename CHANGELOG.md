@@ -6,6 +6,16 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.18.2] - 2026-11-14
+
+### Fixed
+
+- Link preview: the og:image and the web manifest carry the current line, "Sign in once, and the Facile apps open with the same account. One subscription unlocks the whole suite. Free to start.", regenerated from muse v0.25.1.
+
+### Changed
+
+- muse v0.25.1: the plan note every card shares renders once under the plans, and the install command in the developers block wraps instead of scrolling.
+
 ## [0.18.1] - 2026-11-14
 
 ### Fixed
