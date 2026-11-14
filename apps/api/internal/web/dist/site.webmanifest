@@ -1,7 +1,7 @@
 {
   "name": "Registre",
   "short_name": "Registre",
-  "description": "Standard OpenID Connect sign-in with one session shared across every Facile app. Sign in once.",
+  "description": "Sign in once, and the Facile apps open with the same account. One subscription unlocks the whole suite. Free to start.",
   "icons": [
     {
       "src": "/icon-192.png",
