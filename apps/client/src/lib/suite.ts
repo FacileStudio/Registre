@@ -26,7 +26,6 @@ export const suite: SuiteGroup[] = [
 			{ name: 'Sonar', url: 'https://sonar.facile.studio', description: 'Moteur de recherche web privé et rapide.', icon: 'brand:sonar', logo: logo('sonar') },
 			{ name: 'Bulle', url: 'https://bulle.facile.studio', description: 'Assistant du studio, branché sur toute la suite.', icon: 'solar:smile-circle-bold-duotone', logo: logo('bulle') },
 			{ name: 'Vision', url: 'https://vision.facile.studio', description: 'Analytics web avec suivi en temps réel.', icon: 'solar:panorama-bold-duotone', logo: logo('vision') },
-			{ name: 'Perception', url: 'https://perception.facile.studio', description: 'Mémoire métier et intelligence contextuelle.', icon: 'solar:eye-scan-bold-duotone', logo: logo('perception') },
 			{ name: 'Scribe', url: 'https://scribe.facile.studio', description: 'Transcription de réunions, en temps réel et en local.', icon: 'solar:microphone-2-bold-duotone', logo: logo('scribe') },
 			{ name: 'Echo', url: 'https://echo.facile.studio', description: 'Visioconférence simple et sécurisée.', icon: 'solar:videocamera-record-bold-duotone', logo: logo('echo') },
 			{ name: 'Place', url: 'https://place.facile.studio', description: 'Forum de la communauté et échanges de l’équipe.', icon: 'solar:cup-hot-bold-duotone', logo: logo('place') },

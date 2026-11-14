@@ -30,7 +30,7 @@ import (
 // and defaults its redirect to DOMAIN + /auth/oidc/callback, in
 // apps/backend/src/services/oidc.ts. Its seed entry matches the router that
 // actually answers, so the seed is right and the blanket suffix check was
-// wrong. Docs, Opus and Coffre are excepted above for the same reason: the
+// wrong. Docs and Opus are excepted above for the same reason: the
 // mount is the authority, not the family.
 func TestEverySuiteRedirectKeepsTheAPIPrefix(t *testing.T) {
 	path := filepath.Join("..", "..", "..", "..", "seed.yaml")
@@ -71,12 +71,6 @@ func TestEverySuiteRedirectKeepsTheAPIPrefix(t *testing.T) {
 			}
 			if app.ClientID == "aHKmbSdWbJKqUMdTjIqFz2h4YtKYkvMiTB39zr4D" {
 				if !strings.HasPrefix(uri, "https://opus.facile.studio/api/auth/") && !strings.HasPrefix(uri, "https://opus.facile.studio/auth/") {
-					t.Errorf("%s: redirect %q is invalid", app.Name, uri)
-				}
-				continue
-			}
-			if app.ClientID == "OpvjVWFZZ32QOrC91ebmpF8I22sumOPEdzcYLh07" {
-				if !strings.HasPrefix(uri, "https://coffre.facile.studio/") {
 					t.Errorf("%s: redirect %q is invalid", app.Name, uri)
 				}
 				continue
