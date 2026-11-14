@@ -6,6 +6,13 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-11-14
+
+### Fixed
+
+- The landing's Vision line says "without cookies" instead of promising no cookie banner, which was never checked against the CNIL exemption.
+- The signed-in app list describes Boîte as throwaway machines for code and AI agents, not a package and Docker image registry.
+
 ## [0.18.0] - 2026-11-14
 
 ### Added
