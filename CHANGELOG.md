@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-11-14
+
+### Changed
+
+- build(api): porte v0.20.1 (was v0.20.0). porte now marks browser session tokens with `b~` instead of `b-`. Registre serves no MCP confirm page and never reads the mark, so sign-in and sessions behave as before.
+
 ## [0.17.0] - 2026-11-14
 
 ### Added
