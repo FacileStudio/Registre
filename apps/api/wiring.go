@@ -148,7 +148,11 @@ func assemble(
 	mountVersion(router)
 	sessions := accounts.New(db).WithNotifier(backchannel, svc.log)
 	cookies := accounts.NewCookies(!cfg.InsecureIssuer())
-	mountLogout(router, sessions, cookies)
+	client, err := web.Handler()
+	if err != nil {
+		return nil, err
+	}
+	mountLogout(router, sessions, cookies, client)
 	oidc.MountWithLimits(router, provider, oidc.Binding{Storage: storage, Sessions: sessions, Cookies: cookies},
 		oidc.Limits{
 			Token: cfg.TokenRate, TokenBurst: cfg.TokenBurst,
@@ -170,10 +174,6 @@ func assemble(
 		DB: db, Register: register, Grants: grants.New(db), Sessions: sessions, Cookies: cookies, Issuer: cfg.Issuer,
 	}, svc.log))
 	docs.Mount(router)
-	client, err := web.Handler()
-	if err != nil {
-		return nil, err
-	}
 	router.Handle("/*", client)
 	return router, nil
 }
@@ -281,26 +281,52 @@ func securityConfig() (troncmiddleware.SecurityConfig, error) {
 // over, and the table would otherwise grow with every second-factor login.
 const challengeRetention = time.Hour
 
-// mountLogout answers /logout and /api/logout: GET signs the account session
-// out and goes home, POST signs it out and answers JSON. Signing out tells
-// every app the session reached, so these log the person out of the suite.
-func mountLogout(router chi.Router, sessions *accounts.Service, cookies accounts.Cookies) {
-	logout := func(w http.ResponseWriter, r *http.Request) {
+// mountLogout answers /logout and /api/logout. Signing out tells every app
+// the session reached, so these log the person out of the suite.
+//
+// POST needs X-Facile-CSRF and answers JSON. GET signs out and goes home only
+// when accounts.MayLogOut accepts it, which is what a suite app's sign-out
+// redirect looks like. Any other GET ends nothing: /logout serves page, the
+// client's "Sign out of Facile?" confirmation, and /api/logout answers 405.
+func mountLogout(router chi.Router, sessions *accounts.Service, cookies accounts.Cookies, page http.Handler) {
+	end := func(w http.ResponseWriter, r *http.Request) {
 		if err := sessions.SignOut(r.Context(), cookies.Read(r)); err != nil {
 			slog.Warn("registre: ending the account session failed", slog.Any("error", err))
 		}
 		cookies.Clear(w)
-		if r.Method == http.MethodGet {
-			http.Redirect(w, r, "/", http.StatusFound)
+	}
+	refused := map[string]http.Handler{
+		"/logout":     page,
+		"/api/logout": http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { accounts.RefuseLogout(w) }),
+	}
+	csrf := accounts.NewGuard(nil, accounts.Cookies{}).CSRF
+	for path, refuse := range refused {
+		router.Get(path, logoutByLink(end, refuse))
+		router.With(csrf).Post(path, logoutByAPI(end))
+	}
+}
+
+// logoutByLink ends the session for a GET that accounts.MayLogOut accepts
+// and redirects to /, and hands every other GET to refuse.
+func logoutByLink(end http.HandlerFunc, refuse http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !accounts.MayLogOut(r) {
+			refuse.ServeHTTP(w, r)
 			return
 		}
+		end(w, r)
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
+}
+
+// logoutByAPI ends the session for a POST the CSRF guard let through and
+// answers JSON.
+func logoutByAPI(end http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		end(w, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"ok":"true"}`))
-	}
-	for _, path := range []string{"/logout", "/api/logout"} {
-		router.Get(path, logout)
-		router.Post(path, logout)
 	}
 }
 

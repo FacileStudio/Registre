@@ -6,6 +6,14 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- A link or an image on another website can no longer sign someone out of the suite. `GET /logout`, `GET /api/logout` and `GET /api/account/logout` end the session only for a navigation (`Sec-Fetch-Mode: navigate`) whose `Sec-Fetch-Site` is `same-origin` or `same-site`, which keeps the sign-out redirect of every `*.facile.studio` app working. Any other GET ends nothing: `/logout` shows a "Sign out of Facile?" page with a sign-out button and a "Stay signed in" link, and the `/api` paths answer `405`. `POST /logout` and `POST /api/logout` now need `X-Facile-CSRF`, like `POST /api/account/logout`.
+
+### Fixed
+
+- The API reference at `/docs` said `GET /api/account/logout` answers `302` and `POST /api/account/logout` answers `{"logged_out": true}`. Both answer `200 {"ok":"true"}`.
+
 ## [0.14.0] - 2026-11-13
 
 ### Changed

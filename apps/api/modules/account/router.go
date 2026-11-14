@@ -112,7 +112,8 @@ func New(deps Services, logger *slog.Logger) *Service {
 // and it bit: behind the middleware a stale cookie got a 401 and was therefore
 // never cleared, so the state that makes someone log out was the state where
 // logging out failed. It still passes through requireCSRF, because a
-// cross-site page ending someone's session is a nuisance worth refusing.
+// cross-site page ending someone's session signs them out of every app. GET
+// skips that guard, so the handler applies accounts.MayLogOut itself.
 func Mount(router chi.Router, service *Service) {
 	guard := accounts.NewGuard(service.sessions, service.cookies)
 	router.Route("/api/account", func(account chi.Router) {

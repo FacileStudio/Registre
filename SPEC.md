@@ -195,7 +195,19 @@ revoke.
 **Logging out of registre logs the person out of every app.** `/logout`, `/api/logout` and
 `/api/account/logout` end the session the cookie names, revoke the person's live refresh grants to
 the apps that session reached, and send back-channel logout to those apps on a background context,
-as `end_session` does. A dead or missing cookie still answers 200 and tells nobody. Signing in as
+as `end_session` does. A dead or missing cookie still answers 200 and tells nobody.
+
+**Only the person can log themselves out.** Because a logout reaches every app, a link or an image on
+another website must not be able to trigger one. A POST to any of the three paths needs the
+`X-Facile-CSRF` header. A GET ends the session only when it is a navigation (`Sec-Fetch-Mode:
+navigate`) and the browser sends `Sec-Fetch-Site: same-origin` or `same-site`: every suite app lives on a `facile.studio` subdomain and signs out by
+sending the browser to `<issuer>/logout`, so that stays one hop. Navigation is required because an
+image on a sibling host that serves someone else's content is same-site too. Any other GET ends
+nothing: a cross-site link, a typed address (`none`), and a request with no `Sec-Fetch-Site` at all (an old
+browser or a script). `GET /logout` then shows a "Sign out of Facile?" page whose button sends the
+CSRF-protected POST, and the two `/api` paths answer `405` naming POST. `end_session` is unchanged:
+it ends sessions only for the user a valid `id_token_hint` names, and refuses a request that names
+nobody. Signing in as
 someone else on a browser that still holds a live account cookie does the same to the previous
 person's session first, on every path that sets the cookie (password, second factor, passkey,
 social, sign-up), so a reload of any app shows the new person. Signing in again as the same person
