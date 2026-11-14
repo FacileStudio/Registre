@@ -6,6 +6,24 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-14
+
+### Added
+
+- The signed-out landing shows the plans: Solo free, Pro at 9 €/month (recommended) and Studio at 29 €/month, with a line per plan, "one subscription covers every Facile app" and a link to https://suite.facile.studio/#tarifs. The plan buttons lead to sign-up. Prices mirror Ardoise's public catalog in `landing/plans.ts`, since the CSP keeps `connect-src` to Registre's origin.
+- A grid of the 18 hosted apps any new account opens (access policy `everyone`), with each app's one-liner in fr, en, es and de. Ardoise, Journal and Antenne are left out because they admit assigned accounts only.
+- A "For developers" block near the bottom: the facile CLI installer, the source on GitHub and the self-hosting page.
+
+### Changed
+
+- The main button is "Create a free account" (muse `LandingCta`), with "Sign in with Facile" second. The header keeps sign-in only, and the "CLI" nav link and terminal sign-in card are gone.
+- The subtitle, meta description and footer line say "one subscription unlocks the whole suite". The static meta tags no longer mention OpenID Connect.
+- muse v0.24.0.
+
+### Fixed
+
+- `<html lang>` follows the page's language from the first render. It stayed "en" on a French page until the language was changed by hand.
+
 ## [0.17.1] - 2026-11-14
 
 ### Changed
