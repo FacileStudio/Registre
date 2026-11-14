@@ -3,6 +3,7 @@ package seed
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -89,6 +90,28 @@ func TestEverySuiteRedirectKeepsTheAPIPrefix(t *testing.T) {
 			if !strings.HasSuffix(uri, "/api/auth/oidc/callback") {
 				t.Errorf("%s: redirect %q does not end in /api/auth/oidc/callback", app.Name, uri)
 			}
+		}
+	}
+}
+
+// TestTheProductionSeedLetsCourrierAndEchoReachBulle pins both grants to
+// exactly bulle.read and bulle.write, so neither can widen or vanish unseen.
+func TestTheProductionSeedLetsCourrierAndEchoReachBulle(t *testing.T) {
+	file := loadProductionSeed(t)
+	want := []ExchangeGrant{{Audience: "bulle", Scopes: []string{"bulle.read", "bulle.write"}}}
+	for name, clientID := range map[string]string{
+		"courrier": "tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0",
+		"echo":     "echo",
+	} {
+		i := slices.IndexFunc(file.Applications, func(a Application) bool { return a.ClientID == clientID })
+		if i < 0 {
+			t.Errorf("no %s client in the production seed", name)
+			continue
+		}
+		if got := file.Applications[i].TokenExchange; !slices.EqualFunc(got, want, func(a, b ExchangeGrant) bool {
+			return a.Audience == b.Audience && slices.Equal(a.Scopes, b.Scopes)
+		}) {
+			t.Errorf("%s exchanges %+v, want %+v", name, got, want)
 		}
 	}
 }
