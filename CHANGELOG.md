@@ -6,6 +6,16 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-11-14
+
+### Removed
+
+- seed: the Perception and Coffre OIDC clients leave `seed.yaml`, with their `REGISTRE_SEED_PERCEPTION_SECRET` and `REGISTRE_SEED_COFFRE_SECRET` lines in `docker-compose.yml`, their entries in the login client's app list (`suite.ts`, `access.ts`) and the Perception logo. The seed upsert never deletes, so the two `clients` rows stay in the database until someone deletes them with SQL; until then the boot no longer re-seeds their secret hash, redirect URIs or scopes.
+
+### Fixed
+
+- test(api): the wire goldens (`testdata/wire/directory.golden`, `oidc.golden`) matched an older embedded client, so `TestWireDirectory` failed on every run. They are regenerated. This is most likely what an earlier session saw as a "race"; no data race reproduced in about 290 `-race` runs.
+
 ## [0.19.0] - 2026-11-14
 
 ### Added
