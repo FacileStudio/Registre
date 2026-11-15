@@ -6,6 +6,13 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-11-15
+
+### Changed
+
+- seed: Bulle asks for the `roles` scope and sees the `admin` role, so a person granted admin on Bulle is exempt from its monthly AI budget.
+- seed: sonar may exchange a signed-in person's token for Bulle (`bulle.read`, `bulle.write`), so its AI summaries no longer need a shared service key.
+
 ## [0.20.0] - 2026-11-15
 
 ### Added
