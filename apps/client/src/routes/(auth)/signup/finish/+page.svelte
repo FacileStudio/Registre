@@ -40,9 +40,7 @@
 		try {
 			const pending = await signup.verify(token);
 			email = pending.email;
-			if (isLocale(pending.locale) && !new URLSearchParams(window.location.search).has('lang')) {
-				pickLanguage(pending.locale);
-			}
+			if (isLocale(pending.locale)) pickLanguage(pending.locale);
 			status = 'ready';
 		} catch (cause) {
 			status = cause instanceof SignupError && cause.status === 410 ? 'invalid' : 'unchecked';

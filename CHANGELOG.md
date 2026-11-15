@@ -6,6 +6,15 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- sign-up: a `?lang=` on a link no longer becomes the account's language. It still sets the language of that page view, but the account is created in the language the person picked in the switcher, else their browser's, else English, and `?lang=` alone is never written to `registre.locale` in the browser. Before, a link such as `/signup?lang=fr` gave a British visitor a French account, French mails and French apps.
+- spaces: the join mail sent to an address without an account no longer links to `/signup?lang=<inviter's language>`. The mail is still written in the inviter's language, the only one known, but the page and the new account follow the invitee's browser.
+
+### Added
+
+- oidc: `ui_locales` on the authorization request is honoured as a display hint. The login redirect carries the first supported language (`/login?auth_request=...&ui_locales=fr`) and the sign-in and sign-up pages open in it, below a language the person chose on this browser and above the browser's own. `?ui_locales=` on a direct link to a Registre page works the same way. Nothing is stored, and the `locale` claim is unchanged.
+
 ## [0.20.3] - 2026-11-16
 
 ### Fixed

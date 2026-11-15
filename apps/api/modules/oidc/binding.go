@@ -46,7 +46,7 @@ func (b Binding) authorize(next http.Handler) http.Handler {
 		digest := flows.Digest(secret)
 		http.SetCookie(w, b.flowCookie(b.flowName(digest), secret, int(authTTL.Seconds())))
 		r = withResources(r)
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), flowKey{}, digest)))
+		next.ServeHTTP(hinted(w, r), r.WithContext(context.WithValue(r.Context(), flowKey{}, digest)))
 	})
 }
 

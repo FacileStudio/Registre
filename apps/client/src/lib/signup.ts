@@ -3,7 +3,7 @@
  * account cookie: a person signing up has no account yet. /api/signup/finish
  * sets the cookie in its answer.
  */
-import { locale } from '$lib/i18n/i18n.svelte';
+import { accountLocale } from '$lib/i18n/i18n.svelte';
 
 /**
  * SignupError carries the server's error code so pages can explain it, and
@@ -71,7 +71,7 @@ export const signup = {
 		post<{ status: string }>('/api/signup/start', {
 			email,
 			altcha,
-			locale: locale(),
+			locale: accountLocale(),
 			auth_request: authRequest,
 			invitation
 		}),

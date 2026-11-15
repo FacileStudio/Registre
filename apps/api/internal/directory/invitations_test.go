@@ -86,6 +86,25 @@ func TestAnInvitationIsNotAMembershipUntilAccepted(t *testing.T) {
 	}
 }
 
+// TestTheJoinLinkNamesNoLanguage invites a stranger from a French account:
+// the mail is French, the only language known, but the link carries no
+// `lang`, so the new account takes the invitee's language, not the inviter's.
+func TestTheJoinLinkNamesNoLanguage(t *testing.T) {
+	w := invitationWorld(t, true)
+	owner := w.sub["owner@facile.studio"]
+	w.svc.db.Exec("UPDATE users SET locale = 'fr' WHERE id = ?", owner)
+	if err := w.svc.Invite(context.Background(), owner, w.spaceID, "stranger@example.com", "member"); err != nil {
+		t.Fatal(err)
+	}
+	body := w.mails.bodies["stranger@example.com"]
+	if !strings.Contains(body, "/signup?invitation=") || strings.Contains(body, "lang=") {
+		t.Fatalf("the join link = %s, want the invitation and no lang", body)
+	}
+	if !strings.Contains(w.mails.to("stranger@example.com"), "vous invite") {
+		t.Fatalf("subject = %q, want the inviter's French", w.mails.to("stranger@example.com"))
+	}
+}
+
 // TestUnknownAddressesGetTheSameAnswer never says whether an address has an
 // account, and mails a stranger only while sign-up is open.
 func TestUnknownAddressesGetTheSameAnswer(t *testing.T) {
