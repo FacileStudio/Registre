@@ -10,6 +10,7 @@ type WaitlistEntry struct {
 	Product        string
 	Locale         string
 	ConsentVersion string
+	Quantity       *int16
 	CreatedAt      time.Time
 }
 

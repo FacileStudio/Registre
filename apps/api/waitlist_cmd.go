@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -102,17 +103,25 @@ func waitlistService(db *gorm.DB) (*waitlist.Service, string, error) {
 	return waitlist.New(db, []byte(settings.AltchaKey)), strings.TrimRight(cfg.Issuer, "/"), nil
 }
 
+// quantityCell renders an optional quantity, empty when unsaid.
+func quantityCell(q *int16) string {
+	if q == nil {
+		return ""
+	}
+	return strconv.Itoa(int(*q))
+}
+
 // exportWaitlist writes one product's entries, or all of them, as CSV.
 func exportWaitlist(ctx context.Context, out io.Writer, list *waitlist.Service, issuer, product string) error {
 	rows, err := list.List(ctx, product)
 	if err != nil {
 		return err
 	}
-	records := [][]string{{"email", "product", "locale", "consent_version", "created_at", "unsubscribe_url"}}
+	records := [][]string{{"email", "product", "locale", "consent_version", "quantity", "created_at", "unsubscribe_url"}}
 	for _, row := range rows {
 		link := issuer + UnsubscribePath + "?token=" + url.QueryEscape(list.Token(row.ID))
 		records = append(records, []string{
-			row.Email, row.Product, row.Locale, row.ConsentVersion, row.CreatedAt.UTC().Format(time.RFC3339), link,
+			row.Email, row.Product, row.Locale, row.ConsentVersion, quantityCell(row.Quantity), row.CreatedAt.UTC().Format(time.RFC3339), link,
 		})
 	}
 	writer := csv.NewWriter(out)

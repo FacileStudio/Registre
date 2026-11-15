@@ -51,12 +51,14 @@ var (
 
 var consentVersion = regexp.MustCompile(`^[a-z0-9.-]{1,32}$`)
 
-// Entry is one request to join a waitlist.
+// Entry is one request to join a waitlist. Quantity is how many units the
+// person asks for, nil when unsaid.
 type Entry struct {
-	Email   string
-	Product string
-	Locale  string
-	Consent string
+	Email    string
+	Product  string
+	Locale   string
+	Consent  string
+	Quantity *float64
 }
 
 // Service reads and writes the waitlists.
@@ -88,6 +90,9 @@ func Validate(in Entry) (Entry, error) {
 	if !consentVersion.MatchString(in.Consent) {
 		return Entry{}, ErrConsent
 	}
+	if !validQuantity(in.Quantity, in.Product) {
+		return Entry{}, ErrQuantity
+	}
 	return in, nil
 }
 
@@ -112,7 +117,7 @@ func (s *Service) Join(ctx context.Context, in Entry) error {
 	}
 	row := schemas.WaitlistEntry{
 		ID: id, Email: in.Email, Product: in.Product, Locale: in.Locale,
-		ConsentVersion: in.Consent, CreatedAt: s.now(),
+		ConsentVersion: in.Consent, Quantity: storedQuantity(in.Quantity), CreatedAt: s.now(),
 	}
 	err = s.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error
 	if err != nil {

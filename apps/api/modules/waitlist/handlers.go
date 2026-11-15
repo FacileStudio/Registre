@@ -16,11 +16,12 @@ const maxBody = 4 << 10
 
 // joinBody is what a landing page posts.
 type joinBody struct {
-	Email   string `json:"email"`
-	Product string `json:"product"`
-	Locale  string `json:"locale"`
-	Consent string `json:"consent"`
-	Altcha  string `json:"altcha"`
+	Email    string   `json:"email"`
+	Product  string   `json:"product"`
+	Locale   string   `json:"locale"`
+	Consent  string   `json:"consent"`
+	Altcha   string   `json:"altcha"`
+	Quantity *float64 `json:"quantity"`
 }
 
 // challenge answers a fresh ALTCHA challenge.
@@ -45,7 +46,7 @@ func (s *Service) join(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	entry, err := waitlist.Validate(waitlist.Entry{
-		Email: body.Email, Product: body.Product, Locale: body.Locale, Consent: body.Consent,
+		Email: body.Email, Product: body.Product, Locale: body.Locale, Consent: body.Consent, Quantity: body.Quantity,
 	})
 	if err != nil {
 		s.refuse(w, err)
@@ -90,6 +91,7 @@ var refusals = []struct {
 	{waitlist.ErrProduct, "invalid_product"},
 	{waitlist.ErrLocale, "invalid_locale"},
 	{waitlist.ErrConsent, "consent_required"},
+	{waitlist.ErrQuantity, "invalid_quantity"},
 	{waitlist.ErrToken, "invalid_token"},
 	{flow.ErrProof, "invalid_proof"},
 }
