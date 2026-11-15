@@ -461,6 +461,11 @@ applications:
     mcp:
       resource: https://sonar.facile.studio/mcp
       scopes: [sonar.read]
+    # sonar writes AI summaries through Bulle's /api/ai/summarize with a token
+    # exchanged for the signed-in person, never a shared service key.
+    token_exchange:
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   # Toile, the suite's collaborative whiteboard at toile.facile.studio, built
   # on the Docs template: porte-rs mounts under /api, so the redirect keeps the
@@ -536,7 +541,10 @@ applications:
     secret_env: REGISTRE_SEED_BULLE_SECRET
     redirect_uris:
       - https://bulle.facile.studio/api/auth/oidc/callback
-    scopes: [openid, profile, email, offline_access]
+    # roles carries admin, which exempts a person from Bulle's monthly AI
+    # budget: grant it per person on Bulle's access page.
+    scopes: [openid, profile, email, offline_access, roles]
+    visible_roles: [admin]
     token_exchange:
       - audience: tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0
         scopes: [courrier.read, courrier.write]
