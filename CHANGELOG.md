@@ -6,6 +6,13 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-15
+
+### Added
+
+- waitlist: `POST /api/waitlist` takes an optional `quantity`, a whole number from 1 to 10, for product `pastille` only. A quantity on `scribe`, out of range or not a whole number answers 400 `invalid_quantity`; a non-numeric value answers 400 `invalid`. Without it the entry is stored as before. Migration 00024 adds the nullable `waitlist_entries.quantity` (SMALLINT) with a CHECK for the same rule. A known address keeps its first row, quantity included.
+- `registre waitlist-export` gains a `quantity` column between `consent_version` and `created_at`, empty when none was given.
+
 ## [0.19.2] - 2026-11-14
 
 ### Changed
