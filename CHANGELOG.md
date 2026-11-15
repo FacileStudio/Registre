@@ -6,6 +6,10 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- login: the client no longer loads Vision's tracker from `vision.facile.studio`. A script served by another app ran on the page where passwords and TOTP codes are typed, so a compromised Vision could have read them. The same tracker is now served from `/vision-tracker.js` on the same origin and still reports to Vision, and the CSP `script-src` no longer allows the Vision origin.
+
 ## [0.20.1] - 2026-11-15
 
 ### Changed

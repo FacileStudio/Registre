@@ -13,7 +13,7 @@ with, and a record of every token issued.
 | `internal/clients` | The register. Reading a client, verifying its secret, writing a declaration |
 | `internal/credentials` | argon2id, and the ceiling on how many hashes run at once |
 | `internal/seed` | The declarative bootstrap, applied at every boot |
-| `internal/crypto` | AES-256-GCM, used for one thing: sealing private keys at rest |
+| `internal/crypto` | AES-256-GCM, used to seal private keys and TOTP seeds at rest |
 | `internal/access` | Who may use which app (`clients.access_policy`, `app_grants`) and the roles a grant carries. Asked by every path that hands a human a token |
 | `internal/audit` | The admin activity log (`admin_events`), written after every dashboard change |
 | `migrations/` | The schema. Not the GORM models, which only describe what a migration built |

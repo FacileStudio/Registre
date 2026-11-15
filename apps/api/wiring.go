@@ -259,12 +259,8 @@ func mountPeople(router chi.Router, cfg env.Config, p people) {
 // sent the header.
 const openerPolicy = "unsafe-none"
 
-// visionScript is the origin of Vision's tracker, which app.html loads on the
-// production host.
-const visionScript = "https://vision.facile.studio"
-
 // securityConfig is tronc's default security headers with the opener policy
-// above, and a script-src that allows Vision's tracker and, by hash, the
+// above, and a script-src that allows, by hash, the
 // inline scripts of the embedded client.
 func securityConfig() (troncmiddleware.SecurityConfig, error) {
 	hashes, err := web.InlineScriptHashes()
@@ -273,7 +269,7 @@ func securityConfig() (troncmiddleware.SecurityConfig, error) {
 	}
 	return troncmiddleware.SecurityConfig{
 		CrossOriginOpenerPolicy: openerPolicy,
-		CSPSources:              map[string][]string{"script-src": append([]string{visionScript}, hashes...)},
+		CSPSources:              map[string][]string{"script-src": hashes},
 	}, nil
 }
 
