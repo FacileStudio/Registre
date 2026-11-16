@@ -6,6 +6,10 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- seed: Diapo, the suite's slide decks at `https://diapo.facile.studio`, and Clap, its video editor at `https://clap.facile.studio`, are registered applications with client ids `diapo` and `clap`. Each has directory sync, deletion notices, back-channel logout and an MCP resource at `/mcp` (`<app>.read`, `<app>.write`), and may exchange a person's token for Bulle (`bulle.read`, `bulle.write`). Diapo may also exchange one for Clap with `clap.write`, to render a deck to MP4. Bulle may exchange for both with read and write. Their secrets come from `REGISTRE_SEED_DIAPO_SECRET` and `REGISTRE_SEED_CLAP_SECRET`, which the compose file now forwards: set both in the deployment environment before this is deployed, or the boot fails.
+
 ## [0.21.0] - 2026-11-16
 
 ### Fixed
