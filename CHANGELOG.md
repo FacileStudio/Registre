@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-16
+
+### Added
+
+- client: Diapo and Clap appear in the app launcher (Workspace group), in the signed-out landing's list of open apps, and in the access page's icon map, with their Solar glyphs.
+
 ## [0.22.0] - 2026-11-16
 
 ### Added
