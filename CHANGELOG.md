@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.20.4] - 2026-11-16
+
+### Added
+
+- seed: Vision may exchange a user token for audience `bulle` (`bulle.read`, `bulle.write`), as Agenda does, for its Ideas page and anomaly explanations.
+
 ## [0.20.3] - 2026-11-16
 
 ### Fixed
