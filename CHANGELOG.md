@@ -6,6 +6,13 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-16
+
+### Added
+
+- directory: every enabled operator (`users.admin`) gets every paid feature in the snapshot apps read: each boolean feature true and each limit unlimited (-1), whatever plan Ardoise pushed for them. Spaces are unchanged. An empty catalog grants nothing.
+- admin: creating, updating, disabling or enabling a user bumps the directory version and nudges the apps, so a change of operator status reaches them at the next sync.
+
 ## [0.21.1] - 2026-11-16
 
 ### Added
