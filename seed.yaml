@@ -167,6 +167,9 @@ applications:
     mcp:
       resource: https://vision.facile.studio/mcp
       scopes: [vision.read, vision.write]
+    token_exchange:
+      - audience: bulle
+        scopes: [bulle.read, bulle.write]
 
   # facile-cli, the suite's own command line, and the first client that logs a
   # human in without a browser on the same machine.

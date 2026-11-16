@@ -6,6 +6,8 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-16
+
 ### Fixed
 
 - sign-up: a `?lang=` on a link no longer becomes the account's language. It still sets the language of that page view, but the account is created in the language the person picked in the switcher, else their browser's, else English, and `?lang=` alone is never written to `registre.locale` in the browser. Before, a link such as `/signup?lang=fr` gave a British visitor a French account, French mails and French apps.
@@ -14,6 +16,12 @@ All notable changes to Registre are recorded here. The format follows
 ### Added
 
 - oidc: `ui_locales` on the authorization request is honoured as a display hint. The login redirect carries the first supported language (`/login?auth_request=...&ui_locales=fr`) and the sign-in and sign-up pages open in it, below a language the person chose on this browser and above the browser's own. `?ui_locales=` on a direct link to a Registre page works the same way. Nothing is stored, and the `locale` claim is unchanged.
+
+## [0.20.4] - 2026-11-16
+
+### Added
+
+- seed: Vision may exchange a user token for audience `bulle` (`bulle.read`, `bulle.write`), as Agenda does, for its Ideas page and anomaly explanations.
 
 ## [0.20.3] - 2026-11-16
 
