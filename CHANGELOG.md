@@ -6,6 +6,10 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- login: a sign-in submitted after its auth request expired answered "wrong email or password" for a correct password. `POST /api/login`, `/api/login/totp`, `/api/login/passkey/finish` and `/api/login/session` now answer `410 {"error":"auth_request_gone"}` for a gone, expired or completed request, and the login page says the request expired and offers a way back. The auth request is checked before any credential, so the answer says nothing about an account; every credential refusal keeps its 401.
+
 ## [0.20.2] - 2026-11-16
 
 ### Security

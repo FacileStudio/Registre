@@ -30,7 +30,11 @@ The interactive documentation is served live at `/docs` (powered by Scalar), and
 |---|---|---|---|
 | `POST` | `/api/login` | Public | Authenticate with email and password |
 | `POST` | `/api/login/totp` | Public | Complete second factor TOTP challenge |
+| `POST` | `/api/login/passkey/finish` | Public | Finish a passkey sign-in |
+| `GET` | `/api/login/session` | Cookie | Finish a pending flow with the signed-in session (`POST` with `auth_request`), or probe where to go |
 | `GET` | `/api/config` | Public | Browser client configuration for frontend logging |
+
+A login step whose `auth_request` is unknown, expired or already completed answers `410` with `{"error":"auth_request_gone"}` (`/api/login`, `/api/login/totp`, `/api/login/passkey/finish`, `/api/login/session`). The request is checked before any credential, so the answer depends only on the id and says nothing about an account. Every credential refusal (unknown address, wrong password, wrong code) stays `401 {"error":"invalid"}`. The `/api/login/session` answer was `400 {"error":"auth request is gone"}` before.
 
 ### Account (`account`)
 

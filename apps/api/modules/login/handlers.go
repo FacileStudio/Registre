@@ -143,7 +143,17 @@ func (s *Service) jsonSubmit(w http.ResponseWriter, r *http.Request) {
 	encode(w, answer, http.StatusOK)
 }
 
-// refuse writes the one refusal both endpoints make. A refusal registre
+// ErrorAuthRequestGone is the error code for a sign-in whose auth request is
+// unknown, expired or already completed. It answers 410 and is distinct from
+// the credential refusal so the page can say the request expired instead of
+// blaming the password.
+const ErrorAuthRequestGone = "auth_request_gone"
+
+// refuse writes the one refusal both endpoints make. A gone auth request
+// answers 410 auth_request_gone: the pending request is checked before any
+// credential, so that answer depends only on the request id the caller sent
+// and says nothing about any account. Every credential refusal stays one
+// generic 401. A refusal registre
 // caused rather than the caller is logged and answered 500, with the same
 // body, so an operator can find it without the client learning anything. A
 // user who proved who they are but may not use the app answers 403 no_access:
@@ -156,9 +166,13 @@ func (s *Service) refuse(w http.ResponseWriter, err error) {
 		encode(w, map[string]string{"error": "no_access"}, http.StatusForbidden)
 		return
 	}
+	if errors.Is(err, errAuthRequestGone) {
+		encode(w, map[string]string{"error": ErrorAuthRequestGone}, http.StatusGone)
+		return
+	}
 	status := http.StatusUnauthorized
 	switch {
-	case errors.Is(err, identity.ErrInvalid), errors.Is(err, errAuthRequestGone),
+	case errors.Is(err, identity.ErrInvalid),
 		errors.Is(err, challenges.ErrInvalid), errors.Is(err, totp.ErrInvalid):
 	case errors.Is(err, errNoSecondFactor):
 		s.logger.Error("registre: an enrolled account met a build with no second factor service",
@@ -180,7 +194,9 @@ func encode(w http.ResponseWriter, body any, status int) {
 }
 
 // authenticate validates the pending auth request and verifies the
-// credentials. An account with no second factor is logged in here; one that
+// credentials. The auth request is checked first, before the address or the
+// password is looked at, so a gone request answers 410 whatever the
+// credentials are and the answer reveals nothing about any account. An account with no second factor is logged in here; one that
 // has a factor gets a challenge and nothing else, because a session opened
 // now is a session the password alone opened.
 func (s *Service) authenticate(

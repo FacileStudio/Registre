@@ -8,7 +8,7 @@
 	import { landing, rememberNext } from '$lib/next';
 
 	type Step = 'password' | 'second-factor';
-	type AuthStatus = 'checking' | 'redirecting' | 'handed-off' | 'ready' | 'submitting';
+	type AuthStatus = 'checking' | 'redirecting' | 'handed-off' | 'ready' | 'submitting' | 'gone';
 
 	let authRequest = $state('');
 	let email = $state('');
@@ -135,6 +135,10 @@
 				body: JSON.stringify({ auth_request: authRequest, ceremony: options.ceremony, credential })
 			});
 			const body = await response.json().catch(() => null);
+			if (body?.error === GONE) {
+				status = 'gone';
+				return;
+			}
 			if (!response.ok) {
 				error = body?.error === 'no_access' ? t('login.noAccess') : t('login.passkeyRefused');
 				status = 'ready';
@@ -162,12 +166,18 @@
 				redirect(body.redirect);
 				return;
 			}
+			if (body?.error === GONE) {
+				status = 'gone';
+				return;
+			}
 			if (body?.error === 'no_access') error = t('login.noAccess');
 			status = 'ready';
 		} catch {
 			status = 'ready';
 		}
 	}
+
+	const GONE = 'auth_request_gone';
 
 	function answerFor(status: number, reason: string | undefined, fallback: string): string {
 		if (reason === 'no_access') return t('login.noAccess');
@@ -188,6 +198,11 @@
 				body: JSON.stringify({ auth_request: authRequest, email, password })
 			});
 			const body = await response.json().catch(() => null);
+			if (body?.error === GONE) {
+				password = '';
+				status = 'gone';
+				return;
+			}
 			if (!response.ok) {
 				error = answerFor(response.status, body?.error, t('login.refused'));
 				status = 'ready';
@@ -219,6 +234,12 @@
 				body: JSON.stringify(challenge ? { challenge, code: code.trim() } : { code: code.trim() })
 			});
 			const body = await response.json().catch(() => null);
+			if (body?.error === GONE) {
+				code = '';
+				challenge = '';
+				status = 'gone';
+				return;
+			}
 			if (!response.ok) {
 				error = answerFor(response.status, body?.error, t('login.codeRefused'));
 				code = '';
@@ -263,6 +284,13 @@
 				<h1 class="font-heading text-xl font-semibold tracking-tight text-fc-fg">{t('login.handedOff')}</h1>
 				<p class="text-fc-sm text-fc-fg-muted">{t('login.handedOffHint')}</p>
 			</div>
+		</Stack>
+	</div>
+{:else if status === 'gone'}
+	<div class="stage">
+		<Stack gap="content">
+			<Alert tone="warning" title={t('login.gone')}>{t('login.goneHint')}</Alert>
+			<Button href="/" class="w-full">{t('login.goneAction')}</Button>
 		</Stack>
 	</div>
 {:else if status === 'checking' || status === 'redirecting'}
