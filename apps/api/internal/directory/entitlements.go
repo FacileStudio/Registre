@@ -141,7 +141,8 @@ func (s *Service) populate(tx *gorm.DB, out *wire.Snapshot, byID map[string]*wir
 }
 
 // fillEntitlements puts the stored values on each snapshot space and lists
-// every enabled person who has some.
+// every enabled person who has some, plus every enabled operator, who holds
+// the whole catalog (see withOperators).
 func fillEntitlements(tx *gorm.DB, out *wire.Snapshot, byID map[string]*wire.Space) error {
 	var spaces []entitlementRow
 	if err := tx.Raw(`SELECT space_id AS id, "values" FROM space_entitlements`).Scan(&spaces).Error; err != nil {
@@ -161,5 +162,6 @@ func fillEntitlements(tx *gorm.DB, out *wire.Snapshot, byID map[string]*wire.Spa
 	for _, row := range people {
 		out.People = append(out.People, wire.Person{Subject: row.ID, Entitlements: row.decode()})
 	}
-	return nil
+	out.People, err = withOperators(tx, out.People)
+	return err
 }
