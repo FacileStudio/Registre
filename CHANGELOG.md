@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-11-16
+
+### Changed
+
+- muse v0.32.0: tabs and segmented option cards are 36px tall on pointer devices and 44px on touch.
+
 ## [0.23.0] - 2026-11-16
 
 ### Added
