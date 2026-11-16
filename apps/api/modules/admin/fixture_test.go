@@ -15,6 +15,7 @@ import (
 	"github.com/FacileStudio/Registre/apps/api/internal/audit"
 	"github.com/FacileStudio/Registre/apps/api/internal/clients"
 	"github.com/FacileStudio/Registre/apps/api/internal/credentials"
+	"github.com/FacileStudio/Registre/apps/api/internal/directory"
 	"github.com/FacileStudio/Registre/apps/api/internal/gdpr"
 	"github.com/FacileStudio/Registre/apps/api/internal/identity"
 	"github.com/FacileStudio/Registre/apps/api/internal/invites"
@@ -66,7 +67,7 @@ func newFixture(t *testing.T) fixture {
 	invitations := invites.New(db, verifier)
 	service := New(Services{
 		Register: register, Users: users, Keys: keyring, Invites: invitations,
-		Access: access.New(db, clients.SelfClientID), Audit: audit.New(db), Self: clients.SelfClientID,
+		Access: access.New(db, clients.SelfClientID), Directory: directory.New(db, nil, nil, discard()), Audit: audit.New(db), Self: clients.SelfClientID,
 		Eraser: gdpr.New(gdpr.Deps{DB: db, Sessions: users, Audit: audit.New(db), Logger: discard()}, "http://registre.test"),
 	}, discard())
 	router := chi.NewRouter()

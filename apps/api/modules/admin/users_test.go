@@ -121,3 +121,34 @@ func TestAUserCanBeUpdatedEnabledAndDeleted(t *testing.T) {
 		t.Fatal("deleted user still exists")
 	}
 }
+
+func TestChangingAnOperatorBumpsTheDirectoryVersion(t *testing.T) {
+	f := newFixture(t)
+	_, body := f.call(t, http.MethodPost, "/api/admin/users", map[string]any{
+		"email": "grantee@example.com", "password": "their password",
+	}, true)
+	id, _ := body["id"].(string)
+	version := func() int64 {
+		var out int64
+		f.db.Raw("SELECT COALESCE((SELECT version FROM directory_state WHERE id = 1), 0)").Scan(&out)
+		return out
+	}
+	steps := []struct {
+		name, method, path string
+		body               any
+	}{
+		{"promote", http.MethodPut, "/api/admin/users/" + id, map[string]any{"name": "G", "admin": true}},
+		{"disable", http.MethodPost, "/api/admin/users/" + id + "/disable", nil},
+		{"enable", http.MethodPost, "/api/admin/users/" + id + "/enable", nil},
+	}
+	for _, step := range steps {
+		before := version()
+		response, _ := f.call(t, step.method, step.path, step.body, true)
+		if response.StatusCode != http.StatusOK {
+			t.Fatalf("%s answered %d", step.name, response.StatusCode)
+		}
+		if after := version(); after <= before {
+			t.Errorf("%s left the directory version at %d, want it above %d", step.name, after, before)
+		}
+	}
+}
