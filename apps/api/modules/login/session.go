@@ -63,7 +63,7 @@ func requestedFlow(r *http.Request) (string, bool) {
 func (s *Service) resume(ctx context.Context, w http.ResponseWriter, authRequestID, userID, sessionID string) {
 	authReq, err := s.identity.AuthRequestByID(ctx, authRequestID)
 	if err != nil || !authReq.ExpiresAt.After(s.now()) || authReq.Done() {
-		encode(w, map[string]string{"error": "auth request is gone"}, http.StatusBadRequest)
+		encode(w, map[string]string{"error": ErrorAuthRequestGone}, http.StatusGone)
 		return
 	}
 	if err := s.identity.TouchSession(ctx, sessionID, authReq.ClientID); err != nil {

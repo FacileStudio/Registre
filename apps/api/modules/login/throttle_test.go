@@ -84,8 +84,9 @@ func TestASuccessResetsTheCounter(t *testing.T) {
 	if _, response := f.login(flow, user.Email, goodPassword); response.StatusCode != http.StatusOK {
 		t.Fatalf("the right password on attempt 5 = %d, want 200", response.StatusCode)
 	}
+	next := f.authRequest()
 	for i := 1; i <= 5; i++ {
-		if _, response := f.login(flow, user.Email, "wrong password"); response.StatusCode != http.StatusUnauthorized {
+		if _, response := f.login(next, user.Email, "wrong password"); response.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("attempt %d after a success = %d, want a fresh budget of 401s", i, response.StatusCode)
 		}
 	}
