@@ -109,3 +109,19 @@ func TestTheProductionSeedLetsCourrierAndEchoReachBulle(t *testing.T) {
 		}
 	}
 }
+
+// TestTheProductionSeedLetsPrismeReachNuage pins Prisme's only exchange to
+// Nuage's read and write scopes, the file picker's whole reach.
+func TestTheProductionSeedLetsPrismeReachNuage(t *testing.T) {
+	file := loadProductionSeed(t)
+	want := []ExchangeGrant{{Audience: "9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH", Scopes: []string{"nuage.read", "nuage.write"}}}
+	i := slices.IndexFunc(file.Applications, func(a Application) bool { return a.ClientID == "prisme" })
+	if i < 0 {
+		t.Fatal("no prisme client in the production seed")
+	}
+	if got := file.Applications[i].TokenExchange; !slices.EqualFunc(got, want, func(a, b ExchangeGrant) bool {
+		return a.Audience == b.Audience && slices.Equal(a.Scopes, b.Scopes)
+	}) {
+		t.Errorf("prisme exchanges %+v, want %+v", got, want)
+	}
+}

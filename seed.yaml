@@ -356,7 +356,10 @@ applications:
   # porte is mounted inside router.Route("/api", ...), so the redirect keeps
   # the /api prefix. The back-channel route is served by porte's Kit.Mount as
   # soon as OIDC_ISSUER is set. Bulle reaches Prisme with a service key and
-  # names the user it acts for, so no token_exchange entry points here.
+  # names the user it acts for, so no token_exchange entry points at Prisme.
+  # Prisme's own exchange reaches Nuage: its file picker lists the user's
+  # drive and shares a file into a chat, acting as that user. Nuage names
+  # prisme in NUAGE_FULL_ACCESS_ACTORS, so the token sees what the user sees.
   - client_id: prisme
     name: Prisme
     directory_sync_uri: https://prisme.facile.studio/api/registre/sync
@@ -366,6 +369,9 @@ applications:
     redirect_uris:
       - https://prisme.facile.studio/api/auth/oidc/callback
     scopes: [openid, profile, email, offline_access]
+    token_exchange:
+      - audience: 9U40zs8fnTkpKpR6MMobIOXk0OkvotC7vd1NECGH
+        scopes: [nuage.read, nuage.write]
 
   # Capsule, the suite's end-to-end encrypted paste at capsule.facile.studio.
   # Pastes stay anonymous; sign-in exists so the capsule CLI can hold a session
