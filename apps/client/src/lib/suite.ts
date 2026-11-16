@@ -43,6 +43,8 @@ export const suite: SuiteGroup[] = [
 			{ name: 'Docs', url: 'https://docs.facile.studio', description: 'Documents collaboratifs, édités à plusieurs en direct.', icon: 'solar:documents-bold-duotone' },
 			{ name: 'Feuilles', url: 'https://feuilles.facile.studio', description: 'Tableurs collaboratifs, édités à plusieurs en direct.', icon: 'solar:table-minimalistic-bold-duotone' },
 			{ name: 'Toile', url: 'https://toile.facile.studio', description: 'Tableau blanc infini et collaboratif.', icon: 'solar:tablet-bold-duotone' },
+			{ name: 'Diapo', url: 'https://diapo.facile.studio', description: 'Présentations écrites dans un seul fichier texte.', icon: 'solar:presentation-graph-bold-duotone' },
+			{ name: 'Clap', url: 'https://clap.facile.studio', description: 'Montage vidéo sur une timeline, rendu en MP4.', icon: 'solar:clapperboard-open-bold-duotone' },
 			{ name: 'Ardoise', url: 'https://ardoise.facile.studio', description: 'Factures, devis et contrats freelance.', icon: 'solar:bill-list-bold-duotone', logo: logo('ardoise') }
 		]
 	},

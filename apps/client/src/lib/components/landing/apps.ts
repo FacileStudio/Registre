@@ -94,6 +94,28 @@ const OPEN_APPS: readonly OpenApp[] = [
 		}
 	},
 	{
+		name: "Diapo",
+		icon: "solar:presentation-graph-bold-duotone",
+		href: "https://diapo.facile.studio",
+		line: {
+			fr: "Vos présentations en un fichier texte, exportées en PowerPoint.",
+			en: "Slides as one text file, presented live or exported to PowerPoint.",
+			es: "Presentaciones en un solo archivo de texto, exportables a PowerPoint.",
+			de: "Präsentationen als eine Textdatei, live gezeigt oder als PowerPoint exportiert."
+		}
+	},
+	{
+		name: "Clap",
+		icon: "solar:clapperboard-open-bold-duotone",
+		href: "https://clap.facile.studio",
+		line: {
+			fr: "Le montage vidéo sur une timeline, rendu en MP4 sur nos serveurs.",
+			en: "Edit video on a timeline, rendered to MP4 on our servers.",
+			es: "Edita vídeo en una línea de tiempo, renderizado en MP4 en nuestros servidores.",
+			de: "Videos auf einer Zeitleiste schneiden, als MP4 auf unseren Servern gerendert."
+		}
+	},
+	{
 		name: "Toile",
 		icon: "solar:tablet-bold-duotone",
 		href: "https://toile.facile.studio",
