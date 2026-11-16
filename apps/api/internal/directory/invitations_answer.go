@@ -99,14 +99,16 @@ func logMail(tx *gorm.DB, notice invitationNotice) (invitationNotice, error) {
 // notify hands the notice to the mailer, which delivers asynchronously.
 // The invitation mail links to the invitation's own page; the join mail to
 // sign-up with the invitation attached, so the new account lands on it.
+// The join mail is written in the inviter's language, the only one known
+// for an address without an account, but its link names no language: the
+// page and the new account follow the invitee's browser.
 func (s *Service) notify(ctx context.Context, notice invitationNotice) {
 	if notice.to == "" || s.invitations.Mailer == nil {
 		return
 	}
 	link := s.InvitationURL(notice.invitation)
 	if notice.kind == i18n.MailSpaceJoin {
-		query := url.Values{"lang": {i18n.Normalize(notice.locale)}, "invitation": {notice.invitation}}
-		link = s.invitations.Issuer + "/signup?" + query.Encode()
+		link = s.invitations.Issuer + "/signup?" + url.Values{"invitation": {notice.invitation}}.Encode()
 	}
 	subject, body := i18n.Mail(notice.kind, notice.locale, link, map[string]string{
 		"inviter": notice.inviterName, "space": notice.space,

@@ -5,20 +5,18 @@
  *
  * The locale is chosen in this order: `?lang=` on the URL (what muse's legal
  * footer and the apps link with), the account's stored locale once it is
- * known, the last choice made on this browser, the browser's languages, then
- * English. It is written to `<html lang>` so assistive technology reads the
- * page in the right language.
+ * known, the last choice made on this browser, the `ui_locales` of an app's
+ * sign-in request, the browser's languages, then English (see `./detect`).
+ * `?lang=` and `ui_locales` are hints for the page in view: neither is
+ * remembered, and neither becomes a new account's language. The locale is
+ * written to `<html lang>` so assistive technology reads the page in the
+ * right language.
  */
 import { de } from './de';
+import { LOCALES, displayLocale, isLocale, ownLocale, type Locale, type Signals } from './detect';
 import { en, type MessageKey, type Messages } from './en';
 import { es } from './es';
 import { fr } from './fr';
-
-/** Locale is one of the four languages Registre speaks. */
-export type Locale = 'fr' | 'en' | 'es' | 'de';
-
-/** LOCALES lists them in the order pickers show them. */
-export const LOCALES: readonly Locale[] = ['fr', 'en', 'es', 'de'];
 
 /** LOCALE_NAMES are each language's own name for itself. */
 export const LOCALE_NAMES: Record<Locale, string> = {
@@ -28,40 +26,38 @@ export const LOCALE_NAMES: Record<Locale, string> = {
 	de: 'Deutsch'
 };
 
+export { LOCALES, isLocale, type Locale };
+
 const catalogs: Record<Locale, Messages> = { fr, en, es, de };
 const STORAGE_KEY = 'registre.locale';
 
-/** isLocale narrows a string to a supported locale. */
-export function isLocale(value: unknown): value is Locale {
-	return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
+/** signals reads what the URL, this browser's storage and the browser itself say. */
+function signals(): Signals {
+	if (typeof window === 'undefined') return { lang: null, uiLocales: null, chosen, languages: [] };
+	const query = new URLSearchParams(window.location.search);
+	return {
+		lang: query.get('lang'),
+		uiLocales: query.get('ui_locales'),
+		chosen,
+		languages: navigator.languages ?? [navigator.language]
+	};
 }
 
-/** fromTag reduces a BCP 47 tag such as "fr-CA" to a supported locale. */
-export function fromTag(tag: string): Locale | null {
-	const language = tag.toLowerCase().split('-')[0];
-	return isLocale(language) ? language : null;
-}
-
-/** detect picks the starting locale from the URL, storage and the browser. */
-function detect(): Locale {
-	if (typeof window === 'undefined') return 'en';
-	const asked = fromTag(new URLSearchParams(window.location.search).get('lang') ?? '');
-	if (asked) return asked;
-	const stored = readStored();
-	if (stored) return stored;
-	for (const tag of navigator.languages ?? [navigator.language]) {
-		const found = fromTag(tag);
-		if (found) return found;
-	}
-	return 'en';
-}
-
-let current = $state<Locale>(detect());
+let chosen: Locale | null = readStored();
+let current = $state<Locale>(displayLocale(signals()));
 if (typeof document !== 'undefined') document.documentElement.lang = current;
 
 /** locale answers the current locale, reactively. */
 export function locale(): Locale {
 	return current;
+}
+
+/**
+ * accountLocale is the language a new account is created with: the person's
+ * own choice or their browser's, never the `?lang=` a link carried.
+ */
+export function accountLocale(): Locale {
+	return ownLocale(signals());
 }
 
 /** pinnedByURL reports whether `?lang=` chose the locale, which wins over the account's. */
@@ -72,6 +68,7 @@ export function pinnedByURL(): boolean {
 /** setLocale switches every page to next and remembers it on this browser. */
 export function setLocale(next: Locale): void {
 	current = next;
+	chosen = next;
 	if (typeof document !== 'undefined') document.documentElement.lang = next;
 	try {
 		localStorage.setItem(STORAGE_KEY, next);
