@@ -66,7 +66,7 @@
 	});
 
 	const developers: DeveloperRow[] = $derived([
-		{ kind: 'cli', text: t('landing.devCli'), command: 'curl -fsSL https://get.facile.studio | sh', href: 'https://github.com/FacileStudio/facile' },
+		{ kind: 'cli', text: t('landing.devCli'), command: 'curl -fsSL https://get.facile.studio | sh', href: 'https://github.com/FacileStudio/kit' },
 		{ kind: 'source', text: t('landing.devSource'), href: 'https://github.com/FacileStudio/Registre' }
 	]);
 </script>
