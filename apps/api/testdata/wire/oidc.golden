@@ -3,7 +3,7 @@ GET /login
 200 OK
 Cache-Control: no-cache
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: text/html; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -49,49 +49,48 @@ X-Frame-Options: DENY
 				document.head.appendChild(s);
 			})();
 		</script>
-		<link href="/_app/immutable/entry/start.ClhrfWyJ.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/Bwe6IjFD.js" rel="modulepreload">
+		<link href="/_app/immutable/entry/start.DVrHnpCX.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/Ej2O6QcG.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/DMGfjCKP.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/DTu3ekn_.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BIo2cMHz.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/BLC_oATB.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/BUbNL5Bm.js" rel="modulepreload">
-		<link href="/_app/immutable/entry/app.BxA7C-cX.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/C8uzM4Hw.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/DNMX401e.js" rel="modulepreload">
+		<link href="/_app/immutable/entry/app.BBf7HbjL.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/DQHtnrIs.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/CDxmbETd.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/CysaHFC6.js" rel="modulepreload">
-		<link href="/_app/immutable/nodes/0.sAuZ_Spc.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/h8cVYCg4.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/CIg6Dthh.js" rel="modulepreload">
+		<link href="/_app/immutable/nodes/0.jscWv20T.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BaDAQeT2.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/Fwq0S5DF.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/EopD9VY9.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/7K5u0YRW.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/CFZl13Zd.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/BRYLxLdy.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/2lV4Ecrc.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/Daeih2b4.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/X_UPgPUr.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/BQfIF1qW.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/CPRGR3qb.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/n8EuNqkP.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/jOI8nkZc.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/kvZDR2i5.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/DfU9ORig.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BQvebUvH.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/DoXx1RWm.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/mlptCadZ.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/DdnbujZK.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/Bm6BLy0P.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/I1jVCVBc.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/CvHZtbjQ.js" rel="modulepreload">
 		
-		<link href="/_app/immutable/assets/0.Di9TLydB.css" rel="stylesheet">
+		<link href="/_app/immutable/assets/0.BUsky4oH.css" rel="stylesheet">
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">
 			<script>
 				{
-					__sveltekit_jhj673 = {
+					__sveltekit_1yhh7h7 = {
 						base: ""
 					};
 
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("/_app/immutable/entry/start.ClhrfWyJ.js"),
-						import("/_app/immutable/entry/app.BxA7C-cX.js")
+						import("/_app/immutable/entry/start.DVrHnpCX.js"),
+						import("/_app/immutable/entry/app.BBf7HbjL.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element);
 					});
@@ -106,7 +105,7 @@ X-Frame-Options: DENY
 GET /.well-known/openid-configuration
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -120,7 +119,7 @@ X-Frame-Options: DENY
 GET /.well-known/oauth-authorization-server
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -134,7 +133,7 @@ X-Frame-Options: DENY
 GET /keys
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -149,7 +148,7 @@ X-Frame-Options: DENY
 POST /oauth/token
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -164,7 +163,7 @@ X-Frame-Options: DENY
 POST /oauth/token
 401 Unauthorized
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -179,7 +178,7 @@ X-Frame-Options: DENY
 POST /oauth/token
 400 Bad Request
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -194,7 +193,7 @@ X-Frame-Options: DENY
 GET /authorize?client_id=golden-app&code_challenge=taakmHibHQFuJnBnpc6t832T9PQkRt80ju1v23Q-YPU&code_challenge_method=S256&nonce=n0nce&redirect_uri=http%3A%2F%2F127.0.0.1%3A9999%2Fcallback&response_type=code&scope=openid+profile+email+offline_access&state=st4te
 302 Found
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: text/html; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Location: /login?auth_request={random}
@@ -212,7 +211,7 @@ X-Frame-Options: DENY
 POST /api/login
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -228,7 +227,7 @@ X-Frame-Options: DENY
 GET /authorize/callback?id={random}
 302 Found
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: text/html; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Location: http://127.0.0.1:9999/callback?code={random}&iss={issuer}&state=st4te
@@ -246,7 +245,7 @@ X-Frame-Options: DENY
 POST /oauth/token
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -261,7 +260,7 @@ X-Frame-Options: DENY
 POST /oauth/token
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -276,7 +275,7 @@ X-Frame-Options: DENY
 GET /userinfo
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -291,7 +290,7 @@ X-Frame-Options: DENY
 GET /userinfo
 401 Unauthorized
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: text/plain; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -306,7 +305,7 @@ access token invalid
 GET /userinfo
 401 Unauthorized
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: text/plain; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -321,7 +320,7 @@ access token invalid
 POST /oauth/introspect
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -336,7 +335,7 @@ X-Frame-Options: DENY
 POST /oauth/introspect
 200 OK
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: application/json
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -351,7 +350,7 @@ X-Frame-Options: DENY
 POST /oauth/introspect
 401 Unauthorized
 Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'self'
-Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-ywVaOy7DMJ2riWrSz5PQ22md+WA511mBNlIky9SIhs4='; style-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; connect-src 'self'; script-src 'self' 'sha256-ifDSNmHRvWVP1CZBZOl7aaa0z55GZrS6l4j+0lmrieg=' 'sha256-XoYiAYRlzwiHgzNqQASCsRd/5AdsxNaN0VjDlgmcL3w='; style-src 'self' 'unsafe-inline'
 Content-Type: text/plain; charset=utf-8
 Cross-Origin-Opener-Policy: unsafe-none
 Permissions-Policy: camera=(), microphone=(), geolocation=()
