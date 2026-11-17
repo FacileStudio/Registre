@@ -6,6 +6,12 @@ All notable changes to Registre are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.23.3] - 2026-11-17
+
+### Fixed
+
+- The embedded client build (`apps/api/internal/web/dist`) serves Vision tracker v0.15.0. v0.23.2 updated only `apps/client/static`, so production kept serving v0.14.
+
 ## [0.23.2] - 2026-11-17
 
 ### Changed
